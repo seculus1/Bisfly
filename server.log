@@ -1,0 +1,10 @@
+
+> outputs@1.0.0 start
+> node server.js
+
+✓ Loaded environment variables from .env.local
+BisFly website running at http://localhost:8082
+Admin portal available at http://localhost:8082/admin
+Admin dashboard available at http://localhost:8082/admin-dashboard
+Default Admin Username: admin | Default Password: BisFly@2026
+✓ Email service configured: bisflytravels@gmail.com

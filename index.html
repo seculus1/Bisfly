@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BisFly Travel and Tours</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: "#06153b",
+            royal: "#073c9a",
+            gold: "#f8b72b",
+            red: "#df201c"
+          },
+          boxShadow: {
+            gold: "0 18px 44px rgba(248,183,43,.25)",
+            blue: "0 26px 70px rgba(5,43,125,.38)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body {
+      background:
+        radial-gradient(circle at 70% 8%, rgba(19, 101, 227, .46), transparent 33rem),
+        radial-gradient(circle at 4% 30%, rgba(248, 183, 43, .16), transparent 28rem),
+        linear-gradient(180deg, #06153b 0%, #020713 74%);
+    }
+    .hero {
+      background-image:
+        linear-gradient(90deg, rgba(3, 13, 42, .98) 0%, rgba(5, 34, 93, .9) 45%, rgba(5, 34, 93, .25) 100%),
+        url("https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1800&q=85");
+      background-position: center;
+      background-size: cover;
+    }
+    .world-map {
+      background-image: radial-gradient(rgba(248,183,43,.2) 1px, transparent 1px);
+      background-size: 12px 12px;
+      mask-image: linear-gradient(90deg, rgba(0,0,0,.9), transparent 75%);
+    }
+    .glass { background: rgba(255,255,255,.07); backdrop-filter: blur(18px); }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <div class="bg-black/95 text-xs font-semibold text-white/90">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
+      <div class="flex flex-wrap items-center gap-5">
+        <span class="inline-flex items-center gap-2"><i data-lucide="phone" class="h-4 w-4 text-gold"></i> +234 705 193 5203</span>
+        <a class="inline-flex items-center gap-2 hover:text-gold" href="mailto:bisflytravels@gmail.com"><i data-lucide="mail" class="h-4 w-4 text-gold"></i> bisflytravels@gmail.com</a>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="hidden items-center gap-2 md:inline-flex"><i data-lucide="clock" class="h-4 w-4 text-gold"></i> Mon - Fri: 9:00 AM - 6:00 PM</span>
+        <a aria-label="Facebook" href="https://www.facebook.com/profile.php?id=61587200745381" target="_blank" rel="noreferrer" class="flex h-5 w-5 items-center justify-center rounded-full border border-white/35 text-xs font-black hover:border-gold hover:text-gold">f</a>
+        <a aria-label="Instagram" href="https://www.instagram.com/bisfly_travels?igsh=cm5tdTVuanFqNGM0" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="camera" class="h-4 w-4"></i></a>
+        <a aria-label="Twitter" href="https://twitter.com/bisflytravels" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="twitter" class="h-4 w-4"></i></a>
+        <a aria-label="LinkedIn" href="https://www.linkedin.com/company/bisfly-travel-and-tours" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="linkedin" class="h-4 w-4"></i></a>
+        <a aria-label="YouTube" href="https://www.youtube.com/@bisflytravels" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="play-circle" class="h-4 w-4"></i></a>
+        <a aria-label="TikTok" href="https://www.tiktok.com/@bisflytravels" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="music-2" class="h-4 w-4"></i></a>
+        <a aria-label="WhatsApp" href="https://wa.me/2347051935203" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="message-circle" class="h-4 w-4"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-navy/95 backdrop-blur-xl">
+    <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <a href="#home" class="flex items-center gap-3">
+        <img src="bisfly-logo.png" alt="BisFly Travel and Tours logo" class="h-14 w-auto rounded bg-white/95 p-1" />
+      </a>
+      <div class="hidden items-center gap-8 text-sm font-bold lg:flex">
+        <a class="text-gold" href="#home">Home</a>
+        <a class="hover:text-gold" href="#about">About Us</a>
+        <a class="inline-flex items-center gap-1 hover:text-gold" href="#services">Services <i data-lucide="chevron-down" class="h-4 w-4 text-gold"></i></a>
+        <a class="hover:text-gold" href="/passport.html">International Passport</a>
+        <a class="hover:text-gold" href="/insurance.html">Insurance</a>
+        <a class="hover:text-gold" href="#contact">Contact Us</a>
+      </div>
+      <a href="#visa-check" class="hidden items-center gap-2 rounded-lg bg-red px-6 py-3 text-sm font-black shadow-lg shadow-red/30 hover:bg-gold hover:text-navy lg:inline-flex"><i data-lucide="send" class="h-5 w-5"></i> Apply for Visa</a>
+      <button id="menuBtn" class="rounded-lg border border-white/20 p-2 lg:hidden" aria-label="Open menu"><i data-lucide="menu"></i></button>
+    </nav>
+    <div id="mobileMenu" class="hidden border-t border-white/10 bg-navy px-5 py-4 lg:hidden">
+      <div class="grid gap-3 text-sm font-bold">
+        <a href="#about">About Us</a>
+        <a href="#services">Services</a>
+        <a href="/passport.html">International Passport</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="home">
+    <section class="hero relative overflow-hidden">
+      <div class="world-map absolute inset-0 opacity-70"></div>
+      <div class="relative mx-auto grid min-h-[650px] max-w-7xl items-center gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_.94fr] lg:px-8">
+        <div class="max-w-3xl">
+          <h1 class="text-5xl font-black leading-[1.03] tracking-normal sm:text-6xl lg:text-7xl">
+            Explore The World <span class="block bg-gradient-to-r from-gold via-white to-gold bg-clip-text text-transparent">Without Limits</span>
+          </h1>
+          <p class="mt-6 max-w-2xl text-xl leading-9 text-white/90">Visa processing   | Flight booking   | Study abroad   | Work permits  | Hotel reservations   |   International Passport Processing and Group tours at BisFly Travel and Tours.</p>
+          <div class="mt-8 flex flex-wrap gap-4">
+            <a href="#visa-check" class="inline-flex items-center gap-2 rounded-lg bg-gold px-6 py-4 font-black text-navy shadow-gold hover:bg-white"><i data-lucide="clipboard-check" class="h-5 w-5"></i> Apply for Visa</a>
+            <a href="/passport.html" class="inline-flex items-center gap-2 rounded-lg bg-white/10 px-6 py-4 font-black text-white border border-white/20 shadow-lg hover:bg-white/20"><i data-lucide="passport" class="h-5 w-5"></i> Passport Support</a>
+            <a href="#booking" class="inline-flex items-center gap-2 rounded-lg bg-royal px-6 py-4 font-black text-white shadow-blue hover:bg-red"><i data-lucide="plane" class="h-5 w-5"></i> Book Flight</a>
+            <a href="#booking" class="inline-flex items-center gap-2 rounded-lg bg-red px-6 py-4 font-black text-white shadow-lg hover:bg-gold hover:text-navy"><i data-lucide="calendar-days" class="h-5 w-5"></i> Schedule Consultation</a>
+          </div>
+        </div>
+
+        <div class="relative min-h-[520px]">
+          <div class="absolute right-0 top-2 w-[92%] overflow-hidden rounded-full border-8 border-gold/25 bg-gradient-to-br from-gold to-red shadow-blue">
+            <img src="https://images.unsplash.com/photo-1529232356377-57971f020a94?auto=format&fit=crop&w=900&q=85" alt="Happy traveler holding documents" class="h-[420px] w-full object-cover object-center mix-blend-luminosity opacity-95" />
+          </div>
+          <div class="absolute right-0 top-16 hidden rounded-lg border border-white/25 bg-white/10 p-5 shadow-blue backdrop-blur md:block">
+            <div class="flex items-center gap-3">
+              <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-green-600"><i data-lucide="check" class="h-7 w-7"></i></span>
+              <div class="text-sm font-black">VISA APPROVED</div>
+            </div>
+            <p class="mt-4 text-sm font-bold text-white/90">Canada Study Visa</p>
+            <p class="mt-1 text-xs text-white/70">BisFly client</p>
+            <p class="mt-3 inline-block rotate-[-8deg] border-2 border-red px-3 py-1 font-black text-red">APPROVED</p>
+          </div>
+          <div class="absolute bottom-5 right-5 flex h-36 w-36 items-center justify-center rounded-full border-4 border-gold bg-black text-center shadow-gold">
+            <div><b class="block text-4xl text-gold">15+</b><span class="text-xs font-black uppercase">Years of<br>Excellence</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="relative mx-auto max-w-7xl px-4 pb-6 sm:px-6 lg:px-8">
+        <div class="grid gap-0 overflow-hidden rounded-lg border border-white/18 bg-white/8 backdrop-blur md:grid-cols-4">
+          <div class="flex items-center gap-4 border-white/10 p-6 md:border-r"><i data-lucide="users" class="h-10 w-10 text-gold"></i><p><b class="block text-3xl">15+</b><span class="text-sm">Years Experience</span></p></div>
+          <div class="flex items-center gap-4 border-white/10 p-6 md:border-r"><i data-lucide="shield-check" class="h-10 w-10 text-gold"></i><p><b class="block text-3xl">5,000+</b><span class="text-sm">Successful Applications</span></p></div>
+          <div class="flex items-center gap-4 border-white/10 p-6 md:border-r"><i data-lucide="globe-2" class="h-10 w-10 text-gold"></i><p><b class="block text-3xl">30+</b><span class="text-sm">Destination Countries</span></p></div>
+          <div class="flex items-center gap-4 p-6"><i data-lucide="smile" class="h-10 w-10 text-gold"></i><p><b class="block text-3xl">98%</b><span class="text-sm">Client Satisfaction</span></p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="services" class="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_.48fr] lg:px-8">
+      <div>
+        <p class="text-sm font-black uppercase tracking-wide text-gold">Our Services</p>
+        <h2 class="mt-2 text-3xl font-black">How We Can Help You</h2>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <article class="rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="badge-check" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">Visa Processing</h3><p class="mt-3 text-sm leading-6 text-white/72">Tourist, study, business and work visa support.</p><a href="#visa-check" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
+          <article class="rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="plane-takeoff" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">Flight Reservation</h3><p class="mt-3 text-sm leading-6 text-white/72">Domestic and international flight comparison.</p><a href="#booking" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
+          <article id="study" class="rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="graduation-cap" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">Study Abroad</h3><p class="mt-3 text-sm leading-6 text-white/72">Admissions route and student travel support.</p><a href="#booking" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
+          <article class="rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="briefcase-business" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">Work Permit Assistance</h3><p class="mt-3 text-sm leading-6 text-white/72">Professional migration guidance and planning.</p><a href="#booking" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
+          <article class="rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="building-2" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">Hotel Reservation</h3><p class="mt-3 text-sm leading-6 text-white/72">Global accommodation booking support.</p><a href="#booking" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
+          <!-- Tour Packages card removed per request -->
+          <article class="rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="globe-lock" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">E-Visas</h3><p class="mt-3 text-sm leading-6 text-white/72">Online visa guidance for eligible destinations.</p><a href="#visa-check" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
+          <article class="rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="passport" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">International Passport</h3><p class="mt-3 text-sm leading-6 text-white/72">Assistance with passport applications, renewals, and required documentation.</p><a href="#booking" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
+          <article class="rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="shield" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">Travel Insurance</h3><p class="mt-3 text-sm leading-6 text-white/72">Comprehensive travel protection and coverage.</p><a href="/insurance.html" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
+        </div>
+      </div>
+
+      <form id="visa-check" class="rounded-lg border border-blue-300/25 bg-gradient-to-br from-royal/90 to-navy p-6 shadow-blue">
+        <h2 class="text-2xl font-black">Check Your Visa Eligibility</h2>
+        <div class="mt-3 h-1 w-12 bg-gold"></div>
+        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <input required name="fullName" class="rounded border border-blue-200/25 bg-navy/60 px-4 py-3 text-sm outline-none placeholder:text-white/55 focus:border-gold" placeholder="Full Name" />
+          <input required type="email" name="email" class="rounded border border-blue-200/25 bg-navy/60 px-4 py-3 text-sm outline-none placeholder:text-white/55 focus:border-gold" placeholder="Email Address" />
+          <input required name="phone" class="rounded border border-blue-200/25 bg-navy/60 px-4 py-3 text-sm outline-none placeholder:text-white/55 focus:border-gold" placeholder="Phone Number" />
+          <input required name="country" class="rounded border border-blue-200/25 bg-navy/60 px-4 py-3 text-sm outline-none placeholder:text-white/55 focus:border-gold" placeholder="Destination Country" />
+          <select name="visaType" class="rounded border border-blue-200/25 bg-navy/60 px-4 py-3 text-sm outline-none focus:border-gold"><option>Visa Type</option><option>Study Visa</option><option>Tourist Visa</option><option>Business Visa</option><option>Work Permit</option></select>
+          <input type="date" name="travelDate" class="rounded border border-blue-200/25 bg-navy/60 px-4 py-3 text-sm outline-none focus:border-gold" />
+        </div>
+        <button class="mt-5 flex w-full items-center justify-center gap-3 rounded bg-red px-5 py-4 font-black hover:bg-gold hover:text-navy" type="submit">Check Eligibility Now <i data-lucide="arrow-right" class="h-5 w-5"></i></button>
+        <p id="eligibilityStatus" class="mt-4 hidden rounded bg-green-500/15 p-3 text-sm font-bold text-green-200">Eligibility request sent to BisFly.</p>
+      </form>
+    </section>
+
+    <section id="packages" class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+      <div class="rounded-lg border border-white/15 bg-black/20 p-5">
+        <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p class="text-sm font-black uppercase tracking-wide text-gold">Popular Destinations</p>
+            <h2 class="text-3xl font-black">Top Destinations</h2>
+          </div>
+          <button id="viewAllBtn" class="rounded border border-gold px-5 py-2 text-sm font-black text-gold hover:bg-gold hover:text-navy">View All</button>
+        </div>
+        <div id="destinationGrid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5"></div>
+
+        <div class="mt-10 mb-6">
+          <p class="text-sm font-black uppercase tracking-wide text-gold">Featured Stays</p>
+          <h2 class="text-3xl font-black text-white">Featured Packages</h2>
+        </div>
+        <div id="gallery" class="mt-2 grid gap-8 sm:grid-cols-2 lg:grid-cols-3"></div>
+        <div class="mt-6 text-center">
+          <a href="#packages" class="inline-flex items-center justify-center rounded-full bg-gold px-7 py-3 text-sm font-black uppercase tracking-wide text-navy shadow-lg shadow-gold/30 hover:bg-white">Browse Packages</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="booking" class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+      <div>
+        <form id="bookingForm" class="mx-auto max-w-4xl rounded-lg border border-white/15 bg-white p-6 text-slate-900 shadow-blue">
+          <p class="text-sm font-black uppercase tracking-wide text-red">Travel request</p>
+          <h2 class="mt-1 text-3xl font-black text-navy">Plan a trip with BisFly</h2>
+          <div class="mt-5 grid gap-4 sm:grid-cols-2">
+            <input required name="name" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Full name" />
+            <input required name="phone" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Phone or WhatsApp" />
+            <input required type="email" name="email" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Email" />
+            <input required name="destination" id="destinationInput" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Destination" />
+            <select name="service" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal"><option>Visa processing</option><option>Flight reservation</option><option>Study abroad</option><option>Hotel reservation</option><option>Tour package</option></select>
+            <input type="date" name="date" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" />
+          </div>
+          <textarea name="message" rows="4" class="mt-4 w-full rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Budget, number of travelers, preferred travel month..."></textarea>
+          <button class="mt-4 w-full rounded bg-gradient-to-r from-royal via-red to-gold px-5 py-4 font-black text-white" type="submit">Submit Travel Request</button>
+          <p id="formStatus" class="mt-3 hidden rounded bg-green-50 p-3 text-sm font-bold text-green-700">Request sent. BisFly will follow up with you.</p>
+        </form>
+      </div>
+    </section>
+
+    <section id="about" class="bg-white py-16 text-slate-900">
+      <div class="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[.8fr_1.2fr] lg:px-8">
+        <div>
+          <p class="text-sm font-black uppercase tracking-wide text-red">About BisFly</p>
+          <h2 class="mt-2 text-3xl font-black text-navy">Professional travel support</h2>
+        </div>
+        <p class="text-lg leading-8 text-slate-600 text-justify">BisFly Travel and Tours guides travelers from first itinerary sketch to confirmed bookings with precise direction, fast follow-ups, and hands-on problem solving. We manage full cycle visa applications for tourism, business, study, International passport processing, work routes scrutinizing paperwork, completing forms, and securing embassy appointments to cut bottlenecks. Our desk sources vetted travel insurance, negotiates airline fares across carriers, and locks in hotel stays that fit your route and budget. From weekend getaways to family tours and study-abroad placements, we stitch the moving parts together so you board with documents in order and zero last-minute scramble.</p>
+      </div>
+    </section>
+
+    <section id="contact" class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div class="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
+        <div>
+          <p class="text-sm font-black uppercase tracking-wide text-gold">Contact</p>
+          <h2 class="mt-2 text-3xl font-black">Connect with BisFly</h2>
+          <p class="mt-4 text-white/80">Address: Ibadan, Oyo State, Nigeria.</p>
+          <p class="mt-2 text-white/80">Phone Number: 07077411421, 08129701410</p>
+          <p class="mt-2 text-white/80">Email: bisflytravels@gmail.com</p>
+          <div class="mt-8 grid gap-3 sm:grid-cols-2">
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://wa.me/2347051935203" target="_blank" rel="noreferrer"><i data-lucide="message-circle" class="mb-3 h-7 w-7 text-gold"></i>WhatsApp<br><span class="text-sm font-semibold text-white/60">Chat now</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.facebook.com/profile.php?id=61587200745381" target="_blank" rel="noreferrer"><i data-lucide="facebook" class="mb-3 h-7 w-7 text-gold"></i>Facebook<br><span class="text-sm font-semibold text-white/60">BisFly Travel</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.instagram.com/bisfly_travels?igsh=cm5tdTVuanFqNGM0" target="_blank" rel="noreferrer"><i data-lucide="camera" class="mb-3 h-7 w-7 text-gold"></i>Instagram<br><span class="text-sm font-semibold text-white/60">@bisfly_travels</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.tiktok.com/@bisflytravels" target="_blank" rel="noreferrer"><i data-lucide="music-2" class="mb-3 h-7 w-7 text-gold"></i>TikTok<br><span class="text-sm font-semibold text-white/60">@bisflytravels</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://twitter.com/bisflytravels" target="_blank" rel="noreferrer"><i data-lucide="twitter" class="mb-3 h-7 w-7 text-gold"></i>Twitter<br><span class="text-sm font-semibold text-white/60">@bisflytravels</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.linkedin.com/company/bisfly-travel-and-tours" target="_blank" rel="noreferrer"><i data-lucide="linkedin" class="mb-3 h-7 w-7 text-gold"></i>LinkedIn<br><span class="text-sm font-semibold text-white/60">Company profile</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.youtube.com/@bisflytravels" target="_blank" rel="noreferrer"><i data-lucide="play-circle" class="mb-3 h-7 w-7 text-gold"></i>YouTube<br><span class="text-sm font-semibold text-white/60">Travel videos</span></a>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+            <p class="text-sm font-black uppercase tracking-wide text-gold">Find us on Google</p>
+            <h3 class="mt-2 text-2xl font-black text-white">Google Map</h3>
+            <p class="mt-3 text-sm text-white/70">See BisFly Travel and Tours location in Ibadan.</p>
+            <div class="mt-5 overflow-hidden rounded-3xl border border-white/10 bg-black/40">
+              <iframe class="h-72 w-full" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.763928834378!2d3.898091315043783!3d7.377525094711605!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x103a3ca2a92fbb69%3A0x30be8a39d91d0852!2sIbadan%2C%20Nigeria!5e0!3m2!1sen!2sus!4v1710000000000" allowfullscreen="" loading="lazy"></iframe>
+            </div>
+          </div>
+
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+            <p class="text-sm font-black uppercase tracking-wide text-gold">Site Map</p>
+            <h3 class="mt-2 text-2xl font-black text-white">Quick links</h3>
+            <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                <a class="rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-sm font-semibold text-white transition hover:border-gold hover:bg-white/10" href="#home">Home</a>
+              <a class="rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-sm font-semibold text-white transition hover:border-gold hover:bg-white/10" href="#about">About Us</a>
+              <a class="rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-sm font-semibold text-white transition hover:border-gold hover:bg-white/10" href="#services">Services</a>
+              <a class="rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-sm font-semibold text-white transition hover:border-gold hover:bg-white/10" href="/passport.html">International Passport</a>
+              <a class="rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-sm font-semibold text-white transition hover:border-gold hover:bg-white/10" href="#visa-check">Visa Check</a>
+              <a class="rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-sm font-semibold text-white transition hover:border-gold hover:bg-white/10" href="#booking">Book Now</a>
+              <a class="rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-sm font-semibold text-white transition hover:border-gold hover:bg-white/10" href="#contact">Contact</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <a href="https://wa.me/2347051935203?text=Hello%20BisFly%20Travels%20and%20Tours%2C%20I%20need%20help%20with%20my%20travel%20request." id="whatsappBubble" class="fixed bottom-6 left-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white shadow-2xl" aria-label="Chat on WhatsApp" target="_blank" rel="noreferrer noopener"><i data-lucide="message-circle"></i><span class="absolute -right-1 -top-1 rounded-full bg-red px-2 py-0.5 text-xs font-black">1</span></a>
+  <a href="https://wa.me/2347051935203?text=Hello%20BisFly%20Travels%20and%20Tours%2C%20I%20need%20help%20with%20my%20travel%20request." id="chatToggle" class="fixed bottom-6 right-5 z-50 flex items-center gap-2 rounded-full bg-green-500 px-5 py-4 text-sm font-black shadow-2xl hover:bg-green-600 hover:text-white" target="_blank" rel="noreferrer noopener"><i data-lucide="messages-square" class="h-5 w-5"></i> Chat on WhatsApp</a>
+
+  <footer class="border-t border-white/10 bg-black px-4 py-7 text-center text-sm font-semibold text-white/75">
+    <p><li>BisFly Travel and Tours, Ibadan. bisflytravels@gmail.com</p>
+  </footer>
+
+  <script>
+    // Form Validation Utilities
+    function validateEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(String(email).toLowerCase());
+    }
+
+    function validatePhone(phone) {
+      const re = /^[\d\+\-\(\)\s]{7,}$/;
+      return re.test(String(phone));
+    }
+
+    function validateForm(formData) {
+      const errors = [];
+      
+      if (formData.email && !validateEmail(formData.email)) {
+        errors.push("Invalid email address");
+      }
+      
+      if (formData.phone && !validatePhone(formData.phone)) {
+        errors.push("Phone must be at least 7 digits");
+      }
+      
+      if (formData.fullName && formData.fullName.length < 2) {
+        errors.push("Name must be at least 2 characters");
+      }
+      
+      return errors;
+    }
+
+    const destinations = [
+      { name: "Canada", code: "CA", img: "https://images.unsplash.com/photo-1517935706615-2717063c2225?auto=format&fit=crop&w=700&q=80" },
+      { name: "United Kingdom", code: "UK", img: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=700&q=80" },
+      { name: "Ireland", code: "IE", img: "https://images.unsplash.com/photo-1590089415225-401ed6f9db8e?auto=format&fit=crop&w=700&q=80" },
+      { name: "Australia", code: "AU", img: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=700&q=80" },
+      { name: "Germany", code: "DE", img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=700&q=80" },
+      { name: "Schengen Countries", code: "EU", logo: "schengen-logo.svg", img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=700&q=80" }
+    ];
+    const seedLeads = [
+      { name: "Aisha Bello", phone: "WhatsApp request", email: "pending", destination: "Canada", service: "Study Visa", date: "2026-08-18" },
+      { name: "Tunde Adeyemi", phone: "Phone request", email: "pending", destination: "Dubai", service: "Tour Package", date: "2026-07-02" }
+    ];
+    let leads = JSON.parse(localStorage.getItem("bisflyLeads") || "null") || seedLeads;
+
+    function renderDestinations() {
+      document.getElementById("destinationGrid").innerHTML = destinations.map(dest => `
+        <button class="destination group relative h-32 overflow-hidden rounded-lg border border-blue-200/20 text-left" data-name="${dest.name}">
+          <img src="${dest.img}" alt="${dest.name}" class="h-full w-full object-cover transition group-hover:scale-110" />
+          <span class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></span>
+          ${dest.logo ? `<img src="${dest.logo}" alt="Schengen logo" class="absolute right-3 top-3 h-12 w-12 rounded-full bg-white p-1 shadow-lg" />` : ""}
+          <span class="absolute bottom-3 left-3 text-lg font-black"><span class="mr-2 rounded bg-red px-2 py-1 text-xs">${dest.code}</span>${dest.name}</span>
+        </button>
+      `).join("");
+      document.querySelectorAll(".destination").forEach(button => {
+        button.addEventListener("click", () => {
+          document.getElementById("destinationInput").value = button.dataset.name;
+          document.getElementById("booking").scrollIntoView({ behavior: "smooth" });
+        });
+      });
+    }
+
+    function showPackageDetails(pkg) {
+      const modal = document.getElementById('packageDetailModal');
+      const title = document.getElementById('packageDetailTitle');
+      const image = document.getElementById('packageDetailImage');
+      const description = document.getElementById('packageDetailDescription');
+      const price = document.getElementById('packageDetailPrice');
+      const duration = document.getElementById('packageDetailDuration');
+      const tags = document.getElementById('packageDetailTags');
+      const defaultImage = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80';
+
+      if (!modal || !title || !image || !description || !price || !duration || !tags) return;
+
+      const packageTitle = pkg.title || 'Travel Package';
+      const packageDescription = pkg.description || 'Explore this exciting travel package with BisFly Travel and Tours.';
+      const formattedPrice = pkg.price || 'Price not set';
+      const packageDuration = pkg.duration || 'Flexible duration';
+      const tagList = Array.isArray(pkg.tags) && pkg.tags.length ? pkg.tags : ['Travel', 'Accommodation', 'Visa Guidance'];
+
+      title.textContent = packageTitle;
+      image.src = pkg.imageFile ? `/uploads/${pkg.imageFile}` : defaultImage;
+      image.alt = packageTitle;
+      description.textContent = packageDescription;
+      price.textContent = formattedPrice;
+      duration.textContent = packageDuration;
+      tags.innerHTML = tagList.map(tag => `<span class="rounded-full border border-gold/30 bg-gold/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gold">${tag}</span>`).join(' ');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function hidePackageDetails() {
+      const modal = document.getElementById('packageDetailModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    async function loadPackagesFront() {
+      try {
+        const res = await fetch('/api/packages');
+        if (!res.ok) return;
+        const packages = await res.json();
+        const gallery = document.getElementById('gallery');
+        gallery.innerHTML = '';
+
+        const defaultImage = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80';
+        const loadedPackages = Array.isArray(packages) ? packages.slice(0, 6) : [];
+
+        if (loadedPackages.length === 0) {
+          gallery.innerHTML = `<div class="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-white/70">No travel packages available yet. Check back soon.</div>`;
+          return;
+        }
+
+        loadedPackages.forEach((p, index) => {
+          const imageUrl = p.imageFile ? `/uploads/${p.imageFile}` : defaultImage;
+          const lowerTitle = String(p.title || '').toLowerCase();
+          const price = p.price || (() => {
+            if (lowerTitle.includes('canada')) return '₦ 1,200,000';
+            if (lowerTitle.includes('uk') || lowerTitle.includes('united kingdom')) return '₦ 1,450,000';
+            if (lowerTitle.includes('australia')) return '₦ 1,680,000';
+            if (lowerTitle.includes('ireland')) return '₦ 1,380,000';
+            if (lowerTitle.includes('germany')) return '₦ 1,520,000';
+            if (lowerTitle.includes('schengen')) return '₦ 1,350,000';
+            return '₦ 1,100,000';
+          })();
+          const rating = p.rating || (index % 2 === 0 ? '4.9' : '4.8');
+          const duration = p.duration || (() => {
+            if (lowerTitle.includes('canada')) return '7 days / 6 nights';
+            if (lowerTitle.includes('uk') || lowerTitle.includes('united kingdom')) return '10 days / 9 nights';
+            if (lowerTitle.includes('australia')) return '12 days / 11 nights';
+            if (lowerTitle.includes('ireland')) return '8 days / 7 nights';
+            if (lowerTitle.includes('germany')) return '9 days / 8 nights';
+            if (lowerTitle.includes('schengen')) return '6 days / 5 nights';
+            return '5 days / 4 nights';
+          })();
+          const tripTags = Array.isArray(p.tags) && p.tags.length ? p.tags : (() => {
+            if (lowerTitle.includes('canada')) return ['Visa Support', 'Hotel'];
+            if (lowerTitle.includes('uk') || lowerTitle.includes('united kingdom')) return ['City Tours', 'Flights'];
+            if (lowerTitle.includes('australia')) return ['Beach', 'Transfers'];
+            if (lowerTitle.includes('ireland')) return ['Adventure', 'Guided'];
+            if (lowerTitle.includes('germany')) return ['Business', 'Luxury'];
+            if (lowerTitle.includes('schengen')) return ['Multi-stop', 'Visa'];
+            return ['Group Tour', 'Luxury'];
+          })();
+          const isPopular = index < 2 || lowerTitle.includes('canada') || lowerTitle.includes('uk') || lowerTitle.includes('germany') || lowerTitle.includes('australia');
+          const isBestSeller = index === 0 || lowerTitle.includes('canada') || lowerTitle.includes('australia');
+          const packageText = encodeURIComponent(`Hello BisFly Travel and Tours, I want to book the package: ${p.title || 'Travel package'}.`);
+          const whatsappLink = `https://wa.me/2347051935203?text=${packageText}`;
+
+          const galleryItem = document.createElement('div');
+          galleryItem.className = 'group relative overflow-hidden rounded-[30px] border border-white/10 bg-white/5 shadow-[0_30px_80px_rgba(2,6,23,0.7)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(248,183,43,0.22)] hover:border-gold/50';
+          galleryItem.innerHTML = `
+            <div class="absolute inset-0 bg-gradient-to-br from-white/10 via-white/0 to-gold/5 opacity-80"></div>
+            <div class="relative">
+              <div class="relative">
+                <img src="${imageUrl}" alt="${p.title}" class="h-72 w-full object-cover transition duration-500 group-hover:scale-105" />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent"></div>
+                <div class="absolute left-4 top-4 flex items-center gap-2">
+                  ${isPopular ? '<span class="rounded-full bg-gold px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-navy">Popular</span>' : ''}
+                  ${isBestSeller ? '<span class="absolute -left-2 top-10 rotate-[-28deg] rounded-r-md bg-red px-2 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-lg shadow-red/35">Best Seller</span>' : ''}
+                </div>
+                <div class="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 p-4">
+                  <span class="rounded-full bg-gold px-3 py-1 text-xs font-black uppercase tracking-wide text-navy">${price}</span>
+                  <span class="rounded-full border border-white/20 bg-black/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/90">${duration}</span>
+                </div>
+              </div>
+              <div class="p-6">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-1 text-sm text-gold">
+                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                  </div>
+                  <span class="text-sm font-bold text-white/80">${rating}</span>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-2xl font-black text-white">${p.title}</h3>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  ${tripTags.map(tag => `<span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/80">${tag}</span>`).join('')}
+                </div>
+                <p class="mt-4 text-sm leading-6 text-white/70">${p.description || 'Discover this destination.'}</p>
+                <div class="mt-5 flex items-center gap-3">
+                  <button type="button" class="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white transition hover:border-gold hover:bg-gold hover:text-navy" data-package-id="${p.id}">
+                    View Details
+                  </button>
+                  <a href="${whatsappLink}" target="_blank" rel="noreferrer" class="flex-1 rounded-xl bg-gold px-4 py-3 text-center text-sm font-black text-navy transition hover:bg-white">
+                    Book now
+                  </a>
+                </div>
+              </div>
+            </div>
+          `;
+
+          const detailBtn = galleryItem.querySelector('button[data-package-id]');
+          detailBtn.addEventListener('click', () => showPackageDetails(p));
+          gallery.appendChild(galleryItem);
+        });
+      } catch (error) {
+        console.error('Failed to load packages for front page', error);
+      }
+    }
+
+    async function saveLead(lead) {
+      try {
+        const response = await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(lead)
+        });
+        if (!response.ok) throw new Error("Lead API unavailable");
+      } catch (error) {
+        leads.unshift(lead);
+        localStorage.setItem("bisflyLeads", JSON.stringify(leads));
+      }
+    }
+
+    function initializePageInteractions() {
+      const bookingForm = document.getElementById("bookingForm");
+      if (bookingForm) {
+        bookingForm.addEventListener("submit", async event => {
+          event.preventDefault();
+          const formData = Object.fromEntries(new FormData(event.target).entries());
+
+          const errors = validateForm(formData);
+          if (errors.length > 0) {
+            alert("Please fix the following:\n" + errors.join("\n"));
+            return;
+          }
+
+          await saveLead(formData);
+          event.target.reset();
+          const formStatus = document.getElementById("formStatus");
+          if (formStatus) {
+            formStatus.classList.remove("hidden");
+            setTimeout(() => formStatus.classList.add("hidden"), 4500);
+          }
+        });
+      }
+
+      const visaCheckForm = document.getElementById("visa-check");
+      if (visaCheckForm) {
+        visaCheckForm.addEventListener("submit", async event => {
+          event.preventDefault();
+          const formData = Object.fromEntries(new FormData(event.target).entries());
+
+          const errors = validateForm(formData);
+          if (errors.length > 0) {
+            alert("Please fix the following:\n" + errors.join("\n"));
+            return;
+          }
+
+          await saveLead(formData);
+          event.target.reset();
+          const eligibilityStatus = document.getElementById("eligibilityStatus");
+          if (eligibilityStatus) {
+            eligibilityStatus.classList.remove("hidden");
+            setTimeout(() => eligibilityStatus.classList.add("hidden"), 4500);
+          }
+        });
+      }
+
+      const menuBtn = document.getElementById("menuBtn");
+      if (menuBtn) {
+        menuBtn.addEventListener("click", () => {
+          const mobileMenu = document.getElementById("mobileMenu");
+          if (mobileMenu) mobileMenu.classList.toggle("hidden");
+        });
+      }
+
+      const viewAllBtn = document.getElementById("viewAllBtn");
+      if (viewAllBtn) {
+        viewAllBtn.addEventListener("click", () => {
+          const bookingSection = document.getElementById("booking");
+          if (bookingSection) bookingSection.scrollIntoView({ behavior: "smooth" });
+        });
+      }
+
+      const closePackageDetailModalBtn = document.getElementById('closePackageDetailModal');
+      const packageDetailModal = document.getElementById('packageDetailModal');
+      if (closePackageDetailModalBtn && packageDetailModal) {
+        closePackageDetailModalBtn.addEventListener('click', hidePackageDetails);
+      }
+
+      if (packageDetailModal) {
+        packageDetailModal.addEventListener('click', event => {
+          if (event.target === packageDetailModal) {
+            hidePackageDetails();
+          }
+        });
+      }
+
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          hidePackageDetails();
+        }
+      });
+
+      renderDestinations();
+      loadPackagesFront();
+      lucide.createIcons();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializePageInteractions);
+    } else {
+      initializePageInteractions();
+    }
+  </script>
+
+  <div id="packageDetailModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4">
+    <div class="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-navy shadow-2xl">
+      <button id="closePackageDetailModal" type="button" class="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" aria-label="Close package details">✕</button>
+      <div class="max-h-[70vh] overflow-hidden bg-black/40">
+        <img id="packageDetailImage" src="" alt="Travel package" class="w-full max-h-[70vh] object-contain" />
+      </div>
+      <div class="p-6">
+        <h3 id="packageDetailTitle" class="text-2xl font-black text-gold"></h3>
+        <div class="mt-4 flex flex-wrap gap-3 text-sm text-white/80">
+          <span class="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 font-bold text-gold" id="packageDetailPrice">Price not set</span>
+          <span class="rounded-full border border-white/15 bg-white/5 px-3 py-1" id="packageDetailDuration">Duration not set</span>
+        </div>
+        <div id="packageDetailTags" class="mt-4 flex flex-wrap gap-2"></div>
+        <p id="packageDetailDescription" class="mt-5 text-base leading-7 text-white/80"></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

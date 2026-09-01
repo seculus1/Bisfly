@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>International Passport | BisFly Travel and Tours</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { navy: "#06153b", royal: "#073c9a", gold: "#f8b72b", red: "#df201c" }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="text-white antialiased bg-navy">
+  <header class="border-b border-white/10 bg-black/90">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+      <a href="/" class="flex items-center gap-3"><img src="bisfly-logo.png" alt="BisFly logo" class="h-12 rounded bg-white p-1" /><span class="text-lg font-black">BisFly Travel and Tours</span></a>
+      <nav class="flex flex-wrap items-center gap-4 text-sm font-bold text-white/90">
+        <a href="/" class="hover:text-gold">Home</a>
+        <a href="/passport.html" class="text-gold">Passport</a>
+        <a href="/insurance.html" class="hover:text-gold">Insurance</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+    <div class="grid gap-10 lg:grid-cols-[.95fr_1.05fr]">
+      <div>
+        <p class="text-sm font-black uppercase tracking-wide text-gold">International Passport</p>
+        <h1 class="mt-3 text-4xl font-black text-white">Passport Application & Renewal Support</h1>
+        <p class="mt-5 text-white/80 leading-8">BisFly helps you apply for a new international passport or renew your existing passport with document review, appointment support, and application follow-up. Complete the request form and our team will reach out to start your passport process.</p>
+        <div class="mt-8 grid gap-4 sm:grid-cols-2">
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <h2 class="font-black text-xl">What we assist with</h2>
+            <ul class="mt-4 space-y-3 text-white/80">
+              <li class="flex items-start gap-3"><i data-lucide="check-circle" class="mt-1 h-5 w-5 text-gold"></i>New passport applications</li>
+              <li class="flex items-start gap-3"><i data-lucide="check-circle" class="mt-1 h-5 w-5 text-gold"></i>Passport renewals</li>
+              <li class="flex items-start gap-3"><i data-lucide="check-circle" class="mt-1 h-5 w-5 text-gold"></i>Document checklist review</li>
+              <li class="flex items-start gap-3"><i data-lucide="check-circle" class="mt-1 h-5 w-5 text-gold"></i>Fast follow-up by WhatsApp and email</li>
+            </ul>
+          </div>
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <h2 class="font-black text-xl">Need help now?</h2>
+            <p class="mt-4 text-white/75">Send your passport details, nationality, and the type of request. Our admin team will confirm the next steps and provide a timeline for processing.</p>
+            <div class="mt-6 space-y-3 text-sm text-white/70">
+              <div class="flex items-center gap-3"><i data-lucide="phone" class="h-5 w-5 text-gold"></i> +234 705 193 5203</div>
+              <div class="flex items-center gap-3"><i data-lucide="mail" class="h-5 w-5 text-gold"></i> bisflytravels@gmail.com</div>
+              <a href="https://wa.me/2347051935203" target="_blank" rel="noreferrer" class="inline-flex items-center gap-2 rounded-lg bg-green-500/10 px-4 py-3 text-sm font-black text-green-200 hover:bg-green-500/20">Chat on WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-blue">
+        <h2 class="text-3xl font-black text-white">Submit Passport Request</h2>
+        <form id="passportRequestForm" class="mt-7 grid gap-4">
+          <input type="text" name="fullName" required placeholder="Full Name" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          <input type="email" name="email" required placeholder="Email Address" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          <input type="text" name="phone" required placeholder="Phone or WhatsApp" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          <input type="text" name="nationality" required placeholder="Nationality" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          <div class="grid gap-4 sm:grid-cols-2">
+            <select name="passportType" required class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold">
+              <option value="">Passport Type</option>
+              <option>Ordinary Passport</option>
+              <option>Diplomatic Passport</option>
+              <option>Official Passport</option>
+              <option>Pilgrim Passport</option>
+              <option>Seaman/ Crew Passport</option>
+            </select>
+            <select name="requestType" required class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold">
+              <option value="">Request Type</option>
+              <option>New Passport</option>
+              <option>Renewal</option>
+            </select>
+            <select name="requestType" required class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold">
+              <option value="">pasport Validity</option>
+              <option>5 Years</option>
+              <option>10 Years</option>
+            </select>
+          </div>
+          <input type="date" name="travelDate" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" placeholder="Preferred Processing Date" />
+          <textarea name="message" rows="4" placeholder="Additional details" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold"></textarea>
+          <button type="submit" class="rounded bg-gold px-5 py-4 font-black text-navy">Send Request</button>
+          <p id="passportRequestStatus" class="hidden rounded px-4 py-3 text-sm font-bold"></p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('passportRequestForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = event.target;
+      const status = document.getElementById('passportRequestStatus');
+      status.className = 'hidden rounded px-4 py-3 text-sm font-bold';
+      status.textContent = '';
+
+      try {
+        const response = await fetch('/api/passports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.fromEntries(new FormData(form).entries()))
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          status.className = 'rounded px-4 py-3 text-sm font-bold bg-red-500/15 text-red-300';
+          status.textContent = result.message || 'Unable to submit passport request.';
+          return;
+        }
+        status.className = 'rounded px-4 py-3 text-sm font-bold bg-green-500/15 text-green-300';
+        status.textContent = 'Passport request submitted successfully. We will contact you soon.';
+        form.reset();
+      } catch (error) {
+        status.className = 'rounded px-4 py-3 text-sm font-bold bg-red-500/15 text-red-300';
+        status.textContent = 'Submission failed. Please try again.';
+      }
+    });
+
+    document.querySelectorAll('a[href="/"]').forEach(link => link.addEventListener('click', () => window.location.href = '/'));
+    lucide.createIcons();
+  </script>
+</body>
+</html>

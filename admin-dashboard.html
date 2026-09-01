@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BisFly Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: "#06153b",
+            royal: "#073c9a",
+            gold: "#f8b72b",
+            red: "#df201c"
+          },
+          boxShadow: {
+            gold: "0 18px 44px rgba(248,183,43,.25)",
+            blue: "0 26px 70px rgba(5,43,125,.38)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { background: linear-gradient(135deg, #06153b 0%, #0a1e5e 100%); }
+    .glass { background: rgba(255,255,255,.07); backdrop-filter: blur(18px); }
+    .sidebar-active { @apply border-l-4 border-gold bg-white/10; }
+    .admin-data-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 0.55rem;
+      table-layout: fixed;
+      font-size: 0.8rem;
+    }
+    .admin-data-table thead th {
+      background: rgba(6, 21, 59, 0.85);
+      padding: 0.7rem 0.75rem;
+      text-align: left;
+      font-weight: 800;
+      color: #f8b72b;
+      vertical-align: middle;
+      border: none;
+      white-space: nowrap;
+      user-select: none;
+      cursor: pointer;
+    }
+    .admin-data-table thead th:first-child { border-top-left-radius: 12px; }
+    .admin-data-table thead th:last-child { border-top-right-radius: 12px; }
+    .admin-data-table tbody tr {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+    .admin-data-table tbody td {
+      padding: 0.8rem 0.75rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      vertical-align: top;
+      color: rgba(255,255,255,0.82);
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      line-height: 1.4;
+    }
+    .admin-data-table tbody tr td:first-child {
+      border-left: 1px solid rgba(255,255,255,0.08);
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+    }
+    .admin-data-table tbody tr td:last-child {
+      border-right: 1px solid rgba(255,255,255,0.08);
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+    .admin-data-table tbody tr:hover { background: rgba(255,255,255,0.06); }
+    .admin-data-table .status-pill { display: inline-block; padding: 0.35rem 0.6rem; border-radius: 9999px; font-size: 0.68rem; font-weight: 700; }
+    .sort-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .sort-indicator {
+      display: inline-block;
+      min-width: 0.8rem;
+      color: #f8b72b;
+      font-size: 0.68rem;
+    }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <!-- Sidebar -->
+  <div class="fixed inset-y-0 left-0 w-64 bg-navy/95 border-r border-white/10 overflow-y-auto z-50">
+    <div class="p-6 border-b border-white/10">
+      <h2 class="text-2xl font-black text-gold">BisFly Admin</h2>
+      <p class="text-xs text-white/60 mt-2" id="userDisplay">Loading...</p>
+    </div>
+
+    <nav class="p-4 space-y-2">
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="dashboard">
+        <i data-lucide="bar-chart-3" class="w-5 h-5 inline mr-3"></i>Dashboard
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="leads">
+        <i data-lucide="users" class="w-5 h-5 inline mr-3"></i>Leads
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="insurance">
+        <i data-lucide="shield" class="w-5 h-5 inline mr-3"></i>Insurance
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="agreements">
+        <i data-lucide="file-text" class="w-5 h-5 inline mr-3"></i>Agreements
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="passports">
+        <i data-lucide="passport" class="w-5 h-5 inline mr-3"></i>Passports
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="packages">
+        <i data-lucide="box" class="w-5 h-5 inline mr-3"></i>Packages
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="users">
+        <i data-lucide="settings" class="w-5 h-5 inline mr-3"></i>Users
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="activity">
+        <i data-lucide="activity" class="w-5 h-5 inline mr-3"></i>Activity Log
+      </button>
+      <hr class="my-4 border-white/10" />
+      <button class="w-full text-left px-4 py-3 rounded-lg hover:bg-red/20 text-red transition" id="logoutBtn">
+        <i data-lucide="log-out" class="w-5 h-5 inline mr-3"></i>Logout
+      </button>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="ml-64 p-6">
+    <!-- Dashboard Tab -->
+    <div id="dashboard-tab" class="tab-content">
+      <h1 class="text-4xl font-black text-gold mb-8">Dashboard</h1>
+      
+      <div id="analyticsCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="glass rounded-lg p-6 border border-white/10">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/60 text-sm">Total Leads</p>
+              <p class="text-4xl font-black text-gold mt-2">0</p>
+            </div>
+            <i data-lucide="users" class="w-12 h-12 text-gold/40"></i>
+          </div>
+        </div>
+        <div class="glass rounded-lg p-6 border border-white/10">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/60 text-sm">Insurance Apps</p>
+              <p class="text-4xl font-black text-gold mt-2">0</p>
+              <p class="text-xs text-white/50 mt-1">Pending: <span class="text-gold">0</span></p>
+            </div>
+            <i data-lucide="shield" class="w-12 h-12 text-gold/40"></i>
+          </div>
+        </div>
+        <div class="glass rounded-lg p-6 border border-white/10">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/60 text-sm">Agreements</p>
+              <p class="text-4xl font-black text-gold mt-2">0</p>
+              <p class="text-xs text-white/50 mt-1">Approved: <span class="text-gold">0</span></p>
+            </div>
+            <i data-lucide="file-text" class="w-12 h-12 text-gold/40"></i>
+          </div>
+        </div>
+        <div class="glass rounded-lg p-6 border border-white/10">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/60 text-sm">Passports</p>
+              <p class="text-4xl font-black text-gold mt-2">0</p>
+              <p class="text-xs text-white/50 mt-1">Pending: <span class="text-gold">0</span></p>
+            </div>
+            <i data-lucide="passport" class="w-12 h-12 text-gold/40"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 glass rounded-lg p-6 border border-white/10">
+          <h3 class="text-xl font-bold text-gold mb-4">Quick Actions</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <button class="action-btn p-4 rounded-lg bg-gold/20 hover:bg-gold/30 transition border border-gold/30" data-action="export-leads">
+              <i data-lucide="download" class="w-5 h-5 inline mr-2 text-gold"></i>Export Leads
+            </button>
+            <button class="action-btn p-4 rounded-lg bg-gold/20 hover:bg-gold/30 transition border border-gold/30" data-action="export-insurance">
+              <i data-lucide="download" class="w-5 h-5 inline mr-2 text-gold"></i>Export Insurance
+            </button>
+            <button class="action-btn p-4 rounded-lg bg-gold/20 hover:bg-gold/30 transition border border-gold/30" data-action="export-agreements">
+              <i data-lucide="download" class="w-5 h-5 inline mr-2 text-gold"></i>Export Agreements
+            </button>
+            <button class="action-btn p-4 rounded-lg bg-gold/20 hover:bg-gold/30 transition border border-gold/30" data-action="export-passports">
+              <i data-lucide="download" class="w-5 h-5 inline mr-2 text-gold"></i>Export Passports
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-lg p-6 border border-white/10">
+          <h3 class="text-xl font-bold text-gold mb-4">Account</h3>
+          <button id="changePasswordBtn" class="w-full p-3 rounded-lg bg-royal hover:bg-royal/80 transition mb-3">
+            Change Password
+          </button>
+          <button id="refreshAnalyticsBtn" class="w-full p-3 rounded-lg bg-gold/20 hover:bg-gold/30 transition">
+            Refresh Analytics
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leads Tab -->
+    <div id="leads-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-black text-gold">Leads</h1>
+        <div class="flex gap-3">
+          <input type="text" id="leadsSearchInput" placeholder="Search leads..." class="px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+          <button id="exportLeadsBtn" class="px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2">
+            <i data-lucide="download" class="w-4 h-4"></i>Export PDF
+          </button>
+        </div>
+      </div>
+      <div class="glass rounded-lg border border-white/10 overflow-x-auto">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th style="width: 16%;" data-sort-key="fullName"><span class="sort-header">Name <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="email"><span class="sort-header">Email <span class="sort-indicator"></span></span></th>
+              <th style="width: 14%;" data-sort-key="phone"><span class="sort-header">Phone <span class="sort-indicator"></span></span></th>
+              <th style="width: 17%;" data-sort-key="destination"><span class="sort-header">Destination <span class="sort-indicator"></span></span></th>
+              <th style="width: 20%;" data-sort-key="service"><span class="sort-header">Service <span class="sort-indicator"></span></span></th>
+              <th style="width: 15%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
+            </tr>
+          </thead>
+          <tbody id="leadsTable">
+            <tr><td colspan="6" class="text-center py-8 text-white/60">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Insurance Tab -->
+    <div id="insurance-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-black text-gold">Insurance Applications</h1>
+        <div class="flex gap-3">
+          <select id="insuranceFilterStatus" class="px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+          </select>
+          <button id="exportInsuranceBtn" class="px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2">
+            <i data-lucide="download" class="w-4 h-4"></i>Export PDF
+          </button>
+        </div>
+      </div>
+      <div class="glass rounded-lg border border-white/10 overflow-x-auto">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th style="width: 16%;" data-sort-key="fullName"><span class="sort-header">Name <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="email"><span class="sort-header">Email <span class="sort-indicator"></span></span></th>
+              <th style="width: 17%;" data-sort-key="destination"><span class="sort-header">Destination <span class="sort-indicator"></span></span></th>
+              <th style="width: 12%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
+              <th style="width: 17%;" data-sort-key="documentFile"><span class="sort-header">Document <span class="sort-indicator"></span></span></th>
+              <th style="width: 20%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
+            </tr>
+          </thead>
+          <tbody id="insuranceTable">
+            <tr><td colspan="6" class="text-center py-8 text-white/60">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Agreements Tab -->
+    <div id="agreements-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-black text-gold">Agreements</h1>
+        <div class="flex gap-3">
+          <select id="agreementsFilterStatus" class="px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+          </select>
+          <button id="exportAgreementsBtn" class="px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2">
+            <i data-lucide="download" class="w-4 h-4"></i>Export PDF
+          </button>
+        </div>
+      </div>
+      <div class="glass rounded-lg border border-white/10 overflow-x-auto">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th style="width: 18%;" data-sort-key="fullName"><span class="sort-header">Name <span class="sort-indicator"></span></span></th>
+              <th style="width: 20%;" data-sort-key="email"><span class="sort-header">Email <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="destination"><span class="sort-header">Destination <span class="sort-indicator"></span></span></th>
+              <th style="width: 14%;" data-sort-key="amountPaid"><span class="sort-header">Amount <span class="sort-indicator"></span></span></th>
+              <th style="width: 12%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="createdAt"><span class="sort-header">Actions <span class="sort-indicator"></span></span></th>
+            </tr>
+          </thead>
+          <tbody id="agreementsTable">
+            <tr><td colspan="6" class="text-center py-8 text-white/60">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Passports Tab -->
+    <div id="passports-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-black text-gold">Passport Requests</h1>
+        <div class="flex gap-3">
+          <select id="passportsFilterStatus" class="px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+          </select>
+          <button id="exportPassportsBtn" class="px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2">
+            <i data-lucide="download" class="w-4 h-4"></i>Export PDF
+          </button>
+        </div>
+      </div>
+      <div class="glass rounded-lg border border-white/10 overflow-x-auto">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th style="width: 18%;" data-sort-key="fullName"><span class="sort-header">Name <span class="sort-indicator"></span></span></th>
+              <th style="width: 20%;" data-sort-key="email"><span class="sort-header">Email <span class="sort-indicator"></span></span></th>
+              <th style="width: 14%;" data-sort-key="nationality"><span class="sort-header">Nationality <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="requestType"><span class="sort-header">Request Type <span class="sort-indicator"></span></span></th>
+              <th style="width: 12%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
+            </tr>
+          </thead>
+          <tbody id="passportsTable">
+            <tr><td colspan="6" class="text-center py-8 text-white/60">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Packages Tab -->
+    <div id="packages-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-black text-gold">Travel Packages</h1>
+        <button id="addPackageBtn" class="px-6 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>Add Package
+        </button>
+      </div>
+      <div id="packagesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 glass rounded-lg border border-white/10">
+        <div class="col-span-full text-center text-white/60">Loading packages...</div>
+      </div>
+    </div>
+
+    <!-- Users Tab -->
+    <div id="users-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-black text-gold">Admin Users</h1>
+        <button id="addUserBtn" class="px-6 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>Add User
+        </button>
+      </div>
+      <div class="glass rounded-lg border border-white/10 overflow-x-auto">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th style="width: 20%;" data-sort-key="username"><span class="sort-header">Username <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="role"><span class="sort-header">Role <span class="sort-indicator"></span></span></th>
+              <th style="width: 14%;" data-sort-key="active"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="createdAt"><span class="sort-header">Created <span class="sort-indicator"></span></span></th>
+              <th style="width: 30%;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable">
+            <tr><td colspan="5" class="text-center py-8 text-white/60">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Activity Log Tab -->
+    <div id="activity-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-black text-gold">Activity Log</h1>
+        <button id="refreshActivityBtn" class="px-4 py-2 rounded-lg bg-gold/20 hover:bg-gold/30 transition border border-gold/30">
+          <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-2"></i>Refresh
+        </button>
+      </div>
+      <div class="glass rounded-lg border border-white/10">
+        <div id="activityLog" class="space-y-2 p-6 max-h-96 overflow-y-auto">
+          <p class="text-center text-white/60">Loading activity log...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="changePasswordModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="glass rounded-lg p-8 max-w-md w-full border border-white/10">
+      <h2 class="text-2xl font-bold text-gold mb-6">Change Password</h2>
+      <form id="changePasswordForm" class="space-y-4">
+        <input type="password" id="currentPassword" placeholder="Current Password" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" required/>
+        <input type="password" id="newPassword" placeholder="New Password (min 8 chars)" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" required minlength="8"/>
+        <input type="password" id="confirmPassword" placeholder="Confirm Password" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" required/>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition">Save</button>
+          <button type="button" id="closePasswordModal" class="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition">Cancel</button>
+        </div>
+      </form>
+      <p id="passwordStatus" class="mt-4 text-sm text-center hidden"></p>
+    </div>
+  </div>
+
+  <div id="addPackageModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="glass rounded-lg p-8 max-w-md w-full border border-white/10">
+      <h2 class="text-2xl font-bold text-gold mb-6">Add Travel Package</h2>
+      <form id="addPackageForm" enctype="multipart/form-data" class="space-y-4">
+        <input type="text" name="title" placeholder="Package Title" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" required/>
+        <textarea name="description" placeholder="Package Description" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" rows="4" required></textarea>
+        <input type="text" name="price" placeholder="Package Price (e.g. ₦ 1,200,000)" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+        <input type="text" name="duration" placeholder="Duration (e.g. 7 days / 6 nights)" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+        <input type="text" name="tags" placeholder="Highlights (comma separated)" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+        <input type="file" name="image" accept="image/jpeg,image/png" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition">Create</button>
+          <button type="button" id="closePackageModal" class="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="editPackageModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="glass rounded-lg p-8 max-w-md w-full border border-white/10">
+      <h2 class="text-2xl font-bold text-gold mb-6">Edit Travel Package</h2>
+      <form id="editPackageForm" enctype="multipart/form-data" class="space-y-4">
+        <input type="hidden" name="id" id="editPackageId" />
+        <input type="text" name="title" id="editPackageTitle" placeholder="Package Title" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" required/>
+        <textarea name="description" id="editPackageDescription" placeholder="Package Description" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" rows="4" required></textarea>
+        <input type="text" name="price" id="editPackagePrice" placeholder="Package Price (e.g. ₦ 1,200,000)" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+        <input type="text" name="duration" id="editPackageDuration" placeholder="Duration (e.g. 7 days / 6 nights)" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+        <input type="text" name="tags" id="editPackageTags" placeholder="Highlights (comma separated)" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+        <input type="file" name="image" accept="image/jpeg,image/png" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition">Save Changes</button>
+          <button type="button" id="closeEditPackageModal" class="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="addUserModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="glass rounded-lg p-8 max-w-md w-full border border-white/10">
+      <h2 class="text-2xl font-bold text-gold mb-6">Add Admin User</h2>
+      <form id="addUserForm" class="space-y-4">
+        <input type="text" name="username" placeholder="Username" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" required/>
+        <input type="password" name="password" placeholder="Password (min 8 chars)" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" required minlength="8"/>
+        <select name="role" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold">
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+          <option value="support">Support</option>
+        </select>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition">Create User</button>
+          <button type="button" id="closeUserModal" class="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="resetPasswordModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="glass rounded-lg p-8 max-w-md w-full border border-white/10">
+      <h2 class="text-2xl font-bold text-gold mb-6">Reset Admin Password</h2>
+      <form id="resetPasswordForm" class="space-y-4">
+        <input type="hidden" id="resetUserId" />
+        <input type="text" id="resetUsername" readonly class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none" />
+        <input type="password" id="resetPasswordInput" placeholder="New password (min 8 chars)" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold" required minlength="8"/>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition">Reset Password</button>
+          <button type="button" id="closeResetPasswordModal" class="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let token = localStorage.getItem('adminToken');
+    let currentUser = JSON.parse(localStorage.getItem('adminUser')) || {};
+
+    function formatCurrency(value) {
+      if (value === null || value === undefined || value === '') return '₦ 0';
+      const numberText = String(value).trim();
+      if (!numberText) return '₦ 0';
+      if (numberText.toLowerCase().includes('naira') || numberText.startsWith('₦')) return numberText;
+      const numericValue = Number(String(numberText).replace(/[^0-9.-]/g, ''));
+      if (!Number.isFinite(numericValue)) return `₦ ${numberText}`;
+      return `₦ ${numericValue.toLocaleString('en-NG')}`;
+    }
+
+    const tableSortState = {
+      leads: { key: 'createdAt', direction: 'desc' },
+      insurance: { key: 'createdAt', direction: 'desc' },
+      agreements: { key: 'createdAt', direction: 'desc' },
+      passports: { key: 'createdAt', direction: 'desc' },
+      users: { key: 'createdAt', direction: 'desc' }
+    };
+
+    function getSortValue(item, key) {
+      const value = item?.[key];
+      if (value === null || value === undefined || value === '') return '';
+      if (typeof value === 'string') return value.toLowerCase();
+      if (typeof value === 'number') return value;
+      if (value instanceof Date) return value.getTime();
+      return String(value).toLowerCase();
+    }
+
+    function sortRecords(records, key, direction = 'asc') {
+      const sorted = [...records];
+      sorted.sort((a, b) => {
+        const av = getSortValue(a, key);
+        const bv = getSortValue(b, key);
+        if (av === '' && bv === '') return 0;
+        if (av === '') return 1;
+        if (bv === '') return -1;
+        if (typeof av === 'number' && typeof bv === 'number') {
+          return direction === 'asc' ? av - bv : bv - av;
+        }
+        const result = String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
+        return direction === 'asc' ? result : -result;
+      });
+      return sorted;
+    }
+
+    function updateSortIndicators(tableId) {
+      const activeState = tableSortState[tableId];
+      if (!activeState) return;
+      const headers = document.querySelectorAll(`#${tableId} ~ .glass table thead th[data-sort-key]`);
+      headers.forEach(header => {
+        const indicator = header.querySelector('.sort-indicator');
+        if (!indicator) return;
+        if (header.dataset.sortKey === activeState.key) {
+          indicator.textContent = activeState.direction === 'asc' ? '↑' : '↓';
+        } else {
+          indicator.textContent = '';
+        }
+      });
+    }
+
+    function bindSortableTable(tableId, dataKey, renderer) {
+      const table = document.getElementById(tableId);
+      if (!table) return;
+      const headers = table.closest('.glass').querySelectorAll('thead th[data-sort-key]');
+      headers.forEach(header => {
+        header.addEventListener('click', () => {
+          const key = header.dataset.sortKey;
+          const current = tableSortState[dataKey] || { key, direction: 'asc' };
+          const direction = current.key === key && current.direction === 'asc' ? 'desc' : 'asc';
+          tableSortState[dataKey] = { key, direction };
+          renderer();
+          updateSortIndicators(dataKey);
+        });
+      });
+    }
+
+    // API Helper
+    async function apiCall(endpoint, options = {}) {
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        ...options.headers
+      };
+      
+      // Only set Content-Type to JSON if body is not FormData
+      if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+      
+      try {
+        const response = await fetch(endpoint, {
+          ...options,
+          headers
+        });
+        
+        if (response.status === 401) {
+          window.location.href = '/admin-login.html';
+          return null;
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return await response.json();
+        }
+        return response;
+      } catch (error) {
+        console.error('API Error:', error);
+        return null;
+      }
+    }
+
+    // Initialize
+    async function init() {
+      if (!token) {
+        window.location.href = '/admin-login.html';
+        return;
+      }
+      
+      const verified = await apiCall('/api/admin/verify');
+      if (!verified || !verified.authenticated) {
+        window.location.href = '/admin-login.html';
+        return;
+      }
+      
+      currentUser = verified;
+      localStorage.setItem('adminUser', JSON.stringify(currentUser));
+      document.getElementById('userDisplay').textContent = `${currentUser.username} (${currentUser.role})`;
+      
+      // Load initial data
+      await loadAnalytics();
+      await loadLeads();
+      
+      // Set up event listeners
+      setupEventListeners();
+    }
+
+    // Load Analytics
+    async function loadAnalytics() {
+      const data = await apiCall('/api/analytics');
+      if (!data) return;
+      
+      const cards = document.querySelectorAll('#analyticsCards > div');
+      if (cards[0]) {
+        cards[0].querySelector('p:nth-of-type(2)').textContent = data.leads.total;
+      }
+      if (cards[1]) {
+        cards[1].querySelector('p:nth-of-type(2)').textContent = data.insurance.total;
+        cards[1].querySelector('.text-gold').textContent = data.insurance.pending;
+      }
+      if (cards[2]) {
+        cards[2].querySelector('p:nth-of-type(2)').textContent = data.agreements.total;
+        cards[2].querySelector('.text-gold').textContent = data.agreements.approved;
+      }
+      if (cards[3]) {
+        cards[3].querySelector('p:nth-of-type(2)').textContent = data.passports.total;
+        cards[3].querySelector('.text-gold').textContent = data.passports.pending;
+      }
+    }
+
+    // Load Leads
+    async function loadLeads() {
+      const data = await apiCall('/api/leads');
+      if (!data) return;
+      const tbody = document.getElementById('leadsTable');
+      const state = tableSortState.leads;
+      const sorted = sortRecords(data, state.key, state.direction);
+      if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No leads found</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = sorted.map(lead => `
+        <tr>
+          <td>${lead.fullName || lead.name || 'N/A'}</td>
+          <td>${lead.email || 'N/A'}</td>
+          <td>${lead.phone || 'N/A'}</td>
+          <td>${lead.destination || 'N/A'}</td>
+          <td>${lead.service || 'N/A'}</td>
+          <td>${new Date(lead.createdAt).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+      bindSortableTable('leadsTable', 'leads', loadLeads);
+      updateSortIndicators('leads');
+    }
+
+    // Load Insurance
+    async function loadInsurance() {
+      const data = await apiCall('/api/insurance');
+      if (!data) return;
+      
+      const tbody = document.getElementById('insuranceTable');
+      const state = tableSortState.insurance;
+      const sorted = sortRecords(data, state.key, state.direction);
+      if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No applications found</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = sorted.map(app => `
+        <tr>
+          <td>${app.fullName || app.name || 'N/A'}</td>
+          <td>${app.email || 'N/A'}</td>
+          <td>${app.destination || 'N/A'}</td>
+          <td><span class="status-pill ${app.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${app.status}</span></td>
+          <td>${app.documentFile ? '✓ Uploaded' : '✗ Missing'}</td>
+          <td>${new Date(app.createdAt).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+      bindSortableTable('insuranceTable', 'insurance', loadInsurance);
+      updateSortIndicators('insurance');
+    }
+
+    // Load Agreements
+    async function loadAgreements() {
+      const data = await apiCall('/api/agreements');
+      if (!data) return;
+      
+      const tbody = document.getElementById('agreementsTable');
+      const state = tableSortState.agreements;
+      const sorted = sortRecords(data, state.key, state.direction);
+      if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No agreements found</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = sorted.map(ag => `
+        <tr>
+          <td>${ag.fullName || 'N/A'}</td>
+          <td>${ag.email || 'N/A'}</td>
+          <td>${ag.destination || 'N/A'}</td>
+          <td>${formatCurrency(ag.amountPaid)}</td>
+          <td><span class="status-pill ${ag.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${ag.status}</span></td>
+          <td>
+            ${ag.status === 'pending' ? `<button class="approve-agreement text-gold hover:text-white transition text-sm font-bold" data-id="${ag.id}">Approve</button>` : `<a href="/api/agreements/${ag.id}/download" class="text-gold hover:text-white transition text-sm font-bold">Download PDF</a>`}
+          </td>
+        </tr>
+      `).join('');
+      
+      document.querySelectorAll('.approve-agreement').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          const result = await apiCall(`/api/agreements/${id}/approve`, { method: 'POST' });
+          if (result && result.ok) {
+            alert('Agreement approved and email sent!');
+            await loadAgreements();
+          }
+        });
+      });
+
+      bindSortableTable('agreementsTable', 'agreements', loadAgreements);
+      updateSortIndicators('agreements');
+    }
+
+    // Load Passports
+    async function loadPassports() {
+      const data = await apiCall('/api/passports');
+      if (!data) return;
+      
+      const tbody = document.getElementById('passportsTable');
+      const state = tableSortState.passports;
+      const sorted = sortRecords(data, state.key, state.direction);
+      if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No requests found</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = sorted.map(pp => `
+        <tr>
+          <td>${pp.fullName || 'N/A'}</td>
+          <td>${pp.email || 'N/A'}</td>
+          <td>${pp.nationality || 'N/A'}</td>
+          <td>${pp.requestType || 'N/A'}</td>
+          <td><span class="status-pill ${pp.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${pp.status}</span></td>
+          <td>${new Date(pp.createdAt).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+      bindSortableTable('passportsTable', 'passports', loadPassports);
+      updateSortIndicators('passports');
+    }
+
+    // Load Packages
+    async function loadPackages() {
+      const data = await apiCall('/api/packages');
+      if (!data) return;
+      
+      const grid = document.getElementById('packagesGrid');
+      if (data.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center text-white/60">No packages found</div>';
+        return;
+      }
+      
+      grid.innerHTML = data.map(pkg => {
+        const safeTitle = pkg.title || 'Untitled Package';
+        const safeDescription = pkg.description || 'No description provided.';
+        const safePrice = pkg.price || 'Price not set';
+        const safeDuration = pkg.duration || 'Duration not set';
+        const tagList = Array.isArray(pkg.tags) && pkg.tags.length ? pkg.tags.map(tag => `<span class="inline-block rounded-full border border-gold/30 bg-gold/10 px-2 py-1 text-[10px] uppercase tracking-wide text-gold">${tag}</span>`).join(' ') : '<span class="text-white/40 text-xs">No highlights</span>';
+        return `
+          <div class="glass rounded-lg p-6 border border-white/10">
+            ${pkg.imageFile ? `<img src="/uploads/${pkg.imageFile}" alt="${safeTitle}" class="w-full h-40 object-cover rounded-lg mb-4"/>` : ''}
+            <h3 class="text-lg font-bold text-gold">${safeTitle}</h3>
+            <p class="text-xs uppercase tracking-wide text-white/40 mt-2">${safeDuration}</p>
+            <p class="text-sm text-white/60 mt-2 line-clamp-4">${safeDescription}</p>
+            <p class="mt-3 text-sm font-black text-gold">${safePrice}</p>
+            <div class="mt-3 flex flex-wrap gap-2">${tagList}</div>
+            <div class="mt-4 grid grid-cols-2 gap-2">
+              <button class="edit-package px-3 py-2 rounded-lg bg-gold/20 hover:bg-gold/30 transition text-gold text-sm font-bold" data-id="${pkg.id}" data-title="${(pkg.title || '').replace(/"/g, '&quot;')}" data-description="${(pkg.description || '').replace(/"/g, '&quot;')}" data-price="${(pkg.price || '').replace(/"/g, '&quot;')}" data-duration="${(pkg.duration || '').replace(/"/g, '&quot;')}" data-tags="${Array.isArray(pkg.tags) ? pkg.tags.join(',') : ''}">Edit</button>
+              <button class="delete-package px-3 py-2 rounded-lg bg-red/20 hover:bg-red/30 transition text-red text-sm font-bold" data-id="${pkg.id}">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      document.querySelectorAll('.delete-package').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this package?')) return;
+          const result = await apiCall(`/api/packages/${btn.dataset.id}`, { method: 'DELETE' });
+          if (result && result.ok) {
+            await loadPackages();
+          }
+        });
+      });
+
+      document.querySelectorAll('.edit-package').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('editPackageId').value = btn.dataset.id;
+          document.getElementById('editPackageTitle').value = btn.dataset.title || '';
+          document.getElementById('editPackageDescription').value = btn.dataset.description || '';
+          document.getElementById('editPackagePrice').value = btn.dataset.price || '';
+          document.getElementById('editPackageDuration').value = btn.dataset.duration || '';
+          document.getElementById('editPackageTags').value = btn.dataset.tags || '';
+          document.getElementById('editPackageModal').classList.remove('hidden');
+        });
+      });
+    }
+
+    // Load Users
+    async function loadUsers() {
+      const data = await apiCall('/api/admin/users');
+      if (!data) return;
+      
+      const tbody = document.getElementById('usersTable');
+      const sorted = sortRecords(data, tableSortState.users.key, tableSortState.users.direction);
+      tbody.innerHTML = sorted.map(user => `
+        <tr>
+          <td>${user.username}</td>
+          <td>${user.role}</td>
+          <td><span class="px-2 py-1 rounded-full text-xs font-bold ${user.active ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}">${user.active ? 'Active' : 'Inactive'}</span></td>
+          <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+          <td class="flex flex-wrap gap-2">
+            <button class="reset-user bg-gold/20 text-gold hover:bg-gold/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}" data-username="${user.username}">Reset</button>
+            <button class="delete-user bg-red/20 text-red hover:bg-red/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+      
+      document.querySelectorAll('.delete-user').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this user?')) return;
+          const result = await apiCall(`/api/admin/users/${btn.dataset.id}`, { method: 'DELETE' });
+          if (result && result.ok) {
+            await loadUsers();
+          } else {
+            alert(result?.message || 'Failed to delete user');
+          }
+        });
+      });
+
+      document.querySelectorAll('.reset-user').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('resetUserId').value = btn.dataset.id;
+          document.getElementById('resetUsername').value = btn.dataset.username;
+          document.getElementById('resetPasswordModal').classList.remove('hidden');
+        });
+      });
+
+      bindSortableTable('usersTable', 'users', loadUsers);
+      updateSortIndicators('users');
+    }
+
+    // Load Activity Log
+    async function loadActivityLog() {
+      const data = await apiCall('/api/admin/activity-log?limit=50');
+      if (!data) return;
+      
+      const container = document.getElementById('activityLog');
+      if (data.length === 0) {
+        container.innerHTML = '<p class="text-center text-white/60">No activity logged</p>';
+        return;
+      }
+      
+      container.innerHTML = data.map(entry => `
+        <div class="p-3 rounded-lg bg-white/5 border border-white/10">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-bold text-gold text-sm">${entry.action}</p>
+              <p class="text-xs text-white/60 mt-1">${entry.user}</p>
+            </div>
+            <p class="text-xs text-white/40">${new Date(entry.timestamp).toLocaleString()}</p>
+          </div>
+          ${entry.details ? `<p class="text-xs text-white/50 mt-2">${JSON.stringify(entry.details)}</p>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // Setup Event Listeners
+    function setupEventListeners() {
+      // Tab switching
+      document.querySelectorAll('.sidebar-item').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const tabName = btn.dataset.tab;
+          
+          // Hide all tabs
+          document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+          
+          // Show selected tab
+          document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+          
+          // Update sidebar
+          document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('sidebar-active'));
+          btn.classList.add('sidebar-active');
+          
+          // Load data
+          if (tabName === 'leads') await loadLeads();
+          if (tabName === 'insurance') await loadInsurance();
+          if (tabName === 'agreements') await loadAgreements();
+          if (tabName === 'passports') await loadPassports();
+          if (tabName === 'packages') await loadPackages();
+          if (tabName === 'users') await loadUsers();
+          if (tabName === 'activity') await loadActivityLog();
+        });
+      });
+      
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+        window.location.href = '/admin-login.html';
+      });
+      
+      async function downloadExport(endpoint, fileName) {
+        try {
+          const response = await fetch(endpoint, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Export failed');
+          }
+
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${fileName}-${new Date().toISOString().split('T')[0]}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error('Export error:', error);
+          alert(error.message || 'Unable to download PDF export.');
+        }
+      }
+
+      // Export buttons
+      document.getElementById('exportLeadsBtn').addEventListener('click', () => downloadExport('/api/leads/export', 'leads'));
+      document.getElementById('exportInsuranceBtn').addEventListener('click', () => downloadExport('/api/insurance/export', 'insurance'));
+      document.getElementById('exportAgreementsBtn').addEventListener('click', () => downloadExport('/api/agreements/export', 'agreements'));
+      document.getElementById('exportPassportsBtn').addEventListener('click', () => downloadExport('/api/passports/export', 'passports'));
+      
+      // Search
+      document.getElementById('leadsSearchInput').addEventListener('input', async (e) => {
+        const query = e.target.value;
+        if (!query) {
+          await loadLeads();
+          return;
+        }
+        const data = await apiCall(`/api/leads/search?q=${encodeURIComponent(query)}`);
+        if (!data) return;
+        const tbody = document.getElementById('leadsTable');
+        tbody.innerHTML = data.map(lead => `
+          <tr>
+            <td>${lead.fullName || lead.name || 'N/A'}</td>
+            <td>${lead.email || 'N/A'}</td>
+            <td>${lead.phone || 'N/A'}</td>
+            <td>${lead.destination || 'N/A'}</td>
+            <td>${lead.service || 'N/A'}</td>
+            <td>${new Date(lead.createdAt).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+      });
+      
+      // Filter status
+      document.getElementById('insuranceFilterStatus').addEventListener('change', async (e) => {
+        if (e.target.value) {
+          const data = await apiCall(`/api/insurance/filter?status=${e.target.value}`);
+          const tbody = document.getElementById('insuranceTable');
+          tbody.innerHTML = data.map(app => `
+            <tr>
+              <td>${app.fullName || app.name || 'N/A'}</td>
+              <td>${app.email || 'N/A'}</td>
+              <td>${app.destination || 'N/A'}</td>
+              <td><span class="status-pill ${app.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${app.status}</span></td>
+              <td>${app.documentFile ? '✓ Uploaded' : '✗ Missing'}</td>
+              <td>${new Date(app.createdAt).toLocaleDateString()}</td>
+            </tr>
+          `).join('');
+        } else {
+          await loadInsurance();
+        }
+      });
+      
+      // Similar for agreements and passports
+      document.getElementById('agreementsFilterStatus').addEventListener('change', async (e) => {
+        if (e.target.value) {
+          const data = await apiCall(`/api/agreements/filter?status=${e.target.value}`);
+          const tbody = document.getElementById('agreementsTable');
+          tbody.innerHTML = data.map(ag => `
+            <tr>
+              <td>${ag.fullName || 'N/A'}</td>
+              <td>${ag.email || 'N/A'}</td>
+              <td>${ag.destination || 'N/A'}</td>
+              <td>${formatCurrency(ag.amountPaid)}</td>
+              <td><span class="status-pill ${ag.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${ag.status}</span></td>
+              <td>${ag.status === 'pending' ? `<button class="approve-agreement text-gold hover:text-white transition text-sm font-bold" data-id="${ag.id}">Approve</button>` : ''}</td>
+            </tr>
+          `).join('');
+        } else {
+          await loadAgreements();
+        }
+      });
+      
+      document.getElementById('passportsFilterStatus').addEventListener('change', async (e) => {
+        if (e.target.value) {
+          const data = await apiCall(`/api/passports/filter?status=${e.target.value}`);
+          const tbody = document.getElementById('passportsTable');
+          tbody.innerHTML = data.map(pp => `
+            <tr>
+              <td>${pp.fullName || 'N/A'}</td>
+              <td>${pp.email || 'N/A'}</td>
+              <td>${pp.nationality || 'N/A'}</td>
+              <td>${pp.requestType || 'N/A'}</td>
+              <td><span class="status-pill ${pp.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${pp.status}</span></td>
+              <td>${new Date(pp.createdAt).toLocaleDateString()}</td>
+            </tr>
+          `).join('');
+        } else {
+          await loadPassports();
+        }
+      });
+      
+      // Change password
+      document.getElementById('changePasswordBtn').addEventListener('click', () => {
+        document.getElementById('changePasswordModal').classList.remove('hidden');
+      });
+      
+      document.getElementById('closePasswordModal').addEventListener('click', () => {
+        document.getElementById('changePasswordModal').classList.add('hidden');
+      });
+      
+      document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const current = document.getElementById('currentPassword').value;
+        const newPass = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        
+        if (newPass !== confirm) {
+          alert('Passwords do not match');
+          return;
+        }
+        
+        const result = await apiCall('/api/admin/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+        });
+        
+        if (result && result.ok) {
+          alert('Password changed successfully');
+          document.getElementById('changePasswordModal').classList.add('hidden');
+          document.getElementById('changePasswordForm').reset();
+        } else {
+          alert(result?.message || 'Failed to change password');
+        }
+      });
+      
+      // Add package
+      document.getElementById('addPackageBtn').addEventListener('click', () => {
+        document.getElementById('addPackageModal').classList.remove('hidden');
+      });
+      
+      document.getElementById('closePackageModal').addEventListener('click', () => {
+        document.getElementById('addPackageModal').classList.add('hidden');
+      });
+
+      document.getElementById('closeEditPackageModal').addEventListener('click', () => {
+        document.getElementById('editPackageModal').classList.add('hidden');
+      });
+      
+      document.getElementById('addPackageForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const result = await apiCall('/api/packages', {
+          method: 'POST',
+          body: formData,
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (result && result.ok) {
+          alert('Package created');
+          document.getElementById('addPackageModal').classList.add('hidden');
+          document.getElementById('addPackageForm').reset();
+          await loadPackages();
+        }
+      });
+
+      document.getElementById('editPackageForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const packageId = document.getElementById('editPackageId').value;
+        const formData = new FormData(e.target);
+        const result = await apiCall(`/api/packages/${packageId}`, {
+          method: 'PUT',
+          body: formData,
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (result && result.ok) {
+          alert('Package updated');
+          document.getElementById('editPackageModal').classList.add('hidden');
+          document.getElementById('editPackageForm').reset();
+          await loadPackages();
+        } else {
+          alert(result?.message || 'Failed to update package');
+        }
+      });
+      
+      // Add user
+      document.getElementById('addUserBtn').addEventListener('click', () => {
+        document.getElementById('addUserModal').classList.remove('hidden');
+      });
+      
+      document.getElementById('closeUserModal').addEventListener('click', () => {
+        document.getElementById('addUserModal').classList.add('hidden');
+      });
+
+      document.getElementById('closeResetPasswordModal').addEventListener('click', () => {
+        document.getElementById('resetPasswordModal').classList.add('hidden');
+        document.getElementById('resetPasswordForm').reset();
+      });
+      
+      document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const result = await apiCall('/api/admin/users', {
+          method: 'POST',
+          body: JSON.stringify(Object.fromEntries(new FormData(e.target)))
+        });
+        
+        if (result && result.ok) {
+          alert('User created');
+          document.getElementById('addUserModal').classList.add('hidden');
+          document.getElementById('addUserForm').reset();
+          await loadUsers();
+        } else {
+          alert(result?.message || 'Failed to create user');
+        }
+      });
+
+      document.getElementById('resetPasswordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userId = document.getElementById('resetUserId').value;
+        const newPassword = document.getElementById('resetPasswordInput').value;
+        const result = await apiCall(`/api/admin/users/${userId}/reset-password`, {
+          method: 'POST',
+          body: JSON.stringify({ newPassword })
+        });
+
+        if (result && result.ok) {
+          alert('Password reset successfully');
+          document.getElementById('resetPasswordModal').classList.add('hidden');
+          document.getElementById('resetPasswordForm').reset();
+        } else {
+          alert(result?.message || 'Failed to reset password');
+        }
+      });
+      
+      // Refresh buttons
+      document.getElementById('refreshAnalyticsBtn').addEventListener('click', loadAnalytics);
+      document.getElementById('refreshActivityBtn').addEventListener('click', loadActivityLog);
+    }
+
+    // Initialize app
+    init();
+    lucide.createIcons();
+  </script>
+</body>
+</html>

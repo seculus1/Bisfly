@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: bisfly-portal
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: EMAIL_USER
+        value: bisflytravels@gmail.com
+      - key: EMAIL_PASS
+        value: your_app_password

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BisFly Admin Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: "#06153b",
+            royal: "#073c9a",
+            gold: "#f8b72b",
+            red: "#df201c"
+          },
+          boxShadow: {
+            gold: "0 18px 44px rgba(248,183,43,.25)",
+            blue: "0 26px 70px rgba(5,43,125,.38)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body {
+      background:
+        radial-gradient(circle at 70% 8%, rgba(19, 101, 227, .46), transparent 33rem),
+        radial-gradient(circle at 4% 30%, rgba(248, 183, 43, .16), transparent 28rem),
+        linear-gradient(180deg, #06153b 0%, #020713 74%);
+    }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <div class="flex min-h-screen items-center justify-center px-4">
+    <div class="w-full max-w-md">
+      <div class="rounded-lg border border-white/15 bg-white/8 p-8 shadow-blue backdrop-blur">
+        <div class="mb-8 text-center">
+          <h1 class="text-4xl font-black text-gold">BisFly</h1>
+          <p class="mt-2 text-sm text-white/75">Admin Portal</p>
+        </div>
+
+        <form id="loginForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-black mb-2">Username</label>
+            <input required type="text" name="username" class="w-full rounded border border-white/20 bg-navy/60 px-4 py-3 text-sm outline-none placeholder:text-white/55 focus:border-gold" placeholder="Enter username" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-black mb-2">Password</label>
+            <input required type="password" name="password" class="w-full rounded border border-white/20 bg-navy/60 px-4 py-3 text-sm outline-none placeholder:text-white/55 focus:border-gold" placeholder="Enter password" />
+          </div>
+
+          <button class="mt-6 w-full rounded bg-gradient-to-r from-royal via-red to-gold px-5 py-3 font-black text-white hover:shadow-gold" type="submit">
+            Login
+          </button>
+
+          <p id="errorMsg" class="hidden rounded bg-red/20 p-3 text-center text-sm font-bold text-red"></p>
+          <p id="successMsg" class="hidden rounded bg-green-500/20 p-3 text-center text-sm font-bold text-green-300"></p>
+        </form>
+
+        <div class="mt-6 border-t border-white/10 pt-4">
+          <p class="text-center text-xs text-white/60">
+            Default credentials:<br>
+            <span class="font-mono text-gold">Username: admin</span><br>
+            <span class="font-mono text-gold">Password: BisFly@2026</span>
+          </p>
+        </div>
+
+        <div class="mt-4">
+          <a href="/" class="block text-center text-sm text-gold hover:text-white">Back to Home</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Check if already logged in
+    if (localStorage.getItem("adminToken")) {
+      window.location.href = "/admin-dashboard.html";
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = e.target.username.value;
+      const password = e.target.password.value;
+      const errorMsg = document.getElementById("errorMsg");
+      const successMsg = document.getElementById("successMsg");
+
+      errorMsg.classList.add("hidden");
+      successMsg.classList.add("hidden");
+
+      try {
+        const response = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (data.ok && data.token) {
+          localStorage.setItem("adminToken", data.token);
+          localStorage.setItem("adminUser", JSON.stringify({
+            username: data.username,
+            role: data.role
+          }));
+          successMsg.textContent = "Login successful! Redirecting to dashboard...";
+          successMsg.classList.remove("hidden");
+          setTimeout(() => {
+            window.location.href = "/admin-dashboard.html";
+          }, 1000);
+        } else {
+          errorMsg.textContent = data.message || "Login failed";
+          errorMsg.classList.remove("hidden");
+        }
+      } catch (error) {
+        errorMsg.textContent = "Connection error. Please try again.";
+        errorMsg.classList.remove("hidden");
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>

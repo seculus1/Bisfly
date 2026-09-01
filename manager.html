@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BisFly Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { navy: "#06153b", royal: "#073c9a", gold: "#f8b72b", red: "#df201c" }
+        }
+      }
+    };
+  </script>
+  <style>
+    tbody tr {
+      transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    tbody tr:hover {
+      background: rgba(248, 183, 43, 0.08);
+      transform: translateY(-1px);
+    }
+    .package-action,
+    .approveBtn,
+    .deletePkgBtn,
+    .rounded.bg-gold,
+    .rounded.bg-red {
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+    .package-action:hover,
+    .approveBtn:hover,
+    .deletePkgBtn:hover,
+    .rounded.bg-gold:hover,
+    .rounded.bg-red:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(248, 183, 43, 0.25);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-white">
+  <header class="border-b border-white/10 bg-black">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-3">
+        <img src="bisfly-logo.png" alt="BisFly logo" class="h-12 rounded bg-white p-1" />
+        <div>
+          <h1 class="text-xl font-black">BisFly Admin Dashboard</h1>
+          <p class="text-sm text-white/60" id="adminInfo">Admin Portal</p>
+          <p id="loginStatus" class="text-sm font-black text-green-300">Logged in as admin</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="refreshBtn" class="rounded bg-gold px-4 py-2 text-sm font-black text-navy">Refresh</button>
+        <button id="logoutBtn" class="rounded bg-red px-4 py-2 text-sm font-black text-white">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Tab Navigation -->
+    <div class="mb-6 flex flex-wrap gap-4 border-b border-white/10">
+      <button id="leadsTab" class="pb-4 font-black text-gold border-b-2 border-gold">Travel Requests</button>
+      <button id="insuranceTab" class="pb-4 font-black text-white/60 border-b-2 border-transparent hover:text-gold">Insurance Applications</button>
+      <button id="passportTab" class="pb-4 font-black text-white/60 border-b-2 border-transparent hover:text-gold">Passport Requests</button>
+      <button id="packagesTab" class="pb-4 font-black text-white/60 border-b-2 border-transparent hover:text-gold">Package Tours</button>
+      <button id="usersTab" class="pb-4 font-black text-white/60 border-b-2 border-transparent hover:text-gold">User Access</button>
+    </div>
+
+    <!-- Leads Section -->
+    <section id="leadsSection" class="space-y-6">
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Total Leads</p>
+          <b id="leadCount" class="mt-2 block text-4xl text-gold">0</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Latest Destination</p>
+          <b id="latestDestination" class="mt-2 block text-2xl">None</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Contact Email</p>
+          <a class="mt-2 block text-lg font-black text-gold" href="mailto:bisflytravels@gmail.com">bisflytravels@gmail.com</a>
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[960px] text-left text-sm">
+            <thead class="bg-black/50 text-xs uppercase tracking-wide text-gold">
+              <tr>
+                <th class="p-4">Date</th>
+                <th class="p-4">Client</th>
+                <th class="p-4">Contact</th>
+                <th class="p-4">Destination</th>
+                <th class="p-4">Service</th>
+                <th class="p-4">Message</th>
+              </tr>
+            </thead>
+            <tbody id="leadTable" class="divide-y divide-white/10"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <button id="clearLeadsBtn" class="rounded bg-red px-6 py-2 text-sm font-black text-white hover:bg-red/80">Clear All Leads</button>
+    </section>
+
+    <!-- Insurance Section (Hidden by default) -->
+    <section id="insuranceSection" class="hidden space-y-6">
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Total Applications</p>
+          <b id="insuranceCount" class="mt-2 block text-4xl text-gold">0</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Pending</p>
+          <b id="insurancePending" class="mt-2 block text-4xl text-red">0</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Latest Destination</p>
+          <b id="latestInsuranceDestination" class="mt-2 block text-2xl">None</b>
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[1200px] text-left text-sm">
+            <thead class="bg-black/50 text-xs uppercase tracking-wide text-gold">
+              <tr>
+                <th class="p-4">Date</th>
+                <th class="p-4">Full Name</th>
+                <th class="p-4">Email</th>
+                <th class="p-4">Phone</th>
+                <th class="p-4">Destination</th>
+                <th class="p-4">Document</th>
+                <th class="p-4">Next of Kin</th>
+                <th class="p-4">Status</th>
+              </tr>
+            </thead>
+            <tbody id="insuranceTable" class="divide-y divide-white/10"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Passport Requests Section (Hidden by default) -->
+    <section id="passportSection" class="hidden space-y-6">
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Total Passport Requests</p>
+          <b id="passportCount" class="mt-2 block text-4xl text-gold">0</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Pending</p>
+          <b id="passportPending" class="mt-2 block text-4xl text-red">0</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Latest Request</p>
+          <b id="latestPassportRequest" class="mt-2 block text-2xl">None</b>
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5 p-6">
+        <form id="passportForm" class="grid gap-3 sm:grid-cols-3">
+          <input id="passportName" name="fullName" placeholder="Full Name" required class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <input id="passportEmail" name="email" type="email" placeholder="Email" required class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <input id="passportPhone" name="phone" placeholder="Phone" required class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <input id="passportNationality" name="nationality" placeholder="Nationality" required class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <select id="passportType" name="passportType" required class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none">
+            <option value="">Passport Type</option>
+            <option>International Passport</option>
+          </select>
+          <select id="requestType" name="requestType" required class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none">
+            <option value="">Request Type</option>
+            <option>New Passport</option>
+            <option>Renewal</option>
+          </select>
+          <input id="passportDOB" name="dob" type="date" class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <input id="passportTravelDate" name="travelDate" type="date" class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <textarea id="passportMessage" name="message" rows="3" placeholder="Additional details" class="sm:col-span-3 rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none"></textarea>
+          <button id="submitPassportRequest" class="rounded bg-gold px-4 py-2 font-black text-navy">Create Passport Request</button>
+          <p id="passportPanelMessage" class="sm:col-span-3 hidden rounded p-3 text-sm"></p>
+        </form>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[1200px] text-left text-sm">
+            <thead class="bg-black/50 text-xs uppercase tracking-wide text-gold">
+              <tr>
+                <th class="p-4">Date</th>
+                <th class="p-4">Name</th>
+                <th class="p-4">Contact</th>
+                <th class="p-4">Nationality</th>
+                <th class="p-4">Passport</th>
+                <th class="p-4">Request Type</th>
+                <th class="p-4">Status</th>
+              </tr>
+            </thead>
+            <tbody id="passportTable" class="divide-y divide-white/10"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Users Section (Hidden by default) -->
+    <section id="usersSection" class="hidden space-y-6">
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Total Users</p>
+          <b id="userCount" class="mt-2 block text-4xl text-gold">0</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Admin Roles</p>
+          <b id="userRoleCount" class="mt-2 block text-4xl text-green-300">0</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Active Users</p>
+          <b id="activeUserCount" class="mt-2 block text-4xl text-gold">0</b>
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5 p-6">
+        <form id="userForm" class="grid gap-3 sm:grid-cols-5">
+          <input id="userId" type="hidden" />
+          <input id="userUsername" name="username" required placeholder="Username" class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <input id="userPassword" name="password" type="password" placeholder="Password" class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <select id="userRole" name="role" class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none">
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="support">Support</option>
+            <option value="super-admin">Super Admin</option>
+          </select>
+          <label class="flex items-center gap-2 text-sm text-white/80">
+            <input id="userActive" type="checkbox" checked class="h-4 w-4" /> Active
+          </label>
+          <button id="saveUserBtn" type="submit" class="rounded bg-gold px-4 py-2 font-black text-navy">Create User</button>
+        </form>
+        <p id="userFormMessage" class="mt-4 hidden rounded p-3 text-sm"></p>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[960px] text-left text-sm">
+            <thead class="bg-black/50 text-xs uppercase tracking-wide text-gold">
+              <tr>
+                <th class="p-4">Username</th>
+                <th class="p-4">Role</th>
+                <th class="p-4">Status</th>
+                <th class="p-4">Created</th>
+                <th class="p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userTable" class="divide-y divide-white/10"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Packages Section (Hidden by default) -->
+    <section id="packagesSection" class="hidden space-y-6">
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Total Packages</p>
+          <b id="packageCount" class="mt-2 block text-4xl text-gold">0</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Published</p>
+          <b id="packagePublished" class="mt-2 block text-4xl text-green-300">0</b>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/8 p-5">
+          <p class="text-xs font-black uppercase tracking-wide text-white/50">Latest</p>
+          <b id="latestPackage" class="mt-2 block text-2xl">None</b>
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5 p-6">
+        <form id="packageForm" class="grid gap-3 sm:grid-cols-3" novalidate>
+          <input id="pkgTitle" name="title" required placeholder="Package title" class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <input id="pkgImage" name="image" type="file" accept="image/*" class="rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" />
+          <button id="uploadPkgBtn" class="rounded bg-gold px-4 py-2 font-black text-navy">Upload Package</button>
+          <textarea id="pkgDesc" name="description" rows="3" required class="sm:col-span-3 rounded border border-white/10 bg-transparent px-3 py-2 text-sm outline-none" placeholder="Package description"></textarea>
+
+          <div class="sm:col-span-3">
+            <img id="pkgPreview" src="" alt="Image preview" class="mx-auto mt-3 hidden h-36 w-auto rounded-lg object-cover" />
+          </div>
+
+          <p id="packageMessage" class="sm:col-span-3 hidden rounded p-3 text-sm"></p>
+        </form>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[960px] text-left text-sm">
+            <thead class="bg-black/50 text-xs uppercase tracking-wide text-gold">
+              <tr>
+                <th class="p-4">Date</th>
+                <th class="p-4">Title</th>
+                <th class="p-4">Image</th>
+                <th class="p-4">Description</th>
+                <th class="p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="packageTable" class="divide-y divide-white/10"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function getAdminToken() {
+      return localStorage.getItem("adminToken");
+    }
+
+    // Check authentication
+    async function verifyAuth() {
+      const adminToken = getAdminToken();
+      if (!adminToken) {
+        window.location.href = "/admin";
+        return false;
+      }
+
+      try {
+        const response = await fetch("/api/admin/verify", {
+          headers: { "Authorization": `Bearer ${adminToken}` }
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem("adminToken");
+          window.location.href = "/admin";
+          return false;
+        }
+
+        const data = await response.json();
+        document.getElementById("adminInfo").textContent = `Admin: ${data.username}`;
+        document.getElementById("loginStatus").textContent = `Logged in as ${data.username}`;
+        return true;
+      } catch (error) {
+        localStorage.removeItem("adminToken");
+        window.location.href = "/admin";
+        return false;
+      }
+    }
+
+    // Packages management
+    async function loadPackages() {
+      try {
+        const response = await fetch('/api/packages');
+        const packages = response.ok ? await response.json() : [];
+        document.getElementById('packageCount').textContent = packages.length;
+        document.getElementById('packagePublished').textContent = packages.filter(p => p.imageFile).length;
+        document.getElementById('latestPackage').textContent = packages[0]?.title || 'None';
+
+        document.getElementById('packageTable').innerHTML = packages.map(pkg => `
+          <tr class="align-top package-row">
+            <td class="p-4 text-white/70">${new Date(pkg.createdAt).toLocaleString()}</td>
+            <td class="p-4"><b>${pkg.title}</b></td>
+            <td class="p-4">${pkg.imageFile ? `<img src="/uploads/${pkg.imageFile}" class="h-16 w-24 object-cover rounded" />` : 'No image'}</td>
+            <td class="p-4 text-white/70">${pkg.description || ''}</td>
+            <td class="p-4 flex gap-2"><button data-id="${pkg.id}" class="deletePkgBtn package-action rounded bg-red px-3 py-2 text-xs font-black">Delete</button></td>
+          </tr>
+        `).join('') || `<tr><td class="p-6 text-white/60" colspan="5">No packages yet.</td></tr>`;
+
+        document.querySelectorAll('.deletePkgBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('Delete this package?')) return;
+            const id = btn.dataset.id;
+            const token = getAdminToken();
+            await fetch(`/api/packages/${id}`, { method: 'DELETE', headers: { 'Authorization': \`Bearer \${token}\` } });
+            loadPackages();
+          });
+        });
+      } catch (err) {
+        console.error('Error loading packages', err);
+      }
+    }
+
+    function openSection(tabId) {
+      const sections = {
+        leadsTab: 'leadsSection',
+        insuranceTab: 'insuranceSection',
+        passportTab: 'passportSection',
+        packagesTab: 'packagesSection',
+        usersTab: 'usersSection'
+      };
+      const sectionToShow = sections[tabId];
+      ['leadsSection','insuranceSection','passportSection','packagesSection','usersSection'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', id !== sectionToShow);
+      });
+      ['leadsTab','insuranceTab','passportTab','packagesTab','usersTab'].forEach(id => {
+        const tab = document.getElementById(id);
+        if (!tab) return;
+        if (id === tabId) {
+          tab.classList.add('text-gold','border-gold');
+          tab.classList.remove('text-white/60','border-transparent');
+        } else {
+          tab.classList.remove('text-gold','border-gold');
+          tab.classList.add('text-white/60','border-transparent');
+        }
+      });
+
+      if (tabId === 'leadsTab') loadLeads();
+      if (tabId === 'insuranceTab') loadInsurance();
+      if (tabId === 'passportTab') loadPassports();
+      if (tabId === 'packagesTab') loadPackages();
+      if (tabId === 'usersTab') loadUsers();
+    }
+
+    document.getElementById('passportForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const msg = document.getElementById('passportPanelMessage');
+      const token = getAdminToken();
+      msg.className = 'hidden rounded p-3 text-sm';
+      msg.textContent = '';
+
+      try {
+        const response = await fetch('/api/passports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(Object.fromEntries(new FormData(form).entries()))
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          msg.className = 'sm:col-span-3 rounded p-3 text-sm bg-red-500/10 text-red-300';
+          msg.textContent = data.message || 'Unable to create passport request.';
+          return;
+        }
+        msg.className = 'sm:col-span-3 rounded p-3 text-sm bg-green-500/10 text-green-300';
+        msg.textContent = 'Passport request created successfully.';
+        form.reset();
+        loadPassports();
+      } catch (error) {
+        msg.className = 'sm:col-span-3 rounded p-3 text-sm bg-red-500/10 text-red-300';
+        msg.textContent = 'Passport request failed.';
+      }
+    });
+
+    // Live preview for selected image
+    document.getElementById('pkgImage').addEventListener('change', (e) => {
+      const preview = document.getElementById('pkgPreview');
+      const file = e.target.files[0];
+      if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove('hidden');
+      } else {
+        preview.src = '';
+        preview.classList.add('hidden');
+      }
+    });
+
+    document.getElementById('packageForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const titleEl = document.getElementById('pkgTitle');
+      const descEl = document.getElementById('pkgDesc');
+      const title = titleEl.value.trim();
+      const desc = descEl.value.trim();
+      const fileInput = document.getElementById('pkgImage');
+      const packageMessage = document.getElementById('packageMessage');
+      const token = getAdminToken();
+
+      packageMessage.className = 'sm:col-span-3 hidden rounded p-3 text-sm';
+      packageMessage.textContent = '';
+
+      if (!title || !desc) {
+        packageMessage.textContent = 'Please provide both a title and a description.';
+        packageMessage.className = 'sm:col-span-3 rounded p-3 text-sm bg-red-500/10 text-red-300';
+        if (!title) titleEl.focus();
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append('title', title);
+      fd.append('description', desc);
+      if (fileInput.files[0]) fd.append('image', fileInput.files[0]);
+
+      try {
+        const response = await fetch('/api/packages', {
+          method: 'POST',
+          body: fd,
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          packageMessage.textContent = data.message || 'Upload failed. Please try again.';
+          packageMessage.className = 'sm:col-span-3 rounded p-3 text-sm bg-red-500/10 text-red-300';
+          return;
+        }
+
+        packageMessage.textContent = 'Package uploaded successfully.';
+        packageMessage.className = 'sm:col-span-3 rounded p-3 text-sm bg-green-500/10 text-green-300';
+        document.getElementById('packageForm').reset();
+        document.getElementById('pkgPreview').classList.add('hidden');
+        loadPackages();
+      } catch (error) {
+        packageMessage.textContent = 'Upload failed: ' + error.message;
+        packageMessage.className = 'sm:col-span-3 rounded p-3 text-sm bg-red-500/10 text-red-300';
+      }
+    });
+
+    function displayName(item) {
+      return item?.fullName || item?.name || item?.clientName || item?.customerName || "No name";
+    }
+
+    function displayEmail(item) {
+      return item?.email || item?.contactEmail || "No email";
+    }
+
+    function displayPhone(item) {
+      return item?.phone || item?.mobile || item?.contactPhone || "No phone";
+    }
+
+    function displayDestination(item) {
+      return item?.destination || item?.country || item?.location || "Flexible";
+    }
+
+    function displayService(item) {
+      return item?.service || item?.visaType || item?.requestType || item?.passportType || "Visa request";
+    }
+
+    function displayMessage(item) {
+      return item?.message || item?.notes || item?.additionalDetails || "No message";
+    }
+
+    async function loadLeads() {
+      try {
+        const response = await fetch("/api/leads");
+        const leads = response.ok ? await response.json() : [];
+        document.getElementById("leadCount").textContent = leads.length;
+        document.getElementById("latestDestination").textContent = leads[0] ? displayDestination(leads[0]) : "None";
+        document.getElementById("leadTable").innerHTML = leads.map(lead => `
+          <tr class="align-top">
+            <td class="p-4 text-white/70">${lead.createdAt ? new Date(lead.createdAt).toLocaleString() : "Pending"}</td>
+            <td class="p-4"><b>${displayName(lead)}</b></td>
+            <td class="p-4">${displayPhone(lead)}<br><span class="text-white/50">${displayEmail(lead)}</span></td>
+            <td class="p-4">${displayDestination(lead)}</td>
+            <td class="p-4">${displayService(lead)}</td>
+            <td class="max-w-md p-4 text-white/70">${displayMessage(lead)}</td>
+          </tr>
+        `).join("") || `<tr><td class="p-6 text-white/60" colspan="6">No leads yet.</td></tr>`;
+      } catch (error) {
+        console.error("Error loading leads:", error);
+      }
+    }
+
+    async function loadInsurance() {
+      try {
+        const token = getAdminToken();
+        const response = await fetch("/api/insurance", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const insurance = response.ok ? await response.json() : [];
+        const pending = insurance.filter(i => i.status === "pending").length;
+
+        document.getElementById("insuranceCount").textContent = insurance.length;
+        document.getElementById("insurancePending").textContent = pending;
+        document.getElementById("latestInsuranceDestination").textContent = insurance[0]?.destination || "None";
+
+        document.getElementById("insuranceTable").innerHTML = insurance.map(app => `
+          <tr class="align-top">
+            <td class="p-4 text-white/70">${new Date(app.createdAt).toLocaleString()}</td>
+            <td class="p-4"><b>${displayName(app)}</b></td>
+            <td class="p-4 text-white/70">${displayEmail(app)}</td>
+            <td class="p-4 text-white/70">${displayPhone(app)}</td>
+            <td class="p-4">${displayDestination(app)}</td>
+            <td class="p-4">
+              ${app.documentFile ? `<a href="/uploads/${app.documentFile}" class="text-gold hover:underline" target="_blank" download>Download</a>` : "N/A"}
+            </td>
+            <td class="p-4 text-white/70">${app.nextOfKinName || app.nextOfKin || "N/A"}</td>
+            <td class="p-4">
+              <span class="rounded px-2 py-1 text-xs font-black ${app.status === "pending" ? "bg-red/20 text-red" : "bg-green-500/20 text-green-300"}">
+                ${app.status || "pending"}
+              </span>
+            </td>
+          </tr>
+        `).join("") || `<tr><td class="p-6 text-white/60" colspan="8">No insurance applications yet.</td></tr>`;
+      } catch (error) {
+        console.error("Error loading insurance:", error);
+      }
+    }
+
+    async function loadPassports() {
+      try {
+        const token = getAdminToken();
+        const response = await fetch("/api/passports", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const passports = response.ok ? await response.json() : [];
+        const pending = passports.filter(p => p.status === "pending").length;
+
+        document.getElementById("passportCount").textContent = passports.length;
+        document.getElementById("passportPending").textContent = pending;
+        document.getElementById("latestPassportRequest").textContent = passports[0]?.fullName || "None";
+
+        document.getElementById("passportTable").innerHTML = passports.map(req => `
+          <tr class="align-top">
+            <td class="p-4 text-white/70">${new Date(req.createdAt).toLocaleString()}</td>
+            <td class="p-4"><b>${displayName(req)}</b><br><span class="text-white/50">${displayEmail(req)}</span></td>
+            <td class="p-4 text-white/70">${displayPhone(req)}</td>
+            <td class="p-4">${req.nationality || req.country || "N/A"}</td>
+            <td class="p-4">${req.passportType || req.service || "N/A"}</td>
+            <td class="p-4">${req.requestType || req.service || "N/A"}</td>
+            <td class="p-4"><span class="rounded px-2 py-1 text-xs font-black ${req.status === "pending" ? "bg-red/20 text-red" : "bg-green-500/20 text-green-300"}">${req.status || "pending"}</span></td>
+          </tr>
+        `).join("") || `<tr><td class="p-6 text-white/60" colspan="7">No passport requests yet.</td></tr>`;
+      } catch (error) {
+        console.error("Error loading passport requests:", error);
+      }
+    }
+
+    async function loadAgreements() {
+      try {
+        const token = getAdminToken();
+        const response = await fetch("/api/agreements", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const agreements = response.ok ? await response.json() : [];
+        const pending = agreements.filter(a => a.status === "pending").length;
+        const approved = agreements.filter(a => a.status === "approved").length;
+
+        document.getElementById("agreementCount").textContent = agreements.length;
+        document.getElementById("agreementPending").textContent = pending;
+        document.getElementById("agreementApproved").textContent = approved;
+
+        document.getElementById("agreementTable").innerHTML = agreements.map(app => `
+          <tr class="align-top">
+            <td class="p-4 text-white/70">${new Date(app.createdAt).toLocaleString()}</td>
+            <td class="p-4"><b>${app.fullName || "N/A"}</b></td>
+            <td class="p-4">${app.location || "N/A"}</td>
+            <td class="p-4">${app.amountPaid || "N/A"}</td>
+            <td class="p-4">${app.balanceAmount || "N/A"}</td>
+            <td class="p-4">
+              <span class="rounded px-2 py-1 text-xs font-black ${app.status === "pending" ? "bg-red/20 text-red" : "bg-green-500/20 text-green-300"}">
+                ${app.status || "pending"}
+              </span>
+            </td>
+            <td class="p-4 text-xs">
+              ${app.emailSent ? `<span class="rounded bg-green-500/30 px-2 py-1 text-green-300 font-black">✓ Sent</span>` : `<span class="rounded bg-gray-500/30 px-2 py-1 text-gray-300">Pending</span>`}
+            </td>
+            <td class="p-4 flex flex-wrap gap-2">
+              ${app.status === "pending" ? `<button data-id="${app.id}" class="approveBtn rounded bg-green-500/20 px-3 py-2 text-xs font-black text-green-300 hover:bg-green-500/30">Approve</button>` : ""}
+              <a href="/api/agreements/${app.id}/download" class="rounded bg-gold px-3 py-2 text-xs font-black text-navy hover:bg-white">Download</a>
+            </td>
+          </tr>
+        `).join("") || `<tr><td class="p-6 text-white/60" colspan="8">No agreement requests yet.</td></tr>`;
+
+        document.querySelectorAll(".approveBtn").forEach(button => {
+          button.addEventListener("click", async () => {
+            const id = button.dataset.id;
+            await fetch(`/api/agreements/${id}/approve`, {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${adminToken}` }
+            });
+            loadAgreements();
+          });
+        });
+      } catch (error) {
+        console.error("Error loading agreements:", error);
+      }
+    }
+
+    // User management
+    function resetUserForm() {
+      document.getElementById('userId').value = '';
+      document.getElementById('userUsername').value = '';
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userRole').value = 'admin';
+      document.getElementById('userActive').checked = true;
+      document.getElementById('saveUserBtn').textContent = 'Create User';
+    }
+
+    async function loadUsers() {
+      try {
+        const token = getAdminToken();
+        const response = await fetch('/api/admin/users', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const users = response.ok ? await response.json() : [];
+        document.getElementById('userCount').textContent = users.length;
+        document.getElementById('userRoleCount').textContent = users.filter(u => u.role && u.role.includes('admin')).length;
+        document.getElementById('activeUserCount').textContent = users.filter(u => u.active !== false).length;
+
+        document.getElementById('userTable').innerHTML = users.map(user => `
+          <tr class="align-top">
+            <td class="p-4"><b>${user.username}</b></td>
+            <td class="p-4"><span class="rounded bg-gold/20 px-2 py-1 text-xs font-black text-gold">${user.role || 'admin'}</span></td>
+            <td class="p-4"><span class="rounded px-2 py-1 text-xs font-black ${user.active === false ? 'bg-red/20 text-red' : 'bg-green-500/20 text-green-300'}">${user.active === false ? 'Inactive' : 'Active'}</span></td>
+            <td class="p-4 text-white/70">${new Date(user.createdAt || Date.now()).toLocaleString()}</td>
+            <td class="p-4 flex flex-wrap gap-2">
+              <button type="button" data-id="${user.id}" class="editUserBtn rounded bg-gold px-3 py-2 text-xs font-black text-navy">Edit</button>
+              <button type="button" data-id="${user.id}" class="deleteUserBtn rounded bg-red px-3 py-2 text-xs font-black">Delete</button>
+            </td>
+          </tr>
+        `).join('') || '<tr><td class="p-6 text-white/60" colspan="5">No users yet.</td></tr>';
+
+        document.querySelectorAll('.editUserBtn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const userId = Number(btn.dataset.id);
+            const user = users.find(item => item.id === userId);
+            if (!user) return;
+            document.getElementById('userId').value = user.id;
+            document.getElementById('userUsername').value = user.username;
+            document.getElementById('userPassword').value = '';
+            document.getElementById('userRole').value = user.role || 'admin';
+            document.getElementById('userActive').checked = user.active !== false;
+            document.getElementById('saveUserBtn').textContent = 'Update User';
+            document.getElementById('userFormMessage').className = 'mt-4 hidden rounded p-3 text-sm';
+            document.getElementById('userUsername').focus();
+          });
+        });
+
+        document.querySelectorAll('.deleteUserBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const userId = Number(btn.dataset.id);
+            if (!confirm('Delete this user?')) return;
+            const token = getAdminToken();
+            await fetch(`/api/admin/users/${userId}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            loadUsers();
+          });
+        });
+      } catch (error) {
+        console.error('Error loading users', error);
+      }
+    }
+
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('userFormMessage');
+      const userId = document.getElementById('userId').value;
+      const username = document.getElementById('userUsername').value.trim();
+      const password = document.getElementById('userPassword').value;
+      const role = document.getElementById('userRole').value;
+      const active = document.getElementById('userActive').checked;
+      const token = getAdminToken();
+      const payload = { username, role, active };
+      if (password) payload.password = password;
+
+      try {
+        const response = await fetch(userId ? `/api/admin/users/${userId}` : '/api/admin/users', {
+          method: userId ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          msg.className = 'mt-4 rounded p-3 text-sm bg-red-500/10 text-red-300';
+          msg.textContent = data.message || 'Unable to save user.';
+          return;
+        }
+        msg.className = 'mt-4 rounded p-3 text-sm bg-green-500/10 text-green-300';
+        msg.textContent = userId ? 'User updated successfully.' : 'User created successfully.';
+        resetUserForm();
+        loadUsers();
+      } catch (error) {
+        msg.className = 'mt-4 rounded p-3 text-sm bg-red-500/10 text-red-300';
+        msg.textContent = 'User save failed.';
+      }
+    });
+
+    // Tab switching
+    document.getElementById('leadsTab').addEventListener('click', () => openSection('leadsTab'));
+    document.getElementById('insuranceTab').addEventListener('click', () => openSection('insuranceTab'));
+    document.getElementById('passportTab').addEventListener('click', () => openSection('passportTab'));
+    document.getElementById('packagesTab').addEventListener('click', () => openSection('packagesTab'));
+    document.getElementById('usersTab').addEventListener('click', () => openSection('usersTab'));
+
+    // Refresh and Clear buttons
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      loadLeads();
+      loadInsurance();
+      loadPassports();
+      loadPackages();
+      loadUsers();
+    });
+
+    document.getElementById("clearLeadsBtn").addEventListener("click", async () => {
+      if (!confirm("Clear all travel request leads?")) return;
+      await fetch("/api/leads", { method: "DELETE" });
+      loadLeads();
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      const token = getAdminToken();
+      await fetch("/api/admin/logout", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      localStorage.removeItem("adminToken");
+      window.location.href = "/admin";
+    });
+
+    async function initDashboard() {
+      if (await verifyAuth()) {
+        localStorage.removeItem('openPackageTab');
+        openSection('leadsTab');
+        loadInsurance();
+        loadPassports();
+        loadPackages();
+        loadUsers();
+        lucide.createIcons();
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initDashboard);
+    } else {
+      initDashboard();
+    }
+  </script>
+</body>
+</html>

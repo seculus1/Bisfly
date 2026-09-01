@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1786706203578,
+    "username": "Customer1",
+    "passwordHash": "5872770cd2b2afdf67bc6f51888312f3bea0dcef8e405174f6e68a9f521fddfaed744a25feabae1653be1784585869d445f7786dec4c4e0d3b0d3e08248cb356",
+    "role": "support",
+    "active": true,
+    "createdAt": "2026-08-14T11:16:43.604Z",
+    "updatedAt": "2026-08-14T11:16:43.604Z",
+    "passwordSalt": "0ca02b9322a7c6fe3c02d2563df23a4d"
+  },
+  {
+    "id": 1,
+    "username": "admin",
+    "passwordHash": "3d16c71d4b1803831a5c5215894bd09068cda99858d78d4b60e4b0248572ba158b6c0cdb8d1a41d8316c4ad5513885947bd187d3acce63ad6d75a5380a8ced16",
+    "role": "super-admin",
+    "active": true,
+    "createdAt": "2026-08-14T10:22:22.858Z",
+    "updatedAt": "2026-08-14T10:22:22.859Z",
+    "passwordSalt": "59d9fb23cc3ab7ecc13636963c8a9e3b"
+  }
+]

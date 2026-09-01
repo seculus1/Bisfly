@@ -1,0 +1,32 @@
+[
+  {
+    "fullName": "Esther Osesanmi Olusola",
+    "email": "olatunjidorcas24@gmail.com",
+    "dateOfBirth": "2006-01-10",
+    "destination": "Canada",
+    "location": "Ibadan, Nigeria",
+    "amountPaid": "750,000",
+    "balanceAmount": "500,000",
+    "customerSignature": "Esther Osesanmi Olusola",
+    "signatureDate": "2026-06-11",
+    "id": 1781189907095,
+    "status": "approved",
+    "createdAt": "2026-06-11T14:58:27.095Z",
+    "signatureFile": "1781189907103-1bc51a9d466d.jpeg",
+    "signatureMime": "image/jpeg",
+    "approvedAt": "2026-06-11T14:58:57.357Z",
+    "approvedBy": "admin"
+  },
+  {
+    "fullName": "Bankole Adesegun",
+    "dateOfBirth": "2008-01-11",
+    "location": "Lagos, Nigeria",
+    "amountPaid": "500,000",
+    "balanceAmount": "1,500,000",
+    "customerSignature": "Bankole Adesegun Samson",
+    "signatureDate": "2026-06-03",
+    "id": 1781187989312,
+    "status": "approved",
+    "createdAt": "2026-06-11T14:26:29.312Z"
+  }
+]

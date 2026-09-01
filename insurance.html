@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BisFly Travel Insurance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: "#06153b",
+            royal: "#073c9a",
+            gold: "#f8b72b",
+            red: "#df201c"
+          },
+          boxShadow: {
+            gold: "0 18px 44px rgba(248,183,43,.25)",
+            blue: "0 26px 70px rgba(5,43,125,.38)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body {
+      background:
+        radial-gradient(circle at 70% 8%, rgba(19, 101, 227, .46), transparent 33rem),
+        radial-gradient(circle at 4% 30%, rgba(248, 183, 43, .16), transparent 28rem),
+        linear-gradient(180deg, #06153b 0%, #020713 74%);
+    }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h1 class="text-4xl font-black text-gold">Travel Insurance</h1>
+        <p class="mt-2 text-white/70">Apply for comprehensive travel protection with BisFly — now available on its own page.</p>
+      </div>
+      <a href="/" class="rounded-lg bg-white/10 px-5 py-3 font-black text-gold hover:bg-white/20">Back to Home</a>
+    </div>
+
+    <div class="rounded-3xl border border-white/10 bg-white/10 p-8 shadow-blue backdrop-blur-lg">
+      <div class="grid gap-8 lg:grid-cols-[.85fr_.4fr]">
+        <div>
+          <h2 class="text-3xl font-black text-navy">Travel Insurance Application</h2>
+          <p class="mt-3 text-white/70">Submit your details and upload your travel document in JPG format.</p>
+        </div>
+        <div class="rounded-3xl border border-white/10 bg-navy/90 p-6">
+          <h3 class="text-lg font-black text-gold">Need help?</h3>
+          <p class="mt-3 text-sm text-white/70">Call +234 705 193 5203 or email bisflytravels@gmail.com for support.</p>
+        </div>
+      </div>
+
+      <form id="insurancePageForm" class="mt-8 grid gap-4 rounded-3xl bg-white p-8 text-slate-900 shadow-lg" enctype="multipart/form-data">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <input required name="fullName" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Full Name" />
+          <input required name="phone" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Phone Number" />
+          <input required name="address" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Address" />
+          <input required type="email" name="email" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Email Address" />
+          <input required type="date" name="dateOfBirth" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Date of Birth" />
+          <input required name="travelDocNumber" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Travel Document Number (Passport)" />
+          <input required name="destination" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Destination Country" />
+          <input required type="date" name="startDate" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Start Date" />
+          <input required type="date" name="endDate" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="End Date" />
+          <input required name="nextOfKinName" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Next of Kin Name" />
+          <input required name="nextOfKinAddress" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Next of Kin Address" />
+          <input required name="nextOfKinPhone" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Next of Kin Phone Number" />
+        </div>
+
+        <label class="mt-4 block">
+          <span class="text-sm font-black text-navy">Upload your travel document (JPG only)</span>
+          <input required type="file" name="travelDocument" accept=".jpg,.jpeg" class="mt-2 block w-full rounded border border-slate-200 px-4 py-3 text-sm file:mr-4 file:rounded file:border-0 file:bg-red file:px-4 file:py-2 file:text-sm file:font-black file:text-white focus:border-royal" />
+        </label>
+
+        <button class="mt-4 w-full rounded bg-gradient-to-r from-royal via-red to-gold px-5 py-4 font-black text-white" type="submit">Submit Insurance Application</button>
+        <p id="insurancePageStatus" class="mt-3 hidden rounded bg-green-50 p-3 text-sm font-bold text-green-700">Insurance application submitted successfully.</p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("insurancePageForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const status = document.getElementById("insurancePageStatus");
+      try {
+        const response = await fetch("/api/insurance", {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          alert(data.message || "Unable to submit insurance form.");
+          return;
+        }
+        event.target.reset();
+        status.classList.remove("hidden");
+        setTimeout(() => status.classList.add("hidden"), 4500);
+      } catch (error) {
+        alert("Server error. Please try again.");
+      }
+    });
+  </script>
+</body>
+</html>
