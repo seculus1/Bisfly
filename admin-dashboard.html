@@ -852,7 +852,7 @@
 
     // Load Packages
     async function loadPackages() {
-      const data = await apiCall('/api/packages');
+      const data = await apiCall(`/api/packages?refresh=${Date.now()}`, { cache: 'no-store' });
       if (!data) return;
       
       const grid = document.getElementById('packagesGrid');

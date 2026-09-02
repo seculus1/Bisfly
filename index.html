@@ -451,14 +451,14 @@
 
     async function loadPackagesFront() {
       try {
-        const res = await fetch('/api/packages');
+        const res = await fetch(`/api/packages?refresh=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) return;
         const packages = await res.json();
         const gallery = document.getElementById('gallery');
         gallery.innerHTML = '';
 
         const defaultImage = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80';
-        const loadedPackages = Array.isArray(packages) ? packages.slice(0, 6) : [];
+        const loadedPackages = Array.isArray(packages) ? packages : [];
 
         if (loadedPackages.length === 0) {
           gallery.innerHTML = `<div class="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-white/70">No travel packages available yet. Check back soon.</div>`;
