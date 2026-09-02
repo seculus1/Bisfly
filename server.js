@@ -304,6 +304,22 @@ async function sendSimpleEmail(to, subject, html) {
   }
 }
 
+function notifySubmission(customerEmail, customerSubject, customerHtml, adminSubject, adminHtml) {
+  const adminEmail = process.env.EMAIL_USER || process.env.RESEND_FROM_EMAIL;
+  const messages = [];
+
+  if (customerEmail) messages.push(sendSimpleEmail(customerEmail, customerSubject, customerHtml));
+  if (adminEmail && adminEmail.toLowerCase() !== String(customerEmail || "").toLowerCase()) {
+    messages.push(sendSimpleEmail(adminEmail, adminSubject, adminHtml));
+  }
+
+  Promise.all(messages).then(results => {
+    results.filter(result => !result.sent).forEach(result => {
+      console.error("Submission email was not sent:", result.error || "Unknown email error");
+    });
+  }).catch(error => console.error("Submission email error:", error.message));
+}
+
 function initializeAdmin() {
   if (!fs.existsSync(adminFile)) {
     const { hash, salt } = hashPasswordWithSalt("BisFly@2026");
@@ -1170,7 +1186,7 @@ const server = http.createServer(async (request, response) => {
       send(response, 201, { ok: true, message: "Insurance application submitted" });
       if (normalized.email) {
         const html = `<p>Dear ${normalized.fullName || normalized.name || 'Customer'},</p><p>Thank you for submitting your travel insurance application. We will review it and contact you shortly.</p><p>Reference ID: ${insurance[0].id}</p><p>Best regards,<br/>BisFly Travels and Tours</p>`;
-        sendSimpleEmail(normalized.email, 'BisFly: Insurance application received', html).catch(() => {});
+        notifySubmission(normalized.email, 'BisFly: Insurance application received', html, 'BisFly: New insurance application', `<p>A new travel insurance application was submitted.</p><p><strong>Name:</strong> ${normalized.fullName || normalized.name || 'Customer'}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Reference ID:</strong> ${insurance[0].id}</p>`);
       }
       return;
     }
@@ -1340,7 +1356,7 @@ const server = http.createServer(async (request, response) => {
       send(response, 201, { ok: true, message: "Passport request submitted" });
       if (normalized.email) {
         const html = `<p>Dear ${normalized.fullName || normalized.name || 'Customer'},</p><p>Your passport request has been received. We will contact you shortly with next steps.</p><p>Reference ID: ${passports[0].id}</p><p>Thank you,<br/>BisFly Travels and Tours</p>`;
-        sendSimpleEmail(normalized.email, 'BisFly: Passport request received', html).catch(() => {});
+        notifySubmission(normalized.email, 'BisFly: Passport request received', html, 'BisFly: New passport request', `<p>A new passport request was submitted.</p><p><strong>Name:</strong> ${normalized.fullName || normalized.name || 'Customer'}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Reference ID:</strong> ${passports[0].id}</p>`);
       }
       return;
     }
@@ -1377,7 +1393,7 @@ const server = http.createServer(async (request, response) => {
       send(response, 201, { ok: true, message: "Partnership request submitted" });
       if (normalized.email) {
         const html = `<p>Dear ${normalized.contactName || 'Partner'},</p><p>Thank you for your interest in partnering with BisFly Travel and Tours. Our team will review your proposal and contact you soon.</p><p>Partnership Type: ${normalized.partnershipType}</p><p>Reference ID: ${normalized.id}</p><p>Best regards,<br/>BisFly Travels and Tours</p>`;
-        sendSimpleEmail(normalized.email, 'BisFly: Partnership request received', html).catch(() => {});
+        notifySubmission(normalized.email, 'BisFly: Partnership request received', html, 'BisFly: New partnership request', `<p>A new partnership request was submitted.</p><p><strong>Company:</strong> ${normalized.companyName}</p><p><strong>Contact:</strong> ${normalized.contactName}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Phone:</strong> ${normalized.phone}</p><p><strong>Type:</strong> ${normalized.partnershipType}</p>`);
       }
       return;
     }
@@ -1539,7 +1555,7 @@ const server = http.createServer(async (request, response) => {
       if (normalized.email) {
         const lead = leads[0];
         const html = `<p>Dear ${lead.name || lead.fullName || 'Customer'},</p><p>Thank you for contacting BisFly Travels. We received your request and will follow up soon.</p><p>Reference ID: ${lead.id}</p><p>Best regards,<br/>BisFly Travels and Tours</p>`;
-        sendSimpleEmail(normalized.email, 'BisFly: We received your request', html).catch(() => {});
+        notifySubmission(normalized.email, 'BisFly: We received your request', html, 'BisFly: New customer request', `<p>A new customer request was submitted.</p><p><strong>Name:</strong> ${lead.name || lead.fullName || 'Customer'}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Phone:</strong> ${normalized.phone || 'Not provided'}</p><p><strong>Reference ID:</strong> ${lead.id}</p>`);
       }
       return;
     }
