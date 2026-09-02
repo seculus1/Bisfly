@@ -169,6 +169,10 @@ async function initializeEmailTransport() {
     const emailPort = Number(process.env.EMAIL_PORT || (emailHost.includes("resend") ? 587 : (emailService === "gmail" ? 587 : 465)));
     const emailSecure = String(process.env.EMAIL_SECURE ?? (emailHost.includes("resend") ? "false" : (emailService === "gmail" ? "false" : "true"))).toLowerCase() === "true";
 
+    if (emailHost.includes("resend") && resendApiKey && !resendApiKey.startsWith("re_")) {
+      throw new Error("Invalid Resend API key format. Generate a Resend key beginning with re_ and set it as RESEND_API_KEY and EMAIL_PASS.");
+    }
+
     if (!emailPass) {
       console.warn("\n⚠️  EMAIL_PASS / RESEND_API_KEY environment variable not set. Falling back to Ethereal test account for email preview.");
       const testAccount = await nodemailer.createTestAccount();
