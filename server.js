@@ -733,6 +733,7 @@ setInterval(() => {
 }, 300000); // Every 5 minutes
 
 function parseMultipartForm(body, boundary) {
+  if (!boundary) return { fields: {}, files: {} };
   const parts = body.split(`--${boundary}`);
   const fields = {};
   const files = {};
@@ -740,6 +741,7 @@ function parseMultipartForm(body, boundary) {
   for (let i = 1; i < parts.length - 1; i++) {
     const part = parts[i];
     const headerEnd = part.indexOf("\r\n\r\n");
+    if (headerEnd === -1) continue;
     const headers = part.substring(0, headerEnd);
     const content = part.substring(headerEnd + 4, part.length - 2);
 
@@ -781,8 +783,8 @@ function readBody(request) {
         const raw = Buffer.concat(chunks);
         const contentType = request.headers["content-type"] || "";
         if (contentType.includes("multipart/form-data")) {
-          const boundaryMatch = contentType.match(/boundary=([^;]+)/);
-          const boundary = boundaryMatch ? boundaryMatch[1].trim() : "";
+          const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;\s]+))/i);
+          const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]).trim() : "";
           const bodyStr = raw.toString("binary");
           const parsed = parseMultipartForm(bodyStr, boundary);
           resolve(parsed);

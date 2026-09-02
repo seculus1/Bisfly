@@ -1204,6 +1204,8 @@
           document.getElementById('addPackageModal').classList.add('hidden');
           document.getElementById('addPackageForm').reset();
           await loadPackages();
+        } else {
+          alert(result?.message || 'Failed to create package');
         }
       });
 
