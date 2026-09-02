@@ -138,7 +138,12 @@
   <div class="ml-64 p-6">
     <!-- Dashboard Tab -->
     <div id="dashboard-tab" class="tab-content">
-      <h1 class="text-4xl font-black text-gold mb-8">Dashboard</h1>
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <h1 class="text-4xl font-black text-gold">Dashboard</h1>
+        <button id="dashboardAddPackageBtn" type="button" class="px-6 py-3 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>Add Package
+        </button>
+      </div>
       
       <div id="analyticsCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div class="glass rounded-lg p-6 border border-white/10">
@@ -658,12 +663,11 @@
       localStorage.setItem('adminUser', JSON.stringify(currentUser));
       document.getElementById('userDisplay').textContent = `${currentUser.username} (${currentUser.role})`;
       
-      // Load initial data
-      await loadAnalytics();
-      await loadLeads();
-      
       // Set up event listeners
       setupEventListeners();
+
+      // Load initial data independently so one failed panel does not disable controls.
+      await Promise.allSettled([loadAnalytics(), loadLeads()]);
     }
 
     // Load Analytics
@@ -1178,9 +1182,9 @@
       });
       
       // Add package
-      document.getElementById('addPackageBtn').addEventListener('click', () => {
-        document.getElementById('addPackageModal').classList.remove('hidden');
-      });
+      const openPackageModal = () => document.getElementById('addPackageModal').classList.remove('hidden');
+      document.getElementById('addPackageBtn').addEventListener('click', openPackageModal);
+      document.getElementById('dashboardAddPackageBtn').addEventListener('click', openPackageModal);
       
       document.getElementById('closePackageModal').addEventListener('click', () => {
         document.getElementById('addPackageModal').classList.add('hidden');
