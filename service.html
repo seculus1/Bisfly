@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BisFly Services</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: "#06153b",
+            royal: "#073c9a",
+            gold: "#f8b72b",
+            red: "#df201c"
+          },
+          boxShadow: {
+            gold: "0 18px 44px rgba(248,183,43,.25)",
+            blue: "0 26px 70px rgba(5,43,125,.38)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body {
+      background:
+        radial-gradient(circle at 70% 8%, rgba(19, 101, 227, .46), transparent 33rem),
+        radial-gradient(circle at 4% 30%, rgba(248, 183, 43, .16), transparent 28rem),
+        linear-gradient(180deg, #06153b 0%, #020713 74%);
+    }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <header class="border-b border-white/10 bg-black/90">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+      <a href="/" class="flex items-center gap-3"><img src="bisfly-logo.png" alt="BisFly Travel and Tours" class="h-12 rounded bg-white p-1" /><span class="text-lg font-black">BisFly Travel and Tours</span></a>
+      <nav class="flex flex-wrap items-center gap-4 text-sm font-bold text-white/90">
+        <a href="/" class="hover:text-gold">Home</a>
+        <a href="/service.html?service=passport" class="hover:text-gold">Passport</a>
+        <a href="/service.html?service=insurance" class="hover:text-gold">Insurance</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+    <div id="serviceContent"></div>
+  </main>
+
+  <script>
+    const services = {
+      visa: {
+        title: "Visa Processing",
+        badge: "Visa Support",
+        description: "We assist clients with tourist, business, study, work, and family visa applications. Our team guides you through document preparation, appointment support, and application review to help minimize delays.",
+        highlights: [
+          "Tourist, study, business and work visas",
+          "Document review and checklist guidance",
+          "Appointment and embassy follow-up support",
+          "Personalized travel planning and next steps"
+        ],
+        cta: "Apply for Visa",
+        formFields: [
+          { name: "fullName", label: "Full Name", type: "text", required: true },
+          { name: "email", label: "Email Address", type: "email", required: true },
+          { name: "phone", label: "Phone Number", type: "text", required: true },
+          { name: "country", label: "Destination Country", type: "text", required: true },
+          { name: "visaType", label: "Visa Type", type: "select", options: ["Study Visa", "Tourist Visa", "Business Visa", "Work Permit", "Family Visa"], required: true },
+          { name: "travelDate", label: "Preferred Travel Date", type: "date", required: false }
+        ],
+        endpoint: "/api/leads"
+      },
+      flight: {
+        title: "Flight Reservation",
+        badge: "Flight Booking",
+        description: "We compare available routes, fares, and schedules to help you secure the best-value flight option for your travel plans, whether you are traveling for study, business, family, or leisure.",
+        highlights: [
+          "Domestic and international flight search",
+          "Budget-friendly route recommendations",
+          "Flexible itinerary support",
+          "Booking follow-up and travel advice"
+        ],
+        cta: "Book Flight Consultation",
+        formFields: [
+          { name: "fullName", label: "Full Name", type: "text", required: true },
+          { name: "email", label: "Email Address", type: "email", required: true },
+          { name: "phone", label: "Phone Number", type: "text", required: true },
+          { name: "destination", label: "Destination", type: "text", required: true },
+          { name: "travelDate", label: "Preferred Departure Date", type: "date", required: false },
+          { name: "service", label: "Service", type: "select", options: ["Flight reservation", "Multi-city travel", "Round trip", "Group booking"], required: true }
+        ],
+        endpoint: "/api/leads"
+      },
+      study: {
+        title: "Study Abroad",
+        badge: "Education Travel",
+        description: "From school selection to travel planning, we guide students and families through the journey to study abroad with confidence, including admissions support and pre-departure arrangements.",
+        highlights: [
+          "Admission support guidance",
+          "School and country selection help",
+          "Travel readiness and accommodation planning",
+          "Student visa and document support"
+        ],
+        cta: "Request Study Support",
+        formFields: [
+          { name: "fullName", label: "Student Name", type: "text", required: true },
+          { name: "email", label: "Email Address", type: "email", required: true },
+          { name: "phone", label: "Phone Number", type: "text", required: true },
+          { name: "destination", label: "Preferred Country", type: "text", required: true },
+          { name: "service", label: "Study Goal", type: "select", options: ["Undergraduate", "Masters", "Short course", "Language study"], required: true },
+          { name: "travelDate", label: "Proposed Intake Date", type: "date", required: false }
+        ],
+        endpoint: "/api/leads"
+      },
+      work: {
+        title: "Work Permit Assistance",
+        badge: "Employment Support",
+        description: "We help professionals and skilled workers plan their international work move by clarifying eligibility, documentation, and application requirements before travel.",
+        highlights: [
+          "Work permit guidance",
+          "Document checklist preparation",
+          "Employer and job market support",
+          "Travel planning after approval"
+        ],
+        cta: "Request Work Permit Help",
+        formFields: [
+          { name: "fullName", label: "Full Name", type: "text", required: true },
+          { name: "email", label: "Email Address", type: "email", required: true },
+          { name: "phone", label: "Phone Number", type: "text", required: true },
+          { name: "country", label: "Target Country", type: "text", required: true },
+          { name: "service", label: "Work Type", type: "select", options: ["Skilled worker", "Temporary work", "Business migration", "General inquiry"], required: true },
+          { name: "travelDate", label: "Planned Travel Date", type: "date", required: false }
+        ],
+        endpoint: "/api/leads"
+      },
+      hotel: {
+        title: "Hotel Reservation",
+        badge: "Accommodation Booking",
+        description: "Whether you need a short stay or a long trip, we can help you find suitable hotels, compare rates, and arrange accommodation that fits your travel itinerary.",
+        highlights: [
+          "Hotel and apartment search",
+          "Budget guidance and options",
+          "Stay duration planning",
+          "Support for group or family bookings"
+        ],
+        cta: "Request Hotel Support",
+        formFields: [
+          { name: "fullName", label: "Full Name", type: "text", required: true },
+          { name: "email", label: "Email Address", type: "email", required: true },
+          { name: "phone", label: "Phone Number", type: "text", required: true },
+          { name: "destination", label: "City or Country", type: "text", required: true },
+          { name: "service", label: "Stay Type", type: "select", options: ["Hotel", "Apartment", "Resort", "Group booking"], required: true },
+          { name: "travelDate", label: "Check-in Date", type: "date", required: false }
+        ],
+        endpoint: "/api/leads"
+      },
+      evisa: {
+        title: "E-Visa Assistance",
+        badge: "Online Visa Support",
+        description: "We help travelers identify eligible online visa routes, prepare required documents, and understand the prerequisites before submitting an online application.",
+        highlights: [
+          "E-visa eligibility guidance",
+          "Document preparation support",
+          "Application workflow guidance",
+          "Fast follow-up for urgent travel"
+        ],
+        cta: "Check E-Visa Eligibility",
+        formFields: [
+          { name: "fullName", label: "Full Name", type: "text", required: true },
+          { name: "email", label: "Email Address", type: "email", required: true },
+          { name: "phone", label: "Phone Number", type: "text", required: true },
+          { name: "country", label: "Destination Country", type: "text", required: true },
+          { name: "service", label: "Visa Type", type: "select", options: ["Tourist eVisa", "Business eVisa", "Transit", "Not sure"], required: true },
+          { name: "travelDate", label: "Planned Travel Date", type: "date", required: false }
+        ],
+        endpoint: "/api/leads"
+      },
+      passport: {
+        title: "International Passport",
+        badge: "Passport Support",
+        description: "We help clients apply for new passports, renew existing ones, and confirm the required supporting documents before submission to reduce delays and rework.",
+        highlights: [
+          "New passport applications",
+          "Renewal and document review",
+          "Checklist guidance for missing files",
+          "Follow-up support until application stage"
+        ],
+        cta: "Submit Passport Request",
+        formFields: [
+          { name: "fullName", label: "Full Name", type: "text", required: true },
+          { name: "email", label: "Email Address", type: "email", required: true },
+          { name: "phone", label: "Phone or WhatsApp", type: "text", required: true },
+          { name: "nationality", label: "Nationality", type: "text", required: true },
+          { name: "passportType", label: "Passport Type", type: "select", options: ["Ordinary Passport", "Diplomatic Passport", "Official Passport", "Pilgrim Passport", "Seaman/ Crew Passport"], required: true },
+          { name: "requestType", label: "Request Type", type: "select", options: ["New Passport", "Renewal"], required: true },
+          { name: "travelDate", label: "Preferred Processing Date", type: "date", required: false },
+          { name: "message", label: "Additional details", type: "textarea", required: false }
+        ],
+        endpoint: "/api/passports"
+      },
+      insurance: {
+        title: "Travel Insurance",
+        badge: "Insurance Support",
+        description: "We arrange travel insurance coverage for personal trips, study abroad, family vacation, and business travel with a streamlined application process and clear guidance.",
+        highlights: [
+          "Coverage for trips and emergencies",
+          "Student and family travel insurance",
+          "Fast application support",
+          "Clear document requirements"
+        ],
+        cta: "Submit Insurance Request",
+        formFields: [
+          { name: "fullName", label: "Full Name", type: "text", required: true },
+          { name: "phone", label: "Phone Number", type: "text", required: true },
+          { name: "address", label: "Address", type: "text", required: true },
+          { name: "email", label: "Email Address", type: "email", required: true },
+          { name: "dateOfBirth", label: "Date of Birth", type: "date", required: true },
+          { name: "travelDocNumber", label: "Travel Document Number (Passport)", type: "text", required: true },
+          { name: "destination", label: "Destination Country", type: "text", required: true },
+          { name: "startDate", label: "Start Date", type: "date", required: true },
+          { name: "endDate", label: "End Date", type: "date", required: true },
+          { name: "nextOfKinName", label: "Next of Kin Name", type: "text", required: true },
+          { name: "nextOfKinAddress", label: "Next of Kin Address", type: "text", required: true },
+          { name: "nextOfKinPhone", label: "Next of Kin Phone Number", type: "text", required: true },
+          { name: "travelDocument", label: "Upload Travel Document (JPG only)", type: "file", required: true }
+        ],
+        endpoint: "/api/insurance"
+      },
+      partnership: {
+        title: "Partnership Program",
+        badge: "Business Partnerships",
+        description: "We work with companies, agencies, and travel professionals who want to partner with BisFly Travel and Tours for tour operations, proof of funds support, client referrals, flight ticketing, and hotel bookings.",
+        highlights: [
+          "Tour and travel partnership opportunities",
+          "Proof of funds and business support",
+          "Client referral collaboration",
+          "Flight ticketing and hotel booking partnerships"
+        ],
+        cta: "Partner With BisFly",
+        formFields: [
+          { name: "companyName", label: "Company / Agency Name", type: "text", required: true },
+          { name: "contactName", label: "Primary Contact Name", type: "text", required: true },
+          { name: "email", label: "Business Email", type: "email", required: true },
+          { name: "phone", label: "Phone Number", type: "text", required: true },
+          { name: "country", label: "Country / Location", type: "text", required: true },
+          { name: "partnershipType", label: "Partnership Type", type: "select", options: ["Tour Partnership", "Proof of Funds Partnership", "Client Referral Partnership", "Flight Ticketing Partnership", "Hotel Booking Partnership"], required: true },
+          { name: "businessFocus", label: "Core Business Focus", type: "text", required: false },
+          { name: "expectedVolume", label: "Expected Monthly / Quarterly Client Volume", type: "text", required: false },
+          { name: "message", label: "Partnership Details / Requirements", type: "textarea", required: true }
+        ],
+        endpoint: "/api/partnerships"
+      }
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('service') || 'passport';
+    const service = services[key] || services.passport;
+
+    function renderField(field) {
+      const sharedClass = "rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold";
+      if (field.type === 'textarea') {
+        return `<textarea name="${field.name}" ${field.required ? 'required' : ''} placeholder="${field.label}" rows="4" class="${sharedClass}"></textarea>`;
+      }
+      if (field.type === 'select') {
+        const options = field.options.map(option => `<option value="${option}">${option}</option>`).join('');
+        return `<select name="${field.name}" ${field.required ? 'required' : ''} class="${sharedClass}"><option value="">${field.label}</option>${options}</select>`;
+      }
+      if (field.type === 'file') {
+        return `<label class="block rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white"><span class="mb-2 block font-bold">${field.label}</span><input type="file" name="${field.name}" ${field.required ? 'required' : ''} accept=".jpg,.jpeg" class="block w-full text-sm text-white file:mr-4 file:rounded file:border-0 file:bg-gold file:px-4 file:py-2 file:font-black file:text-navy" /></label>`;
+      }
+      return `<input type="${field.type}" name="${field.name}" ${field.required ? 'required' : ''} placeholder="${field.label}" class="${sharedClass}" />`;
+    }
+
+    const allServiceCards = [
+      { key: 'visa', title: 'Visa Processing', icon: 'badge-check', href: '/service.html?service=visa' },
+      { key: 'flight', title: 'Flight Reservation', icon: 'plane-takeoff', href: '/service.html?service=flight' },
+      { key: 'study', title: 'Study Abroad', icon: 'graduation-cap', href: '/service.html?service=study' },
+      { key: 'work', title: 'Work Permit', icon: 'briefcase-business', href: '/service.html?service=work' },
+      { key: 'hotel', title: 'Hotel Booking', icon: 'building-2', href: '/service.html?service=hotel' },
+      { key: 'evisa', title: 'E-Visa', icon: 'globe-lock', href: '/service.html?service=evisa' },
+      { key: 'passport', title: 'Passport', icon: 'passport', href: '/service.html?service=passport' },
+      { key: 'insurance', title: 'Insurance', icon: 'shield', href: '/service.html?service=insurance' },
+      { key: 'partnership', title: 'Partnership', icon: 'handshake', href: '/service.html?service=partnership' }
+    ];
+
+    const content = `
+      <section class="mb-10">
+        <div class="mb-8 rounded-3xl border border-gold/30 bg-gradient-to-r from-gold/20 via-white/5 to-royal/40 p-8 shadow-blue">
+          <p class="text-sm font-black uppercase tracking-wide text-gold">BisFly Services</p>
+          <h1 class="mt-3 text-4xl font-black text-white">Travel made simple, professional, and personal.</h1>
+          <p class="mt-3 max-w-3xl text-white/75">Choose the service you need and submit a request. Our team will guide you through the next steps with accurate support and timely follow-up.</p>
+        </div>
+
+        <div class="mb-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          ${allServiceCards.map(item => `
+            <a href="${item.href}" class="rounded-2xl border ${item.key === key ? 'border-gold bg-gold/10' : 'border-white/10 bg-white/5'} p-5 transition hover:border-gold hover:bg-white/10">
+              <div class="flex items-center justify-between gap-3">
+                <i data-lucide="${item.icon}" class="h-8 w-8 text-gold"></i>
+                <span class="rounded-full border border-gold/30 bg-gold/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gold">${item.key === key ? 'Selected' : 'Service'}</span>
+              </div>
+              <h3 class="mt-4 text-xl font-black text-white">${item.title}</h3>
+            </a>
+          `).join('')}
+        </div>
+      </section>
+
+      <div class="grid gap-10 lg:grid-cols-[.95fr_1.05fr]">
+        <div>
+          <p class="text-sm font-black uppercase tracking-wide text-gold">${service.badge}</p>
+          <h2 class="mt-3 text-4xl font-black text-white">${service.title}</h2>
+          <p class="mt-5 text-white/80 leading-8">${service.description}</p>
+          <div class="mt-8 grid gap-4 sm:grid-cols-2">
+            ${service.highlights.map(item => `
+              <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+                <div class="flex items-start gap-3">
+                  <i data-lucide="check-circle" class="mt-1 h-5 w-5 text-gold"></i>
+                  <p class="text-white/80">${item}</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-blue">
+          <h3 class="text-3xl font-black text-white">${service.cta}</h3>
+          <form id="dynamicServiceForm" class="mt-7 grid gap-4" data-endpoint="${service.endpoint}" ${service.endpoint === '/api/insurance' ? 'enctype="multipart/form-data"' : ''}>
+            ${service.formFields.map(renderField).join('')}
+            <button type="submit" class="rounded bg-gold px-5 py-4 font-black text-navy">Send Request</button>
+            <p id="serviceStatus" class="hidden rounded px-4 py-3 text-sm font-bold"></p>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('serviceContent').innerHTML = content;
+
+    document.getElementById('dynamicServiceForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.target;
+      const status = document.getElementById('serviceStatus');
+      const endpoint = form.dataset.endpoint;
+      status.className = 'hidden rounded px-4 py-3 text-sm font-bold';
+      status.textContent = '';
+
+      try {
+        const isFormData = endpoint === '/api/insurance';
+        const body = isFormData ? new FormData(form) : JSON.stringify(Object.fromEntries(new FormData(form).entries()));
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: isFormData ? {} : { 'Content-Type': 'application/json' },
+          body
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+          status.className = 'rounded px-4 py-3 text-sm font-bold bg-red-500/15 text-red-300';
+          status.textContent = result.message || 'Unable to submit your request.';
+          return;
+        }
+
+        status.className = 'rounded px-4 py-3 text-sm font-bold bg-green-500/15 text-green-300';
+        status.textContent = 'Request submitted successfully. Our team will contact you soon.';
+        form.reset();
+      } catch (error) {
+        status.className = 'rounded px-4 py-3 text-sm font-bold bg-red-500/15 text-red-300';
+        status.textContent = 'Submission failed. Please try again.';
+      }
+    });
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>

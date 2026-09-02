@@ -16,6 +16,7 @@ const uploadsDir = path.join(root, "uploads");
 const sessionsDir = path.join(root, "sessions");
 const packagesFile = path.join(root, "packages.json");
 const passportFile = path.join(root, "passport-requests.json");
+const partnershipFile = path.join(root, "partnerships.json");
 
 function loadEnvFile() {
   const candidates = [path.join(root, ".env.local"), path.join(root, ".env")];
@@ -158,11 +159,18 @@ let emailTransporter;
 
 async function initializeEmailTransport() {
   try {
-    const emailUser = process.env.EMAIL_USER || "bisflytravels@gmail.com";
-    const emailPass = process.env.EMAIL_PASS || "";
-    const emailService = process.env.EMAIL_SERVICE || "gmail";
+    const resendApiKey = process.env.RESEND_API_KEY || process.env.EMAIL_PASS || "";
+    const smtpUsername = process.env.RESEND_SMTP_USER || process.env.SMTP_USER || "resend";
+    const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || "hello@yourdomain.com";
+    const emailUser = process.env.EMAIL_USER || fromEmail;
+    const emailPass = process.env.EMAIL_PASS || resendApiKey || "";
+    const emailService = (process.env.EMAIL_SERVICE || (process.env.RESEND_API_KEY ? "resend" : "gmail")).toLowerCase();
+    const emailHost = process.env.EMAIL_HOST || (process.env.RESEND_API_KEY ? "smtp.resend.com" : "");
+    const emailPort = Number(process.env.EMAIL_PORT || (emailHost.includes("resend") ? 587 : (emailService === "gmail" ? 587 : 465)));
+    const emailSecure = String(process.env.EMAIL_SECURE ?? (emailHost.includes("resend") ? "false" : (emailService === "gmail" ? "false" : "true"))).toLowerCase() === "true";
+
     if (!emailPass) {
-      console.warn("\n⚠️  EMAIL_PASS environment variable not set. Falling back to Ethereal test account for email preview.");
+      console.warn("\n⚠️  EMAIL_PASS / RESEND_API_KEY environment variable not set. Falling back to Ethereal test account for email preview.");
       const testAccount = await nodemailer.createTestAccount();
       emailTransporter = nodemailer.createTransport({
         host: testAccount.smtp.host,
@@ -177,17 +185,53 @@ async function initializeEmailTransport() {
       return;
     }
 
-    emailTransporter = nodemailer.createTransport({
-      service: emailService,
-      auth: {
-        user: emailUser,
-        pass: emailPass
-      }
-    });
+    const transportOptions = emailHost
+      ? {
+          host: emailHost,
+          port: emailPort,
+          secure: emailSecure,
+          auth: {
+            user: smtpUsername,
+            pass: emailPass
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
+        }
+      : {
+          service: emailService,
+          auth: {
+            user: emailUser,
+            pass: emailPass
+          }
+        };
 
-    // Test connection
+    if (emailHost && emailHost.includes("resend")) {
+      Object.assign(transportOptions, {
+        host: "smtp.resend.com",
+        port: 587,
+        secure: false,
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
+
+    if (!emailHost && emailService === "gmail") {
+      Object.assign(transportOptions, {
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
+
+    emailTransporter = nodemailer.createTransport(transportOptions);
+
     await emailTransporter.verify();
-    console.log(`✓ Email service configured: ${emailUser}`);
+    console.log(`✓ Email service configured: SMTP user=${smtpUsername}, sender=${fromEmail}, host=${emailHost || emailService}`);
   } catch (error) {
     console.warn("Email configuration error. Notifications will be skipped:", error.message);
   }
@@ -198,10 +242,10 @@ async function sendApprovalEmail(agreement) {
 
   try {
     const pdfBuffer = await generateAgreementPdf(agreement);
-    const emailUser = process.env.EMAIL_USER || "bisflytravels@gmail.com";
+    const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || "hello@yourdomain.com";
 
     const mailOptions = {
-      from: emailUser,
+      from: fromEmail,
       to: agreement.email,
       subject: "Your BisFly Travels Agreement - Approved",
       html: `
@@ -238,9 +282,9 @@ async function sendApprovalEmail(agreement) {
 async function sendSimpleEmail(to, subject, html) {
   if (!emailTransporter) return { sent: false, error: 'Email not configured' };
   try {
-    const emailUser = process.env.EMAIL_USER || 'bisflytravels@gmail.com';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'hello@yourdomain.com';
     const info = await emailTransporter.sendMail({
-      from: emailUser,
+      from: fromEmail,
       to,
       subject,
       html
@@ -332,6 +376,18 @@ function readPassports() {
 
 function writePassports(data) {
   fs.writeFileSync(passportFile, JSON.stringify(data, null, 2));
+}
+
+function readPartnerships() {
+  try {
+    return JSON.parse(fs.readFileSync(partnershipFile, "utf8"));
+  } catch (error) {
+    return [];
+  }
+}
+
+function writePartnerships(data) {
+  fs.writeFileSync(partnershipFile, JSON.stringify(data, null, 2));
 }
 
 function normalizeCustomerFields(input = {}) {
@@ -1289,6 +1345,54 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (parsedUrl.pathname === "/api/partnerships" && request.method === "POST") {
+      const body = await readBody(request);
+      const fields = body.fields || body;
+      const requiredFields = ["companyName", "contactName", "email", "phone", "partnershipType", "message"];
+      for (const field of requiredFields) {
+        if (!fields[field]) {
+          send(response, 400, { ok: false, message: `${field} is required` });
+          return;
+        }
+      }
+
+      const normalized = {
+        id: Date.now(),
+        companyName: String(fields.companyName || "").trim(),
+        contactName: String(fields.contactName || "").trim(),
+        email: String(fields.email || "").trim(),
+        phone: String(fields.phone || "").trim(),
+        country: String(fields.country || "").trim(),
+        businessFocus: String(fields.businessFocus || "").trim(),
+        expectedVolume: String(fields.expectedVolume || "").trim(),
+        partnershipType: String(fields.partnershipType || "").trim(),
+        message: String(fields.message || "").trim(),
+        status: "pending",
+        createdAt: new Date().toISOString()
+      };
+
+      const partnerships = readPartnerships();
+      partnerships.unshift(normalized);
+      writePartnerships(partnerships);
+      send(response, 201, { ok: true, message: "Partnership request submitted" });
+      if (normalized.email) {
+        const html = `<p>Dear ${normalized.contactName || 'Partner'},</p><p>Thank you for your interest in partnering with BisFly Travel and Tours. Our team will review your proposal and contact you soon.</p><p>Partnership Type: ${normalized.partnershipType}</p><p>Reference ID: ${normalized.id}</p><p>Best regards,<br/>BisFly Travels and Tours</p>`;
+        sendSimpleEmail(normalized.email, 'BisFly: Partnership request received', html).catch(() => {});
+      }
+      return;
+    }
+
+    if (parsedUrl.pathname === "/api/partnerships" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      const session = validateSession(token);
+      if (!session) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+      send(response, 200, readPartnerships());
+      return;
+    }
+
     if (parsedUrl.pathname === "/api/passports" && request.method === "GET") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
@@ -1641,6 +1745,7 @@ const server = http.createServer(async (request, response) => {
       const agreements = readAgreements();
       const passports = readPassports();
       const packages = readPackages();
+      const partnerships = readPartnerships();
 
       const stats = {
         leads: {
@@ -1668,6 +1773,11 @@ const server = http.createServer(async (request, response) => {
         },
         packages: {
           total: packages.length
+        },
+        partnerships: {
+          total: partnerships.length,
+          pending: partnerships.filter(p => p.status === "pending").length,
+          approved: partnerships.filter(p => p.status === "approved").length
         },
         generatedAt: new Date().toISOString()
       };
@@ -1755,6 +1865,7 @@ initializeEmailTransport().catch(err => console.error("Email init error:", err))
 // Ensure packages file exists
 if (!fs.existsSync(packagesFile)) writePackages([]);
 if (!fs.existsSync(passportFile)) writePassports([]);
+if (!fs.existsSync(partnershipFile)) writePartnerships([]);
 if (!fs.existsSync(adminUsersFile)) writeAdminUsers([]);
 
 server.listen(port, host, () => {

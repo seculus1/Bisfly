@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1788336322255,
+    "companyName": "Demo Co",
+    "contactName": "Jane Doe",
+    "email": "demo@example.com",
+    "phone": "+2348000000000",
+    "country": "Nigeria",
+    "businessFocus": "",
+    "expectedVolume": "",
+    "partnershipType": "Tour Partnership",
+    "message": "Test partnership inquiry",
+    "status": "pending",
+    "createdAt": "2026-09-02T08:05:22.255Z"
+  }
+]

@@ -115,6 +115,9 @@
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="passports">
         <i data-lucide="passport" class="w-5 h-5 inline mr-3"></i>Passports
       </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="partnerships">
+        <i data-lucide="handshake" class="w-5 h-5 inline mr-3"></i>Partnerships
+      </button>
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="packages">
         <i data-lucide="box" class="w-5 h-5 inline mr-3"></i>Packages
       </button>
@@ -175,6 +178,16 @@
               <p class="text-xs text-white/50 mt-1">Pending: <span class="text-gold">0</span></p>
             </div>
             <i data-lucide="passport" class="w-12 h-12 text-gold/40"></i>
+          </div>
+        </div>
+        <div class="glass rounded-lg p-6 border border-white/10">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/60 text-sm">Partnerships</p>
+              <p class="text-4xl font-black text-gold mt-2">0</p>
+              <p class="text-xs text-white/50 mt-1">Pending: <span class="text-gold">0</span></p>
+            </div>
+            <i data-lucide="handshake" class="w-12 h-12 text-gold/40"></i>
           </div>
         </div>
       </div>
@@ -336,6 +349,33 @@
             </tr>
           </thead>
           <tbody id="passportsTable">
+            <tr><td colspan="6" class="text-center py-8 text-white/60">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Partnerships Tab -->
+    <div id="partnerships-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-black text-gold">Partnership Inquiries</h1>
+        <div class="flex gap-3">
+          <input type="text" id="partnershipSearchInput" placeholder="Search partnerships..." class="px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+        </div>
+      </div>
+      <div class="glass rounded-lg border border-white/10 overflow-x-auto">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th style="width: 18%;" data-sort-key="companyName"><span class="sort-header">Company <span class="sort-indicator"></span></span></th>
+              <th style="width: 16%;" data-sort-key="contactName"><span class="sort-header">Contact <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="email"><span class="sort-header">Email <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="partnershipType"><span class="sort-header">Partnership Type <span class="sort-indicator"></span></span></th>
+              <th style="width: 12%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
+              <th style="width: 18%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
+            </tr>
+          </thead>
+          <tbody id="partnershipsTable">
             <tr><td colspan="6" class="text-center py-8 text-white/60">Loading...</td></tr>
           </tbody>
         </table>
@@ -505,6 +545,7 @@
       insurance: { key: 'createdAt', direction: 'desc' },
       agreements: { key: 'createdAt', direction: 'desc' },
       passports: { key: 'createdAt', direction: 'desc' },
+      partnerships: { key: 'createdAt', direction: 'desc' },
       users: { key: 'createdAt', direction: 'desc' }
     };
 
@@ -645,6 +686,37 @@
         cards[3].querySelector('p:nth-of-type(2)').textContent = data.passports.total;
         cards[3].querySelector('.text-gold').textContent = data.passports.pending;
       }
+      if (cards[4]) {
+        cards[4].querySelector('p:nth-of-type(2)').textContent = data.partnerships.total;
+        cards[4].querySelector('.text-gold').textContent = data.partnerships.pending;
+      }
+    }
+
+    // Load Partnership Inquiries
+    async function loadPartnerships() {
+      const data = await apiCall('/api/partnerships');
+      if (!data) return;
+
+      const tbody = document.getElementById('partnershipsTable');
+      const state = tableSortState.partnerships;
+      const sorted = sortRecords(data, state.key, state.direction);
+      if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No partnership requests found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = sorted.map(item => `
+        <tr>
+          <td>${item.companyName || 'N/A'}</td>
+          <td>${item.contactName || 'N/A'}</td>
+          <td>${item.email || 'N/A'}</td>
+          <td>${item.partnershipType || 'N/A'}</td>
+          <td><span class="status-pill ${item.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${item.status || 'pending'}</span></td>
+          <td>${new Date(item.createdAt).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+      bindSortableTable('partnershipsTable', 'partnerships', loadPartnerships);
+      updateSortIndicators('partnerships');
     }
 
     // Load Leads
@@ -915,6 +987,7 @@
           if (tabName === 'insurance') await loadInsurance();
           if (tabName === 'agreements') await loadAgreements();
           if (tabName === 'passports') await loadPassports();
+          if (tabName === 'partnerships') await loadPartnerships();
           if (tabName === 'packages') await loadPackages();
           if (tabName === 'users') await loadUsers();
           if (tabName === 'activity') await loadActivityLog();
@@ -980,6 +1053,29 @@
             <td>${lead.destination || 'N/A'}</td>
             <td>${lead.service || 'N/A'}</td>
             <td>${new Date(lead.createdAt).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+      });
+
+      document.getElementById('partnershipSearchInput').addEventListener('input', async (e) => {
+        const query = e.target.value.trim();
+        const data = await apiCall('/api/partnerships');
+        if (!data) return;
+        const filtered = !query ? data : data.filter(item =>
+          (item.companyName || '').toLowerCase().includes(query.toLowerCase()) ||
+          (item.contactName || '').toLowerCase().includes(query.toLowerCase()) ||
+          (item.partnershipType || '').toLowerCase().includes(query.toLowerCase()) ||
+          (item.email || '').toLowerCase().includes(query.toLowerCase())
+        );
+        const tbody = document.getElementById('partnershipsTable');
+        tbody.innerHTML = filtered.map(item => `
+          <tr>
+            <td>${item.companyName || 'N/A'}</td>
+            <td>${item.contactName || 'N/A'}</td>
+            <td>${item.email || 'N/A'}</td>
+            <td>${item.partnershipType || 'N/A'}</td>
+            <td><span class="status-pill ${item.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${item.status || 'pending'}</span></td>
+            <td>${new Date(item.createdAt).toLocaleDateString()}</td>
           </tr>
         `).join('');
       });
