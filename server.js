@@ -1707,6 +1707,11 @@ const server = http.createServer(async (request, response) => {
 
     // Export leads to PDF table
     if (parsedUrl.pathname === "/api/leads/export" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      if (!validateSession(token)) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
       const leads = readLeads();
       const pdfBuffer = await generateTablePdf("BisFly Leads Export", leads);
       response.setHeader("Content-Disposition", 'attachment; filename="leads-' + new Date().toISOString().split("T")[0] + '.pdf"');
@@ -1755,6 +1760,33 @@ const server = http.createServer(async (request, response) => {
       const passports = readPassports();
       const pdfBuffer = await generateTablePdf("BisFly Passport Requests Export", passports);
       response.setHeader("Content-Disposition", 'attachment; filename="passports-' + new Date().toISOString().split("T")[0] + '.pdf"');
+      send(response, 200, pdfBuffer, "application/pdf");
+      return;
+    }
+
+    // Export partnerships and packages to PDF tables
+    if (parsedUrl.pathname === "/api/partnerships/export" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      if (!validateSession(token)) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+      const partnerships = readPartnerships();
+      const pdfBuffer = await generateTablePdf("BisFly Partnerships Export", partnerships);
+      response.setHeader("Content-Disposition", 'attachment; filename="partnerships-' + new Date().toISOString().split("T")[0] + '.pdf"');
+      send(response, 200, pdfBuffer, "application/pdf");
+      return;
+    }
+
+    if (parsedUrl.pathname === "/api/packages/export" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      if (!validateSession(token)) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+      const packages = readPackages();
+      const pdfBuffer = await generateTablePdf("BisFly Packages Export", packages);
+      response.setHeader("Content-Disposition", 'attachment; filename="packages-' + new Date().toISOString().split("T")[0] + '.pdf"');
       send(response, 200, pdfBuffer, "application/pdf");
       return;
     }

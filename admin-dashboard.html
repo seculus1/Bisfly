@@ -213,6 +213,12 @@
             <button class="action-btn p-4 rounded-lg bg-gold/20 hover:bg-gold/30 transition border border-gold/30" data-action="export-passports">
               <i data-lucide="download" class="w-5 h-5 inline mr-2 text-gold"></i>Export Passports
             </button>
+            <button class="action-btn p-4 rounded-lg bg-gold/20 hover:bg-gold/30 transition border border-gold/30" data-action="export-partnerships">
+              <i data-lucide="download" class="w-5 h-5 inline mr-2 text-gold"></i>Export Partnerships
+            </button>
+            <button class="action-btn p-4 rounded-lg bg-gold/20 hover:bg-gold/30 transition border border-gold/30" data-action="export-packages">
+              <i data-lucide="download" class="w-5 h-5 inline mr-2 text-gold"></i>Export Packages
+            </button>
           </div>
         </div>
 
@@ -366,6 +372,7 @@
         <h1 class="text-3xl font-black text-gold">Partnership Inquiries</h1>
         <div class="flex gap-3">
           <input type="text" id="partnershipSearchInput" placeholder="Search partnerships..." class="px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold"/>
+          <button id="exportPartnershipsBtn" class="px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Export PDF</button>
         </div>
       </div>
       <div class="glass rounded-lg border border-white/10 overflow-x-auto">
@@ -392,9 +399,10 @@
     <div id="packages-tab" class="tab-content hidden">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-black text-gold">Travel Packages</h1>
-        <button id="addPackageBtn" class="px-6 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2">
-          <i data-lucide="plus" class="w-4 h-4"></i>Add Package
-        </button>
+        <div class="flex flex-wrap gap-3">
+          <button id="exportPackagesBtn" class="px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Export PDF</button>
+          <button id="addPackageBtn" class="px-6 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Add Package</button>
+        </div>
       </div>
       <div id="packagesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 glass rounded-lg border border-white/10">
         <div class="col-span-full text-center text-white/60">Loading packages...</div>
@@ -1044,6 +1052,20 @@
       document.getElementById('exportInsuranceBtn').addEventListener('click', () => downloadExport('/api/insurance/export', 'insurance'));
       document.getElementById('exportAgreementsBtn').addEventListener('click', () => downloadExport('/api/agreements/export', 'agreements'));
       document.getElementById('exportPassportsBtn').addEventListener('click', () => downloadExport('/api/passports/export', 'passports'));
+      document.getElementById('exportPartnershipsBtn').addEventListener('click', () => downloadExport('/api/partnerships/export', 'partnerships'));
+      document.getElementById('exportPackagesBtn').addEventListener('click', () => downloadExport('/api/packages/export', 'packages'));
+      document.querySelectorAll('.action-btn[data-action]').forEach(button => {
+        const exports = {
+          'export-leads': ['leads', 'leads'],
+          'export-insurance': ['insurance', 'insurance'],
+          'export-agreements': ['agreements', 'agreements'],
+          'export-passports': ['passports', 'passports'],
+          'export-partnerships': ['partnerships', 'partnerships'],
+          'export-packages': ['packages', 'packages']
+        };
+        const config = exports[button.dataset.action];
+        if (config) button.addEventListener('click', () => downloadExport(`/api/${config[0]}/export`, config[1]));
+      });
       
       // Search
       document.getElementById('leadsSearchInput').addEventListener('input', async (e) => {
