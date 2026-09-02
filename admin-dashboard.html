@@ -367,16 +367,17 @@
         <table class="admin-data-table">
           <thead>
             <tr>
-              <th style="width: 18%;" data-sort-key="companyName"><span class="sort-header">Company <span class="sort-indicator"></span></span></th>
-              <th style="width: 16%;" data-sort-key="contactName"><span class="sort-header">Contact <span class="sort-indicator"></span></span></th>
+              <th style="width: 16%;" data-sort-key="companyName"><span class="sort-header">Company <span class="sort-indicator"></span></span></th>
+              <th style="width: 14%;" data-sort-key="contactName"><span class="sort-header">Contact <span class="sort-indicator"></span></span></th>
               <th style="width: 18%;" data-sort-key="email"><span class="sort-header">Email <span class="sort-indicator"></span></span></th>
+              <th style="width: 14%;" data-sort-key="phone"><span class="sort-header">Phone <span class="sort-indicator"></span></span></th>
               <th style="width: 18%;" data-sort-key="partnershipType"><span class="sort-header">Partnership Type <span class="sort-indicator"></span></span></th>
-              <th style="width: 12%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
-              <th style="width: 18%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
+              <th style="width: 10%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
+              <th style="width: 10%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
             </tr>
           </thead>
           <tbody id="partnershipsTable">
-            <tr><td colspan="6" class="text-center py-8 text-white/60">Loading...</td></tr>
+            <tr><td colspan="7" class="text-center py-8 text-white/60">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -701,7 +702,7 @@
       const state = tableSortState.partnerships;
       const sorted = sortRecords(data, state.key, state.direction);
       if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No partnership requests found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/60">No partnership requests found</td></tr>';
         return;
       }
 
@@ -710,6 +711,7 @@
           <td>${item.companyName || 'N/A'}</td>
           <td>${item.contactName || 'N/A'}</td>
           <td>${item.email || 'N/A'}</td>
+          <td>${item.phone || 'N/A'}</td>
           <td>${item.partnershipType || 'N/A'}</td>
           <td><span class="status-pill ${item.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${item.status || 'pending'}</span></td>
           <td>${new Date(item.createdAt).toLocaleDateString()}</td>
@@ -1064,8 +1066,9 @@
         const filtered = !query ? data : data.filter(item =>
           (item.companyName || '').toLowerCase().includes(query.toLowerCase()) ||
           (item.contactName || '').toLowerCase().includes(query.toLowerCase()) ||
-          (item.partnershipType || '').toLowerCase().includes(query.toLowerCase()) ||
-          (item.email || '').toLowerCase().includes(query.toLowerCase())
+          (item.email || '').toLowerCase().includes(query.toLowerCase()) ||
+          (item.phone || '').toLowerCase().includes(query.toLowerCase()) ||
+          (item.partnershipType || '').toLowerCase().includes(query.toLowerCase())
         );
         const tbody = document.getElementById('partnershipsTable');
         tbody.innerHTML = filtered.map(item => `
@@ -1073,6 +1076,7 @@
             <td>${item.companyName || 'N/A'}</td>
             <td>${item.contactName || 'N/A'}</td>
             <td>${item.email || 'N/A'}</td>
+            <td>${item.phone || 'N/A'}</td>
             <td>${item.partnershipType || 'N/A'}</td>
             <td><span class="status-pill ${item.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${item.status || 'pending'}</span></td>
             <td>${new Date(item.createdAt).toLocaleDateString()}</td>

@@ -26,11 +26,17 @@
   </script>
   <style>
     html { scroll-behavior: smooth; }
+    * { box-sizing: border-box; }
     body {
+      overflow-x: hidden;
       background:
         radial-gradient(circle at 70% 8%, rgba(19, 101, 227, .46), transparent 33rem),
         radial-gradient(circle at 4% 30%, rgba(248, 183, 43, .16), transparent 28rem),
         linear-gradient(180deg, #06153b 0%, #020713 74%);
+    }
+    @media (max-width: 640px) {
+      .service-card-grid { grid-template-columns: 1fr !important; }
+      #serviceContent .rounded-3xl, #serviceContent .rounded-2xl { border-radius: 1.25rem; }
     }
   </style>
 </head>
@@ -294,7 +300,7 @@
           <p class="mt-3 max-w-3xl text-white/75">Choose the service you need and submit a request. Our team will guide you through the next steps with accurate support and timely follow-up.</p>
         </div>
 
-        <div class="mb-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="service-card-grid mb-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           ${allServiceCards.map(item => `
             <a href="${item.href}" class="rounded-2xl border ${item.key === key ? 'border-gold bg-gold/10' : 'border-white/10 bg-white/5'} p-5 transition hover:border-gold hover:bg-white/10">
               <div class="flex items-center justify-between gap-3">
@@ -308,10 +314,10 @@
       </section>
 
       <div class="grid gap-10 lg:grid-cols-[.95fr_1.05fr]">
-        <div>
+        <div class="w-full">
           <p class="text-sm font-black uppercase tracking-wide text-gold">${service.badge}</p>
-          <h2 class="mt-3 text-4xl font-black text-white">${service.title}</h2>
-          <p class="mt-5 text-white/80 leading-8">${service.description}</p>
+          <h2 class="mt-3 text-3xl font-black text-white sm:text-4xl">${service.title}</h2>
+          <p class="mt-5 text-base leading-7 text-white/80 sm:text-lg sm:leading-8">${service.description}</p>
           <div class="mt-8 grid gap-4 sm:grid-cols-2">
             ${service.highlights.map(item => `
               <div class="rounded-3xl border border-white/10 bg-white/5 p-5">

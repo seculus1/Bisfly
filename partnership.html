@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BisFly Partnership</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: '#06153b',
+            royal: '#073c9a',
+            gold: '#f8b72b',
+            red: '#df201c'
+          },
+          boxShadow: {
+            gold: '0 18px 44px rgba(248,183,43,.25)',
+            blue: '0 26px 70px rgba(5,43,125,.38)'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      overflow-x: hidden;
+      background: radial-gradient(circle at 70% 8%, rgba(19, 101, 227, .46), transparent 33rem),
+                  radial-gradient(circle at 4% 30%, rgba(248, 183, 43, .16), transparent 28rem),
+                  linear-gradient(180deg, #06153b 0%, #020713 74%);
+    }
+    @media (max-width: 640px) {
+      .partner-hero { padding: 1.5rem !important; }
+      .partner-grid { grid-template-columns: 1fr !important; }
+      .partner-form-grid { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-navy/95 backdrop-blur-xl">
+    <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <a href="/index.html" class="flex items-center gap-3">
+        <img src="bisfly-logo.png" alt="BisFly Travel and Tours logo" class="h-14 w-auto rounded bg-white/95 p-1" />
+      </a>
+      <div class="hidden items-center gap-8 text-sm font-bold lg:flex">
+        <a class="hover:text-gold" href="/index.html#home">Home</a>
+        <a class="hover:text-gold" href="/index.html#about">About Us</a>
+        <a class="hover:text-gold" href="/index.html#services">Services</a>
+        <a class="hover:text-gold" href="/service.html?service=passport">Passport</a>
+        <a class="text-gold" href="/partnership.html">Partnership</a>
+      </div>
+      <a href="/index.html#booking" class="hidden rounded-lg bg-red px-6 py-3 text-sm font-black shadow-lg shadow-red/30 hover:bg-gold hover:text-navy lg:inline-flex">Book Now</a>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+    <section class="partner-hero mb-10 rounded-3xl border border-gold/30 bg-gradient-to-r from-gold/20 via-white/5 to-royal/40 p-8 shadow-blue">
+      <p class="text-sm font-black uppercase tracking-wide text-gold">BisFly Partnerships</p>
+      <h1 class="mt-3 text-3xl font-black text-white sm:text-4xl">Grow together with BisFly Travel and Tours</h1>
+      <p class="mt-3 max-w-3xl text-sm leading-6 text-white/75 sm:text-base">We partner with companies, agencies, and professionals for tourism collaborations, proof of funds support, client referrals, flight ticketing, and hotel booking partnerships.</p>
+    </section>
+
+    <div class="partner-grid grid gap-10 lg:grid-cols-[.95fr_1.05fr]">
+      <div>
+        <p class="text-sm font-black uppercase tracking-wide text-gold">Why partner with us</p>
+        <h2 class="mt-3 text-3xl font-black text-white sm:text-4xl">Professional partnership opportunities</h2>
+        <div class="mt-8 grid gap-4 sm:grid-cols-2">
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+            <div class="flex items-start gap-3"><i data-lucide="map" class="mt-1 h-5 w-5 text-gold"></i><p class="text-white/80">Tour and travel partnership opportunities</p></div>
+          </div>
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+            <div class="flex items-start gap-3"><i data-lucide="banknote" class="mt-1 h-5 w-5 text-gold"></i><p class="text-white/80">Proof of funds and business support</p></div>
+          </div>
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+            <div class="flex items-start gap-3"><i data-lucide="users" class="mt-1 h-5 w-5 text-gold"></i><p class="text-white/80">Client referral collaboration</p></div>
+          </div>
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+            <div class="flex items-start gap-3"><i data-lucide="plane" class="mt-1 h-5 w-5 text-gold"></i><p class="text-white/80">Flight ticketing and hotel booking partnerships</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-blue sm:p-8">
+        <h3 class="text-2xl font-black text-white sm:text-3xl">Apply as a partner</h3>
+        <form id="partnershipForm" class="mt-7 grid gap-4">
+          <input required name="companyName" type="text" placeholder="Company / Agency Name" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          <input required name="contactName" type="text" placeholder="Primary Contact Name" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          <div class="partner-form-grid grid gap-4 sm:grid-cols-2">
+            <input required name="email" type="email" placeholder="Business Email" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+            <input required name="phone" type="text" placeholder="Phone Number" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          </div>
+          <input name="country" type="text" placeholder="Country / Location" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          <select name="partnershipType" required class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold">
+            <option value="">Select Partnership Type</option>
+            <option>Tour Partnership</option>
+            <option>Proof of Funds Partnership</option>
+            <option>Client Referral Partnership</option>
+            <option>Flight Ticketing Partnership</option>
+            <option>Hotel Booking Partnership</option>
+          </select>
+          <input name="businessFocus" type="text" placeholder="Core Business Focus" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          <input name="expectedVolume" type="text" placeholder="Expected Monthly / Quarterly Client Volume" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold" />
+          <textarea required name="message" rows="4" placeholder="Partnership Details / Requirements" class="rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white outline-none focus:border-gold"></textarea>
+          <button type="submit" class="rounded bg-gold px-5 py-4 font-black text-navy">Send Partnership Request</button>
+          <p id="partnershipStatus" class="hidden rounded px-4 py-3 text-sm font-bold"></p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('partnershipForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.target;
+      const status = document.getElementById('partnershipStatus');
+      status.className = 'hidden rounded px-4 py-3 text-sm font-bold';
+      status.textContent = '';
+
+      const payload = Object.fromEntries(new FormData(form).entries());
+
+      try {
+        const response = await fetch('/api/partnerships', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          status.className = 'rounded px-4 py-3 text-sm font-bold bg-red-500/15 text-red-300';
+          status.textContent = result.message || 'Unable to submit your partnership request.';
+          return;
+        }
+
+        status.className = 'rounded px-4 py-3 text-sm font-bold bg-green-500/15 text-green-300';
+        status.textContent = 'Partnership request submitted successfully. Our team will contact you soon.';
+        form.reset();
+      } catch (error) {
+        status.className = 'rounded px-4 py-3 text-sm font-bold bg-red-500/15 text-red-300';
+        status.textContent = 'Submission failed. Please try again.';
+      }
+    });
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>

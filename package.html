@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BisFly Travel Package</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: '#06153b',
+            royal: '#073c9a',
+            gold: '#f8b72b',
+            red: '#df201c'
+          },
+          boxShadow: {
+            gold: '0 18px 44px rgba(248,183,43,.25)',
+            blue: '0 26px 70px rgba(5,43,125,.38)'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      overflow-x: hidden;
+      background: radial-gradient(circle at 70% 8%, rgba(19, 101, 227, .46), transparent 33rem),
+                  radial-gradient(circle at 4% 30%, rgba(248, 183, 43, .16), transparent 28rem),
+                  linear-gradient(180deg, #06153b 0%, #020713 74%);
+    }
+    @media (max-width: 640px) {
+      #packageDetailPage .grid { grid-template-columns: 1fr !important; }
+      #packageDetailPage h1 { font-size: 2rem !important; }
+    }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-navy/95 backdrop-blur-xl">
+    <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <a href="/index.html" class="flex items-center gap-3">
+        <img src="bisfly-logo.png" alt="BisFly Travel and Tours logo" class="h-14 w-auto rounded bg-white/95 p-1" />
+      </a>
+      <div class="hidden items-center gap-8 text-sm font-bold lg:flex">
+        <a class="hover:text-gold" href="/index.html#home">Home</a>
+        <a class="hover:text-gold" href="/index.html#about">About Us</a>
+        <a class="hover:text-gold" href="/index.html#services">Services</a>
+        <a class="hover:text-gold" href="/service.html?service=passport">Passport</a>
+        <a class="hover:text-gold" href="/service.html?service=partnership">Partnership</a>
+      </div>
+      <a href="/index.html#booking" class="hidden rounded-lg bg-red px-6 py-3 text-sm font-black shadow-lg shadow-red/30 hover:bg-gold hover:text-navy lg:inline-flex">Book Now</a>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+    <div id="packageDetailPage" class="rounded-[30px] border border-white/10 bg-white/5 p-6 shadow-blue md:p-10">
+      <div class="animate-pulse rounded-3xl bg-white/5 p-10 text-white/60">Loading package details...</div>
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const packageId = params.get('id');
+
+    function formatPackageTags(tags) {
+      if (!Array.isArray(tags) || !tags.length) return ['Travel', 'Visa Guidance', 'Accommodation'];
+      return tags;
+    }
+
+    async function loadPackageDetail() {
+      const target = document.getElementById('packageDetailPage');
+      if (!packageId) {
+        target.innerHTML = '<div class="rounded-3xl border border-red/30 bg-red/10 p-8 text-red-200">No package selected. Please return to the homepage and choose a package.</div>';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/packages');
+        if (!response.ok) {
+          throw new Error('Unable to load package');
+        }
+        const packages = await response.json();
+        const pkg = Array.isArray(packages) ? packages.find(item => String(item.id) === String(packageId)) : null;
+
+        if (!pkg) {
+          target.innerHTML = '<div class="rounded-3xl border border-red/30 bg-red/10 p-8 text-red-200">This package could not be found.</div>';
+          return;
+        }
+
+        const defaultImage = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80';
+        const imageUrl = pkg.imageFile ? `/uploads/${pkg.imageFile}` : defaultImage;
+        const packageText = encodeURIComponent(`Hello BisFly Travel and Tours, I want to book the package: ${pkg.title || 'Travel package'}.`);
+        const whatsappLink = `https://wa.me/2347051935203?text=${packageText}`;
+
+        target.innerHTML = `
+          <div class="grid gap-8 lg:grid-cols-[1.1fr_.9fr]">
+            <div class="overflow-hidden rounded-[28px] border border-white/10 bg-black/30">
+              <img src="${imageUrl}" alt="${pkg.title || 'Package'}" class="h-full min-h-[420px] w-full object-cover" />
+            </div>
+            <div>
+              <div class="mb-6 flex flex-wrap items-center gap-3">
+                <span class="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-gold">Featured package</span>
+                <span class="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/80">${pkg.duration || 'Flexible Duration'}</span>
+              </div>
+              <h1 class="text-4xl font-black text-white">${pkg.title || 'Travel Package'}</h1>
+              <p class="mt-5 text-lg font-black text-gold">${pkg.price || 'Price available on request'}</p>
+              <div class="mt-5 flex flex-wrap gap-2">
+                ${formatPackageTags(pkg.tags).map(tag => `<span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/80">${tag}</span>`).join('')}
+              </div>
+              <p class="mt-6 text-base leading-8 text-white/80">${pkg.description || 'Discover this travel package with BisFly Travel and Tours.'}</p>
+              <div class="mt-8 flex flex-wrap gap-3">
+                <a href="${whatsappLink}" target="_blank" rel="noreferrer" class="rounded-xl bg-gold px-6 py-3 text-sm font-black text-navy hover:bg-white">Book this package</a>
+                <a href="/index.html#packages" class="rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-black text-white hover:border-gold hover:text-gold">Back to packages</a>
+              </div>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        console.error(error);
+        target.innerHTML = '<div class="rounded-3xl border border-red/30 bg-red/10 p-8 text-red-200">Unable to load this package right now. Please try again in a moment.</div>';
+      }
+    }
+
+    loadPackageDetail();
+    lucide.createIcons();
+  </script>
+</body>
+</html>
