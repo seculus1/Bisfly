@@ -223,7 +223,7 @@
           <p class="text-xs font-black uppercase tracking-wide text-gold sm:text-sm">Featured Stays</p>
           <h2 class="text-2xl font-black text-white sm:text-3xl">Featured Packages</h2>
         </div>
-        <div id="gallery" class="mt-2 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+        <div id="gallery" class="mt-2 grid gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
         <div class="mt-5 text-center">
           <a href="#packages" class="inline-flex items-center justify-center rounded-full bg-gold px-6 py-2.5 text-xs font-black uppercase tracking-wide text-navy shadow-lg shadow-gold/30 hover:bg-white sm:text-sm">Browse Packages</a>
         </div>
@@ -502,41 +502,41 @@
           const whatsappLink = `https://wa.me/2347051935203?text=${packageText}`;
 
           const galleryItem = document.createElement('div');
-          galleryItem.className = 'group relative overflow-hidden rounded-[30px] border border-white/10 bg-white/5 shadow-[0_30px_80px_rgba(2,6,23,0.7)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(248,183,43,0.22)] hover:border-gold/50';
+          galleryItem.className = 'group relative overflow-hidden rounded-[26px] border border-white/10 bg-white/5 shadow-[0_18px_50px_rgba(2,6,23,0.6)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(248,183,43,0.16)] hover:border-gold/50';
           galleryItem.innerHTML = `
             <div class="absolute inset-0 bg-gradient-to-br from-white/10 via-white/0 to-gold/5 opacity-80"></div>
             <div class="relative">
               <div class="relative">
-                <img src="${imageUrl}" alt="${p.title}" class="h-72 w-full object-cover transition duration-500 group-hover:scale-105" />
+                <img src="${imageUrl}" alt="${p.title}" class="h-56 w-full object-cover transition duration-500 group-hover:scale-105 sm:h-60" />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent"></div>
-                <div class="absolute left-4 top-4 flex items-center gap-2">
-                  ${isPopular ? '<span class="rounded-full bg-gold px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-navy">Popular</span>' : ''}
-                  ${isBestSeller ? '<span class="absolute -left-2 top-10 rotate-[-28deg] rounded-r-md bg-red px-2 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-lg shadow-red/35">Best Seller</span>' : ''}
+                <div class="absolute left-3 top-3 flex items-center gap-2">
+                  ${isPopular ? '<span class="rounded-full bg-gold px-2 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-navy">Popular</span>' : ''}
+                  ${isBestSeller ? '<span class="absolute -left-1 top-9 rotate-[-28deg] rounded-r-md bg-red px-2 py-1 text-[8px] font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-red/35">Best Seller</span>' : ''}
                 </div>
-                <div class="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 p-4">
-                  <span class="rounded-full bg-gold px-3 py-1 text-xs font-black uppercase tracking-wide text-navy">${price}</span>
-                  <span class="rounded-full border border-white/20 bg-black/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/90">${duration}</span>
+                <div class="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 p-3">
+                  <span class="rounded-full bg-gold px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-navy sm:text-xs">${price}</span>
+                  <span class="rounded-full border border-white/20 bg-black/20 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.15em] text-white/90">${duration}</span>
                 </div>
               </div>
-              <div class="p-6">
+              <div class="p-4 sm:p-5">
                 <div class="flex items-center justify-between gap-3">
-                  <div class="flex items-center gap-1 text-sm text-gold">
+                  <div class="flex items-center gap-1 text-xs text-gold">
                     <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
                   </div>
-                  <span class="text-sm font-bold text-white/80">${rating}</span>
+                  <span class="text-xs font-bold text-white/80">${rating}</span>
                 </div>
-                <div class="mt-4">
-                  <h3 class="text-2xl font-black text-white">${p.title}</h3>
+                <div class="mt-3">
+                  <h3 class="text-xl font-black text-white sm:text-[1.35rem]">${p.title}</h3>
                 </div>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  ${tripTags.map(tag => `<span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/80">${tag}</span>`).join('')}
+                <div class="mt-2 flex flex-wrap gap-2">
+                  ${tripTags.map(tag => `<span class="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white/80">${tag}</span>`).join('')}
                 </div>
-                <p class="mt-4 text-sm leading-6 text-white/70">${p.description || 'Discover this destination.'}</p>
-                <div class="mt-5 flex items-center gap-3">
-                  <button type="button" class="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white transition hover:border-gold hover:bg-gold hover:text-navy" data-package-id="${p.id}">
+                <p class="mt-3 text-xs leading-5 text-white/70 sm:text-sm">${p.description || 'Discover this destination.'}</p>
+                <div class="mt-4 flex items-center gap-2">
+                  <button type="button" class="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-black text-white transition hover:border-gold hover:bg-gold hover:text-navy sm:text-sm" data-package-id="${p.id}">
                     View Details
                   </button>
-                  <a href="${whatsappLink}" target="_blank" rel="noreferrer" class="flex-1 rounded-xl bg-gold px-4 py-3 text-center text-sm font-black text-navy transition hover:bg-white">
+                  <a href="${whatsappLink}" target="_blank" rel="noreferrer" class="flex-1 rounded-lg bg-gold px-3 py-2.5 text-center text-xs font-black text-navy transition hover:bg-white sm:text-sm">
                     Book now
                   </a>
                 </div>
