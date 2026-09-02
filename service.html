@@ -226,8 +226,8 @@
           { name: "dateOfBirth", label: "Date of Birth", type: "date", required: true },
           { name: "travelDocNumber", label: "Travel Document Number (Passport)", type: "text", required: true },
           { name: "destination", label: "Destination Country", type: "text", required: true },
-          { name: "startDate", label: "Start Date", type: "date", required: true },
-          { name: "endDate", label: "End Date", type: "date", required: true },
+          { name: "startDate", label: "Coverage From Date", type: "date", required: true },
+          { name: "endDate", label: "Coverage Return Date", type: "date", required: true },
           { name: "nextOfKinName", label: "Next of Kin Name", type: "text", required: true },
           { name: "nextOfKinAddress", label: "Next of Kin Address", type: "text", required: true },
           { name: "nextOfKinPhone", label: "Next of Kin Phone Number", type: "text", required: true },
@@ -276,6 +276,9 @@
       }
       if (field.type === 'file') {
         return `<label class="block rounded border border-white/15 bg-navy/70 px-4 py-3 text-sm text-white"><span class="mb-2 block font-bold">${field.label}</span><input type="file" name="${field.name}" ${field.required ? 'required' : ''} accept=".jpg,.jpeg" class="block w-full text-sm text-white file:mr-4 file:rounded file:border-0 file:bg-gold file:px-4 file:py-2 file:font-black file:text-navy" /></label>`;
+      }
+      if (field.type === 'date') {
+        return `<label class="block"><span class="mb-2 block text-sm font-bold text-white">${field.label}</span><input type="date" name="${field.name}" ${field.required ? 'required' : ''} aria-label="${field.label}" class="w-full ${sharedClass}" /></label>`;
       }
       return `<input type="${field.type}" name="${field.name}" ${field.required ? 'required' : ''} placeholder="${field.label}" class="${sharedClass}" />`;
     }
