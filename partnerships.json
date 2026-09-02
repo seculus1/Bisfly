@@ -1,5 +1,19 @@
 [
   {
+    "id": 1788350534112,
+    "companyName": "Banky autos",
+    "contactName": "bank",
+    "email": "bankole.adesegun2012@gmail.com",
+    "phone": "08129701410",
+    "country": "China",
+    "businessFocus": "Client",
+    "expectedVolume": "10",
+    "partnershipType": "Client Referral Partnership",
+    "message": "jkfddfh",
+    "status": "pending",
+    "createdAt": "2026-09-02T12:02:14.112Z"
+  },
+  {
     "id": 1788336322255,
     "companyName": "Demo Co",
     "contactName": "Jane Doe",
