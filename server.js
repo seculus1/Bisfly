@@ -384,14 +384,18 @@ function writeAgreements(data) {
 
 function readPackages() {
   try {
-    return JSON.parse(fs.readFileSync(packagesFile, "utf8"));
+    const packages = JSON.parse(fs.readFileSync(packagesFile, "utf8"));
+    return Array.isArray(packages) ? packages : [];
   } catch (error) {
+    console.error("Unable to read packages:", error.message);
     return [];
   }
 }
 
 function writePackages(data) {
-  fs.writeFileSync(packagesFile, JSON.stringify(data, null, 2));
+  const temporaryFile = `${packagesFile}.tmp`;
+  fs.writeFileSync(temporaryFile, JSON.stringify(data, null, 2), "utf8");
+  fs.renameSync(temporaryFile, packagesFile);
 }
 
 function readPassports() {
@@ -1218,6 +1222,7 @@ const server = http.createServer(async (request, response) => {
 
     // Packages endpoints
     if (parsedUrl.pathname === "/api/packages" && request.method === "GET") {
+      response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       send(response, 200, readPackages());
       return;
     }
