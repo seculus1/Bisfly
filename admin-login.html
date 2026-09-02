@@ -69,9 +69,22 @@
   </div>
 
   <script>
-    // Check if already logged in
-    if (localStorage.getItem("adminToken")) {
-      window.location.href = "/admin-dashboard.html";
+    // Redirect only when the stored session is still valid.
+    const storedToken = localStorage.getItem("adminToken");
+    if (storedToken) {
+      fetch("/api/admin/verify", { headers: { Authorization: `Bearer ${storedToken}` } })
+        .then(response => response.ok ? response.json() : null)
+        .then(data => {
+          if (data?.authenticated) window.location.replace("/admin-dashboard.html");
+          else {
+            localStorage.removeItem("adminToken");
+            localStorage.removeItem("adminUser");
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem("adminToken");
+          localStorage.removeItem("adminUser");
+        });
     }
 
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
