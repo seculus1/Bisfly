@@ -510,7 +510,7 @@
 
           const detailBtn = galleryItem.querySelector('button[data-package-id]');
           detailBtn.addEventListener('click', () => {
-            window.location.href = `/package.html?id=${encodeURIComponent(p.id)}`;
+            showPackageDetails(p);
           });
           gallery.appendChild(galleryItem);
         });
