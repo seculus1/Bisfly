@@ -157,11 +157,19 @@ setInterval(() => {
 // Email Transporter Setup
 let emailTransporter;
 
+function getEmailFrom() {
+  const configuredFrom = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || "hello@yourdomain.com";
+  if (String(process.env.EMAIL_HOST || "").includes("resend") && /@gmail\.com$/i.test(configuredFrom)) {
+    return "onboarding@resend.dev";
+  }
+  return configuredFrom;
+}
+
 async function initializeEmailTransport() {
   try {
     const resendApiKey = process.env.RESEND_API_KEY || process.env.EMAIL_PASS || "";
     const smtpUsername = process.env.RESEND_SMTP_USER || process.env.SMTP_USER || "resend";
-    const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || "hello@yourdomain.com";
+    const fromEmail = getEmailFrom();
     const emailUser = process.env.EMAIL_USER || fromEmail;
     const emailPass = process.env.EMAIL_PASS || resendApiKey || "";
     const emailService = (process.env.EMAIL_SERVICE || (process.env.RESEND_API_KEY ? "resend" : "gmail")).toLowerCase();
@@ -246,7 +254,7 @@ async function sendApprovalEmail(agreement) {
 
   try {
     const pdfBuffer = await generateAgreementPdf(agreement);
-    const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || "hello@yourdomain.com";
+    const fromEmail = getEmailFrom();
 
     const mailOptions = {
       from: fromEmail,
@@ -286,7 +294,7 @@ async function sendApprovalEmail(agreement) {
 async function sendSimpleEmail(to, subject, html) {
   if (!emailTransporter) return { sent: false, error: 'Email not configured' };
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'hello@yourdomain.com';
+    const fromEmail = getEmailFrom();
     const info = await emailTransporter.sendMail({
       from: fromEmail,
       to,
