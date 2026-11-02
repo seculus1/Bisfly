@@ -1349,11 +1349,29 @@
           <td class="font-bold text-gold">NGN ${Number(receipt.amountPaid || 0).toLocaleString('en-NG')}<br><span class="font-normal text-xs text-white/50">${escapeHtml(receipt.paymentMethod === 'installment' ? `${(receipt.paymentSchedule || []).length} installments` : 'Full initial payment')}</span></td>
           <td>NGN ${Number(receipt.balanceAfterApproval || 0).toLocaleString('en-NG')}</td>
           <td><span class="${receipt.approvalStatus === 'approved' ? 'text-emerald-300' : 'text-amber-300'}">${receipt.approvalStatus === 'approved' ? 'Approved' : receipt.approvalStatus === 'pending_payment' ? 'Awaiting deposit completion' : 'Awaiting Super Admin'}</span>${receipt.approvedBy ? `<br><span class="text-xs text-white/50">by ${escapeHtml(receipt.approvedBy)}</span>` : ''}</td>
-          <td><span class="${receipt.emailStatus === 'sent' ? 'text-emerald-300' : receipt.approvalStatus === 'approved' ? 'text-red-300' : 'text-white/50'}">${receipt.emailStatus === 'sent' ? 'Sent' : receipt.approvalStatus === 'pending_payment' ? 'Not sent - deposit incomplete' : receipt.approvalStatus !== 'approved' ? 'Not sent - approval required' : 'Delivery failed'}</span>${receipt.emailError ? `<br><span class="text-xs text-red-300" title="${escapeHtml(receipt.emailError)}">${escapeHtml(receipt.emailError)}</span>` : ''}</td>
-          <td><div class="flex flex-wrap gap-2">${receipt.approvalStatus === 'approved' ? `<button type="button" class="download-receipt rounded bg-white/10 px-2 py-1 text-xs font-bold hover:bg-white/20" data-id="${escapeHtml(receipt.id)}">Download PDF</button>${receipt.emailStatus !== 'sent' ? `<button type="button" class="resend-receipt rounded bg-royal px-2 py-1 text-xs font-bold hover:bg-blue-500" data-id="${escapeHtml(receipt.id)}">Retry email</button>` : ''}` : receipt.approvalStatus === 'pending' && isSuperAdminRole() ? `<button type="button" class="approve-receipt rounded bg-gold px-2 py-1 text-xs font-bold text-navy hover:bg-white" data-id="${escapeHtml(receipt.id)}">Approve &amp; send</button>` : receipt.approvalStatus === 'pending_payment' ? '<span class="text-xs text-white/45">Deposit completion required</span>' : '<span class="text-xs text-white/45">Awaiting approval</span>'}</div></td>
+          <td><span class="${receipt.emailStatus === 'sent' ? 'text-emerald-300' : receipt.emailStatus === 'sending' ? 'text-amber-200' : receipt.approvalStatus === 'approved' ? 'text-red-300' : 'text-white/50'}">${receipt.emailStatus === 'sent' ? 'Sent' : receipt.emailStatus === 'sending' ? 'Sending in background…' : receipt.approvalStatus === 'pending_payment' ? 'Not sent - deposit incomplete' : receipt.approvalStatus !== 'approved' ? 'Not sent - approval required' : 'Delivery failed'}</span>${receipt.emailError ? `<br><span class="text-xs text-red-300" title="${escapeHtml(receipt.emailError)}">${escapeHtml(receipt.emailError)}</span>` : ''}</td>
+          <td><div class="flex flex-wrap gap-2">${receipt.approvalStatus === 'approved' ? `<button type="button" class="download-receipt rounded bg-white/10 px-2 py-1 text-xs font-bold hover:bg-white/20" data-id="${escapeHtml(receipt.id)}">Download PDF</button>${receipt.emailStatus !== 'sent' && receipt.emailStatus !== 'sending' ? `<button type="button" class="resend-receipt rounded bg-royal px-2 py-1 text-xs font-bold hover:bg-blue-500" data-id="${escapeHtml(receipt.id)}">Retry email</button>` : ''}` : receipt.approvalStatus === 'pending' && isSuperAdminRole() ? `<button type="button" class="approve-receipt rounded bg-gold px-2 py-1 text-xs font-bold text-navy hover:bg-white" data-id="${escapeHtml(receipt.id)}">Approve &amp; send</button>` : receipt.approvalStatus === 'pending_payment' ? '<span class="text-xs text-white/45">Deposit completion required</span>' : '<span class="text-xs text-white/45">Awaiting approval</span>'}</div></td>
           ${submittedRecordActions('receipts', receipt)}
         </tr>
       `).join('') : '<tr><td colspan="10" class="py-8 text-center text-white/60">No client payments have initialized receipts yet.</td></tr>';
+    }
+
+    async function monitorReceiptEmail(receiptId) {
+      for (let attempt = 0; attempt < 30; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const records = await apiCall('/api/admin/receipts');
+        if (!Array.isArray(records)) return;
+        const receipt = records.find(item => item.id === receiptId);
+        if (!receipt || receipt.emailStatus !== 'sending') {
+          await loadReceipts();
+          if (receipt?.emailStatus === 'failed') {
+            setFormMessage('clientFormStatus', `Receipt ${receipt.referenceNumber} is approved and downloadable, but email delivery failed: ${receipt.emailError || 'Unknown delivery error'}. Use Retry email after resolving the mail issue.`, true);
+          } else if (receipt?.emailStatus === 'sent') {
+            setFormMessage('clientFormStatus', `Receipt ${receipt.referenceNumber} was emailed to ${receipt.clientEmail}.`);
+          }
+          return;
+        }
+      }
     }
 
     async function submitClient(event) {
@@ -1982,10 +2000,9 @@
           const result = await apiCall(`/api/admin/receipts/${receiptId}/approve`, { method: 'POST', body: '{}' });
           if (!result?.ok) {
             setFormMessage('clientFormStatus', result?.message || 'Unable to approve this receipt.', true);
-          } else if (result.delivery?.sent) {
-            setFormMessage('clientFormStatus', `Receipt ${result.receipt.referenceNumber} approved and emailed to ${result.receipt.clientEmail}. It is now available for download.`);
           } else {
-            setFormMessage('clientFormStatus', `Receipt ${result.receipt.referenceNumber} approved and available for download, but email delivery failed: ${result.delivery?.error || 'Unknown delivery error'}. Use Retry email after resolving the mail issue.`, true);
+            setFormMessage('clientFormStatus', `Receipt ${result.receipt.referenceNumber} approved and available for download. Email delivery is running in the background.`);
+            void monitorReceiptEmail(result.receipt.id);
           }
           await loadReceipts();
           return;
@@ -1993,10 +2010,11 @@
         if (button.classList.contains('resend-receipt')) {
           button.disabled = true;
           const result = await apiCall(`/api/admin/receipts/${receiptId}/send`, { method: 'POST', body: '{}' });
-          if (!result?.ok || !result.delivery?.sent) {
-            setFormMessage('clientFormStatus', result?.delivery?.error || result?.message || 'Email delivery failed. The PDF remains available for download.', true);
+          if (!result?.ok) {
+            setFormMessage('clientFormStatus', result?.message || 'Unable to start receipt email delivery.', true);
           } else {
-            setFormMessage('clientFormStatus', `Receipt emailed to ${result.receipt.clientEmail}.`);
+            setFormMessage('clientFormStatus', `Receipt is approved and downloadable. Email delivery is running in the background.`);
+            void monitorReceiptEmail(result.receipt.id);
           }
           await loadReceipts();
         }

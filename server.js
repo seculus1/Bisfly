@@ -268,6 +268,9 @@ async function initializeEmailTransport() {
         host: testAccount.smtp.host,
         port: testAccount.smtp.port,
         secure: testAccount.smtp.secure,
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 20_000,
         auth: {
           user: testAccount.user,
           pass: testAccount.pass
@@ -297,6 +300,12 @@ async function initializeEmailTransport() {
             pass: emailPass
           }
         };
+
+    Object.assign(transportOptions, {
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000
+    });
 
     if (emailHost && emailHost.includes("resend")) {
       Object.assign(transportOptions, {
@@ -422,6 +431,45 @@ async function sendReceiptEmail(receipt) {
   } catch (error) {
     console.error(`Failed to email receipt ${receipt.referenceNumber}:`, error.message || error);
     return { sent: false, error: String(error.message || "Email delivery failed.").slice(0, 500) };
+  }
+}
+
+const receiptEmailJobs = new Set();
+
+async function processReceiptEmail(receiptId) {
+  if (receiptEmailJobs.has(receiptId)) return;
+  receiptEmailJobs.add(receiptId);
+  try {
+    const receipts = readJsonArray(receiptsFile);
+    const receipt = receipts.find(item => item.id === receiptId);
+    if (!receipt || receipt.approvalStatus !== "approved" || receipt.emailStatus !== "sending") return;
+
+    const delivery = await sendReceiptEmail(receipt);
+    const latestReceipts = readJsonArray(receiptsFile);
+    const latestReceipt = latestReceipts.find(item => item.id === receiptId);
+    if (!latestReceipt || latestReceipt.approvalStatus !== "approved") return;
+    latestReceipt.emailStatus = delivery.sent ? "sent" : "failed";
+    latestReceipt.emailError = delivery.sent ? null : delivery.error;
+    latestReceipt.emailSentAt = delivery.sent ? new Date().toISOString() : null;
+    latestReceipt.emailPreviewUrl = delivery.previewUrl || null;
+    writeJsonArray(receiptsFile, latestReceipts);
+    logActivity("payment_receipt_email_attempted", {
+      id: latestReceipt.id,
+      referenceNumber: latestReceipt.referenceNumber,
+      sent: delivery.sent
+    }, latestReceipt.approvedBy || "system");
+  } catch (error) {
+    console.error(`Unable to finish receipt email job ${receiptId}:`, error);
+    const receipts = readJsonArray(receiptsFile);
+    const receipt = receipts.find(item => item.id === receiptId);
+    if (receipt && receipt.approvalStatus === "approved") {
+      receipt.emailStatus = "failed";
+      receipt.emailError = String(error.message || "Email delivery failed.").slice(0, 500);
+      receipt.emailSentAt = null;
+      writeJsonArray(receiptsFile, receipts);
+    }
+  } finally {
+    receiptEmailJobs.delete(receiptId);
   }
 }
 
@@ -3111,17 +3159,22 @@ const server = http.createServer(async (request, response) => {
       receipt.approvalStatus = "approved";
       receipt.approvedBy = session.username;
       receipt.approvedAt = new Date().toISOString();
-      receipt.emailStatus = "pending";
+      receipt.emailStatus = "sending";
       receipt.emailError = null;
+      receipt.emailSentAt = null;
       writeJsonArray(receiptsFile, receipts);
-      const delivery = await sendReceiptEmail(receipt);
-      receipt.emailStatus = delivery.sent ? "sent" : "failed";
-      receipt.emailError = delivery.sent ? null : delivery.error;
-      receipt.emailSentAt = delivery.sent ? new Date().toISOString() : null;
-      receipt.emailPreviewUrl = delivery.previewUrl || null;
-      writeJsonArray(receiptsFile, receipts);
-      logActivity("payment_receipt_approved", { id: receipt.id, referenceNumber: receipt.referenceNumber, sent: delivery.sent }, session.username);
-      return send(response, 200, { ok: true, receipt, delivery });
+      receipt.emailPreviewUrl = null;
+      logActivity("payment_receipt_approved", { id: receipt.id, referenceNumber: receipt.referenceNumber }, session.username);
+      setImmediate(() => {
+        processReceiptEmail(receipt.id).catch(error => {
+          console.error(`Unable to queue receipt email ${receipt.id}:`, error);
+        });
+      });
+      return send(response, 200, {
+        ok: true,
+        receipt,
+        delivery: { sent: false, pending: true, message: "Receipt approved. Email delivery is running in the background." }
+      });
     }
 
     if (receiptRouteMatch && receiptRouteMatch[2] === "pdf" && request.method === "GET") {
@@ -3146,17 +3199,23 @@ const server = http.createServer(async (request, response) => {
       if (receipt.approvalStatus !== "approved") {
         return send(response, 403, { ok: false, message: "This receipt cannot be emailed until a Super Admin approves it." });
       }
-      receipt.emailStatus = "pending";
+      if (receipt.emailStatus === "sending") {
+        return send(response, 409, { ok: false, message: "Receipt email delivery is already in progress." });
+      }
+      receipt.emailStatus = "sending";
       receipt.emailError = null;
+      receipt.emailSentAt = null;
       writeJsonArray(receiptsFile, receipts);
-      const delivery = await sendReceiptEmail(receipt);
-      receipt.emailStatus = delivery.sent ? "sent" : "failed";
-      receipt.emailError = delivery.sent ? null : delivery.error;
-      receipt.emailSentAt = delivery.sent ? new Date().toISOString() : null;
-      receipt.emailPreviewUrl = delivery.previewUrl || null;
-      writeJsonArray(receiptsFile, receipts);
-      logActivity("payment_receipt_email_attempted", { id: receipt.id, referenceNumber: receipt.referenceNumber, sent: delivery.sent }, session.username);
-      return send(response, 200, { ok: true, receipt, delivery });
+      setImmediate(() => {
+        processReceiptEmail(receipt.id).catch(error => {
+          console.error(`Unable to queue receipt email ${receipt.id}:`, error);
+        });
+      });
+      return send(response, 202, {
+        ok: true,
+        receipt,
+        delivery: { sent: false, pending: true, message: "Email delivery is running in the background." }
+      });
     }
 
     if (parsedUrl.pathname.match(/^\/api\/agreements\/[^\/]+\/approve$/) && request.method === "POST") {
@@ -3874,7 +3933,17 @@ const server = http.createServer(async (request, response) => {
 });
 
   // Initialize admin credentials and email transport on startup
-initializeAdmin();
+  const receiptsWithInterruptedEmail = readJsonArray(receiptsFile);
+  let recoveredReceiptEmails = false;
+  for (const receipt of receiptsWithInterruptedEmail) {
+    if (receipt.emailStatus !== "sending") continue;
+    receipt.emailStatus = "failed";
+    receipt.emailError = "Email delivery was interrupted when the server stopped. Retry email to try again.";
+    receipt.emailSentAt = null;
+    recoveredReceiptEmails = true;
+  }
+  if (recoveredReceiptEmails) writeJsonArray(receiptsFile, receiptsWithInterruptedEmail);
+  initializeAdmin();
 initializeAdminUsers();
 initializeEmailTransport().catch(err => console.error("Email init error:", err));
 

@@ -725,7 +725,7 @@ Returns saved receipts, including their email-delivery status.
 ### Approve and send a receipt
 **Endpoint:** `POST /api/admin/receipts/{receiptId}/approve`
 
-**Super Admin only.** Approving changes the receipt to approved, sends the branded PDF to the client email captured on the client record, and makes the PDF downloadable. Installment receipts cannot be approved until an admin explicitly confirms that the full initial deposit is complete. The receipt includes each payment amount and date, the total received, and the remaining balance after visa approval. Email delivery errors are returned explicitly; an approved receipt remains downloadable if email delivery fails. Use the retry endpoint after resolving the email issue.
+**Super Admin only.** Approval is saved immediately and makes the PDF downloadable; the branded receipt email is delivered in the background so a slow SMTP connection does not delay the approval response. The response initially reports email status as `sending`; the receipt listing reports the eventual `sent` or `failed` status. Installment receipts cannot be approved until an admin explicitly confirms that the full initial deposit is complete. The receipt includes each payment amount and date, the total received, and the remaining balance after visa approval. If email delivery fails, the approved receipt remains downloadable and the retry endpoint queues another background attempt.
 
 ### Download receipt PDF
 **Endpoint:** `GET /api/admin/receipts/{receiptId}/pdf`
@@ -735,7 +735,7 @@ Returns a BisFly Limited PDF receipt with the client, package, each dated paymen
 ### Retry email delivery
 **Endpoint:** `POST /api/admin/receipts/{receiptId}/send`
 
-Retries sending the PDF to the client email saved on an approved receipt. The response reports whether delivery succeeded; failed delivery does not remove or disable the downloadable PDF. Receipts awaiting approval cannot be emailed.
+Retries sending the PDF to the client email saved on an approved receipt. The endpoint returns as soon as the background delivery attempt is queued; check `GET /api/admin/receipts` for the eventual result. Failed delivery does not remove or disable the downloadable PDF. Receipts awaiting approval cannot be emailed.
 
 ---
 
