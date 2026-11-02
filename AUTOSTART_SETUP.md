@@ -1,8 +1,8 @@
-# BisFly Platform - Windows Task Scheduler Autostart Setup Guide
+# BisFly Limited - Windows Task Scheduler Autostart Setup Guide
 
 ## 🎯 How to Set Up Autostart on Windows
 
-This guide will help you automatically start the BisFly server when Windows boots up.
+This guide will help you automatically start the BisFly Limited server when Windows boots up.
 
 ### Method 1: Using Task Scheduler (Recommended)
 
@@ -13,8 +13,8 @@ This guide will help you automatically start the BisFly server when Windows boot
 
 #### Step 2: Create a New Task
 1. In the right panel, click **Create Basic Task**
-2. Name: `BisFly Server Autostart`
-3. Description: `Automatically start BisFly Travel Platform server on system startup`
+2. Name: `BisFly Limited Server Autostart`
+3. Description: `Automatically start BisFly Limited server on system startup`
 4. Click **Next**
 
 #### Step 3: Set Trigger
@@ -43,7 +43,7 @@ This guide will help you automatically start the BisFly server when Windows boot
 2. Click **Finish**
 
 #### Step 7: Configure Task Properties (Optional)
-1. Right-click the created task: **BisFly Server Autostart**
+1. Right-click the created task: **BisFly Limited Server Autostart**
 2. Click **Properties**
 3. Go to **General** tab:
    - Check: **Run whether user is logged in or not**
@@ -97,10 +97,10 @@ Register-ScheduledTask -TaskName $taskName `
     -Trigger $trigger `
     -Action $action `
     -RunLevel Highest `
-    -Description "Automatically start BisFly Travel Platform server on system startup"
+   -Description "Automatically start BisFly Limited server on system startup"
 
 Write-Host "✓ Autostart task created successfully!" -ForegroundColor Green
-Write-Host "The BisFly server will start automatically when Windows boots." -ForegroundColor Green
+Write-Host "The BisFly Limited server will start automatically when Windows boots." -ForegroundColor Green
 ```
 
 #### Step 2: Run the Setup
@@ -114,7 +114,7 @@ Write-Host "The BisFly server will start automatically when Windows boots." -For
 
 ### Check Task Scheduler
 1. Open Task Scheduler (`Win + R`, type `taskschd.msc`)
-2. Look for **BisFly Server Autostart** in the task list
+2. Look for **BisFly Limited Server Autostart** in the task list
 3. Right-click and select **Run** to test immediately
 
 ### Check Running Processes

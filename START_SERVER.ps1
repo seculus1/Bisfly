@@ -1,10 +1,10 @@
-# BisFly Travel Platform - PowerShell Startup Script
+# BisFly Limited - PowerShell Startup Script
 # This script starts the Node.js server on port 8082
 
 Write-Host ""
 Write-Host "╔════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host "║                                                            ║" -ForegroundColor Cyan
-Write-Host "║          BisFly Travel Platform - Server Starting         ║" -ForegroundColor Cyan
+Write-Host "║          BisFly Limited - Server Starting         ║" -ForegroundColor Cyan
 Write-Host "║                                                            ║" -ForegroundColor Cyan
 Write-Host "╚════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""

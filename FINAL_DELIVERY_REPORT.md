@@ -1,4 +1,4 @@
-# ✅ BisFly Platform - Final Delivery Report
+# ✅ BisFly Limited - Final Delivery Report
 
 ## 📦 **WHAT'S BEEN DELIVERED**
 
@@ -296,7 +296,7 @@ Users of this platform will learn:
 
 ## 📞 **SUPPORT & CONTACTS**
 
-**BisFly Travel Agency**
+**BisFly Limited**
 - Email: bisflytravels@gmail.com
 - WhatsApp: +234 705 193 5203
 - Admin Portal: http://localhost:8082/admin

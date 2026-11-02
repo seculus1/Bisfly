@@ -1,4 +1,4 @@
-# 🚀 BisFly Platform - Quick Autostart Guide
+# 🚀 BisFly Limited - Quick Autostart Guide
 
 ## ⚡ Quickest Way to Start (Pick One)
 
@@ -194,7 +194,7 @@ netstat -ano | findstr :8082
 
 ## 📞 Need Help?
 
-**Contact BisFly:**
+**Contact BisFly Limited:**
 - Email: bisflytravels@gmail.com
 - WhatsApp: +234 705 193 5203
 - Admin: http://localhost:8082/admin
@@ -213,6 +213,6 @@ netstat -ano | findstr :8082
 
 ---
 
-**🎉 You're all set! Start with `START_SERVER.bat` and enjoy the BisFly platform!**
+**🎉 You're all set! Start with `START_SERVER.bat` and enjoy the BisFly Limited platform!**
 
 *For more details, see [AUTOSTART_SETUP.md](AUTOSTART_SETUP.md)*

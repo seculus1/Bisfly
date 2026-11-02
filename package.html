@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BisFly Travel Package</title>
+  <title>BisFly Limited | Travel Packages</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -42,7 +42,7 @@
   <header class="sticky top-0 z-40 border-b border-white/10 bg-navy/95 backdrop-blur-xl">
     <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
       <a href="/index.html" class="flex items-center gap-3">
-        <img src="bisfly-logo.png" alt="BisFly Travel and Tours logo" class="h-14 w-auto rounded bg-white/95 p-1" />
+        <span class="text-xl font-black text-white">BisFly Limited</span>
       </a>
       <div class="hidden items-center gap-8 text-sm font-bold lg:flex">
         <a class="hover:text-gold" href="/index.html#home">Home</a>
@@ -92,7 +92,7 @@
 
         const defaultImage = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80';
         const imageUrl = pkg.imageFile ? `/uploads/${pkg.imageFile}` : defaultImage;
-        const packageText = encodeURIComponent(`Hello BisFly Travel and Tours, I want to book the package: ${pkg.title || 'Travel package'}.`);
+        const packageText = encodeURIComponent(`Hello BisFly Limited, I want to book the package: ${pkg.title || 'Travel package'}.`);
         const whatsappLink = `https://wa.me/2347051935203?text=${packageText}`;
 
         target.innerHTML = `
@@ -110,7 +110,7 @@
               <div class="mt-5 flex flex-wrap gap-2">
                 ${formatPackageTags(pkg.tags).map(tag => `<span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/80">${tag}</span>`).join('')}
               </div>
-              <p class="mt-6 text-base leading-8 text-white/80">${pkg.description || 'Discover this travel package with BisFly Travel and Tours.'}</p>
+              <p class="mt-6 text-base leading-8 text-white/80">${pkg.description || 'Discover this travel package with BisFly Limited.'}</p>
               <div class="mt-8 flex flex-wrap gap-3">
                 <a href="${whatsappLink}" target="_blank" rel="noreferrer" class="rounded-xl bg-gold px-6 py-3 text-sm font-black text-navy hover:bg-white">Book this package</a>
                 <a href="/index.html#packages" class="rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-black text-white hover:border-gold hover:text-gold">Back to packages</a>

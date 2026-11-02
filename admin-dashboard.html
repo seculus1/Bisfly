@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BisFly Admin Dashboard</title>
+  <title>BisFly Limited | Admin Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -95,7 +95,7 @@
   <!-- Sidebar -->
   <div class="fixed inset-y-0 left-0 w-64 bg-navy/95 border-r border-white/10 overflow-y-auto z-50">
     <div class="p-6 border-b border-white/10">
-      <h2 class="text-2xl font-black text-gold">BisFly Admin</h2>
+      <h2 class="text-2xl font-black text-gold">BisFly Limited Admin</h2>
       <p class="text-xs text-white/60 mt-2" id="userDisplay">Loading...</p>
     </div>
 
@@ -106,6 +106,21 @@
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="leads">
         <i data-lucide="users" class="w-5 h-5 inline mr-3"></i>Leads
       </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="documents">
+        <i data-lucide="folder-open" class="w-5 h-5 inline mr-3"></i>Documents
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="clients">
+        <i data-lucide="contact" class="w-5 h-5 inline mr-3"></i>Client Information
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="disclaimers">
+        <i data-lucide="file-signature" class="w-5 h-5 inline mr-3"></i>Disclaimers
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="cash-inflows">
+        <i data-lucide="trending-up" class="w-5 h-5 inline mr-3"></i>Cash Inflow Report
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="expenses">
+        <i data-lucide="receipt" class="w-5 h-5 inline mr-3"></i>Expenses
+      </button>
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="insurance">
         <i data-lucide="shield" class="w-5 h-5 inline mr-3"></i>Insurance
       </button>
@@ -113,7 +128,7 @@
         <i data-lucide="file-text" class="w-5 h-5 inline mr-3"></i>Agreements
       </button>
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="passports">
-        <i data-lucide="passport" class="w-5 h-5 inline mr-3"></i>Passports
+        <i data-lucide="book-open" class="w-5 h-5 inline mr-3"></i>Passports
       </button>
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="partnerships">
         <i data-lucide="handshake" class="w-5 h-5 inline mr-3"></i>Partnerships
@@ -182,7 +197,7 @@
               <p class="text-4xl font-black text-gold mt-2">0</p>
               <p class="text-xs text-white/50 mt-1">Pending: <span class="text-gold">0</span></p>
             </div>
-            <i data-lucide="passport" class="w-12 h-12 text-gold/40"></i>
+            <i data-lucide="book-open" class="w-12 h-12 text-gold/40"></i>
           </div>
         </div>
         <div class="glass rounded-lg p-6 border border-white/10">
@@ -264,6 +279,123 @@
       </div>
     </div>
 
+    <!-- Client Information Tab -->
+    <div id="clients-tab" class="tab-content hidden">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div><h1 class="text-3xl font-black text-gold">Client Information</h1><p class="mt-1 text-sm text-white/60">Create and track client records, payments, signed documents, and case progress.</p></div>
+        <button id="exportClientsBtn" type="button" class="rounded-lg bg-gold px-4 py-2 font-bold text-navy hover:bg-white"><i data-lucide="download" class="mr-2 inline h-4 w-4"></i>Download client report</button>
+      </div>
+      <form id="clientForm" class="mb-6 grid gap-4 rounded-lg border border-white/10 bg-white/5 p-5 sm:grid-cols-2 xl:grid-cols-3">
+        <label class="grid gap-1 text-sm text-white/75">Client name<input required name="fullName" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Gender<select required name="gender" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900"><option value="">Select gender</option><option>Female</option><option>Male</option><option>Prefer not to say</option></select></label>
+        <label class="grid gap-1 text-sm text-white/75">Date of birth<input required name="dateOfBirth" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Phone number<input required name="phone" type="tel" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Package type<input required name="packageType" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Amount paid (NGN)<input required name="amountPaid" type="number" min="0" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Payment date<input required name="paymentDate" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Balance due after visa approval (NGN)<input required name="balanceAfterApproval" type="number" min="0" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Progress status<select required name="status" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900"><option>ongoing</option><option selected>pending</option><option>submitted</option><option>refused</option><option>approved</option></select></label>
+        <label class="grid gap-1 text-sm text-white/75 sm:col-span-2 xl:col-span-3">Address<input required name="address" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Signed disclaimer (PDF/JPG/PNG)<input name="signedDisclaimer" type="file" accept=".pdf,.jpg,.jpeg,.png" class="rounded border border-white/15 bg-white/10 px-3 py-2 text-white" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Signed agreement (PDF/JPG/PNG)<input name="signedAgreement" type="file" accept=".pdf,.jpg,.jpeg,.png" class="rounded border border-white/15 bg-white/10 px-3 py-2 text-white" /></label>
+        <div class="flex items-end"><button class="w-full rounded bg-gold px-4 py-2 font-bold text-navy hover:bg-white" type="submit">Create client record</button></div>
+        <p id="clientFormStatus" class="hidden rounded p-3 text-sm sm:col-span-2 xl:col-span-3" role="status" aria-live="polite"></p>
+        <p class="text-xs text-white/55 sm:col-span-2 xl:col-span-3">Amounts paid can be changed only by a Manager or Super Admin. Other administrators may update client details and progress.</p>
+      </form>
+      <div class="glass overflow-x-auto rounded-lg border border-white/10">
+        <table class="admin-data-table"><thead><tr><th>Client</th><th>Phone</th><th>Package</th><th>Paid (NGN)</th><th>Payment date</th><th>Balance after approval</th><th>Progress / actions</th><th>Signed files</th></tr></thead>
+          <tbody id="clientsTable"><tr><td colspan="8" class="py-8 text-center text-white/60">Loading client records...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- Disclaimer Tab -->
+    <div id="disclaimers-tab" class="tab-content hidden">
+      <div class="mb-6"><h1 class="text-3xl font-black text-gold">Client Disclaimers</h1><p class="mt-1 text-sm text-white/60">Prepare the disclaimer for signature, then upload the signed copy for the client record.</p></div>
+      <div class="mb-6 rounded-lg border border-gold/20 bg-gold/5 p-4 text-sm leading-6 text-white/75">The disclaimer explains the company’s travel-support role, the limits of visa-authority responsibility, the confirmed-payment policy, and the official corporate payment account.</div>
+      <form id="disclaimerForm" class="mb-6 grid gap-4 rounded-lg border border-white/10 bg-white/5 p-5 sm:grid-cols-2">
+        <label class="grid gap-1 text-sm text-white/75">Client name<input required name="fullName" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Gender<select required name="gender" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900"><option value="">Select gender</option><option>Female</option><option>Male</option><option>Prefer not to say</option></select></label>
+        <label class="grid gap-1 text-sm text-white/75">Phone number<input required name="phone" type="tel" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Email address<input required name="email" type="email" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75 sm:col-span-2">Address<input required name="address" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Add a second person (optional)<select id="secondPersonRelationship" name="secondPersonRelationship" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900"><option value="">No additional person</option><option>Brother</option><option>Sister</option><option>Wife</option><option>Husband</option><option>Friend</option></select></label>
+        <label class="grid gap-1 text-sm text-white/75">Second person's name<input id="secondPersonName" name="secondPersonName" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" disabled /></label>
+        <label class="grid gap-1 text-sm text-white/75">Upload signed disclaimer (PDF/JPG/PNG)<input required name="signedDisclaimer" type="file" accept=".pdf,.jpg,.jpeg,.png" class="rounded border border-white/15 bg-white/10 px-3 py-2 text-white" /></label>
+        <div class="flex flex-wrap items-end gap-3"><button id="downloadDisclaimerTemplateBtn" type="button" class="rounded border border-white/20 px-4 py-2 font-bold hover:bg-white/10">Download signature-ready disclaimer</button><button type="submit" class="rounded bg-gold px-4 py-2 font-bold text-navy hover:bg-white">Save signed disclaimer</button></div>
+        <p id="disclaimerStatus" class="hidden rounded p-3 text-sm sm:col-span-2" role="status" aria-live="polite"></p>
+      </form>
+      <div class="glass overflow-x-auto rounded-lg border border-white/10"><table class="admin-data-table"><thead><tr><th>Client</th><th>Gender</th><th>Phone</th><th>Email</th><th>Second person</th><th>Signed file</th><th>Created</th><th>Action</th></tr></thead><tbody id="disclaimersTable"><tr><td colspan="8" class="py-8 text-center text-white/60">Loading disclaimers...</td></tr></tbody></table></div>
+    </div>
+
+    <!-- Cash Inflow Report Tab -->
+    <div id="cash-inflows-tab" class="tab-content hidden">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4"><div><h1 class="text-3xl font-black text-gold">Cash Inflow Report</h1><p class="mt-1 text-sm text-white/60">Client payment records by payment date.</p></div><button id="downloadCashInflowReportBtn" type="button" class="rounded-lg bg-gold px-4 py-2 font-bold text-navy hover:bg-white"><i data-lucide="download" class="mr-2 inline h-4 w-4"></i>Download PDF report</button></div>
+      <div class="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+        <label class="grid gap-1 text-sm text-white/70">From date<input id="cashInflowFrom" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/70">To date<input id="cashInflowTo" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <button id="filterCashInflowsBtn" type="button" class="rounded bg-royal px-4 py-2 font-bold text-white">Generate report</button>
+        <p class="ml-auto text-lg font-black text-gold">Total received: <span id="cashInflowTotal">NGN 0</span></p>
+      </div>
+      <div id="cashInflowStatus" class="mb-4 hidden rounded-lg p-3 text-sm" role="status" aria-live="polite"></div>
+      <div class="glass overflow-x-auto rounded-lg border border-white/10"><table class="admin-data-table"><thead><tr><th>Payment date</th><th>Client name</th><th>Amount paid</th><th>Package</th><th>Phone number</th></tr></thead><tbody id="cashInflowsTable"><tr><td colspan="5" class="py-8 text-center text-white/60">Choose a date range or generate the report to view payments.</td></tr></tbody></table></div>
+    </div>
+
+    <!-- Expenses Tab -->
+    <div id="expenses-tab" class="tab-content hidden">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4"><div><h1 class="text-3xl font-black text-gold">Expenses</h1><p class="mt-1 text-sm text-white/60">Record team expenses and download a report for the selected period.</p></div></div>
+      <form id="expenseForm" class="mb-6 grid gap-4 rounded-lg border border-white/10 bg-white/5 p-5 sm:grid-cols-2 xl:grid-cols-4">
+        <label class="grid gap-1 text-sm text-white/75">Admin<input id="expenseAdminName" readonly class="rounded border border-white/15 bg-slate-200 px-3 py-2 text-slate-700" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Expense date<input required name="expenseDate" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Expense amount (NGN)<input required name="amount" type="number" min="0.01" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Purpose<input required name="purpose" maxlength="500" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <button class="rounded bg-gold px-4 py-2 font-bold text-navy hover:bg-white sm:col-span-2 xl:col-span-4" type="submit">Record expense</button>
+        <p id="expenseStatus" class="hidden rounded p-3 text-sm sm:col-span-2 xl:col-span-4" role="status" aria-live="polite"></p>
+      </form>
+      <div class="mb-4 flex flex-wrap items-end gap-3"><label class="grid gap-1 text-sm text-white/70">From<input id="expenseFrom" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label><label class="grid gap-1 text-sm text-white/70">To<input id="expenseTo" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label><button id="downloadExpenseReportBtn" type="button" class="rounded bg-royal px-4 py-2 font-bold text-white">Download expense report</button></div>
+      <div class="glass overflow-x-auto rounded-lg border border-white/10"><table class="admin-data-table"><thead><tr><th>Date</th><th>Admin</th><th>Purpose</th><th>Amount (NGN)</th></tr></thead><tbody id="expensesTable"><tr><td colspan="4" class="py-8 text-center text-white/60">Loading expenses...</td></tr></tbody></table></div>
+    </div>
+
+    <!-- Documents Tab -->
+    <div id="documents-tab" class="tab-content hidden">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-black text-gold">Documents</h1>
+          <p class="mt-1 text-sm text-white/60">Shared files uploaded by authorized team members</p>
+        </div>
+        <label for="adminDocumentFile" class="cursor-pointer rounded-lg bg-gold px-4 py-2 font-bold text-navy transition hover:bg-white">
+          <i data-lucide="upload" class="mr-2 inline h-4 w-4"></i>Upload document
+        </label>
+        <input id="adminDocumentFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv" class="hidden" />
+      </div>
+      <form id="documentUploadForm" class="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+        <label class="grid gap-1 text-sm text-white/70">Category
+          <select id="documentCategory" class="rounded border border-white/15 bg-navy/70 px-3 py-2 text-white">
+            <option>General</option><option>Client</option><option>Travel</option><option>Finance</option><option>Insurance</option><option>Passport</option><option>Other</option>
+          </select>
+        </label>
+        <label class="grid min-w-56 flex-1 gap-1 text-sm text-white/70">Description
+          <input id="documentDescription" type="text" maxlength="300" placeholder="What is this document for?" class="rounded border border-white/15 bg-navy/70 px-3 py-2 text-white placeholder:text-white/40" />
+        </label>
+        <label class="grid min-w-56 flex-1 gap-1 text-sm text-white/70">User who can access this document
+          <select id="documentAccessUsers" required class="min-w-56 rounded border border-white/15 bg-navy/70 px-3 py-2 text-white" aria-describedby="documentAccessHelp"><option value="">Select an admin user</option></select>
+        </label>
+        <p id="documentAccessHelp" class="w-full text-xs text-white/50">Only the selected admin user, the uploader, and Super Admin can view or download this document.</p>
+        <p id="documentSelectedFile" class="min-w-48 flex-1 text-sm text-white/60">No file selected. Maximum size: 15 MB.</p>
+        <button id="uploadDocumentBtn" type="submit" class="rounded bg-gold px-4 py-2 font-bold text-navy disabled:opacity-50" disabled>Upload</button>
+      </form>
+      <div id="documentStatus" class="mb-4 hidden rounded-lg p-3 text-sm" role="status" aria-live="polite"></div>
+      <div class="mb-4 flex flex-wrap gap-3">
+        <input id="documentSearch" type="search" placeholder="Search documents..." class="min-w-48 flex-1 rounded border border-white/20 bg-navy/50 px-4 py-2 text-white outline-none focus:border-gold" />
+        <button id="refreshDocumentsBtn" type="button" class="rounded border border-white/20 bg-white/5 px-4 py-2 hover:bg-white/10">Refresh</button>
+      </div>
+      <div class="glass overflow-x-auto rounded-lg border border-white/10">
+        <table class="admin-data-table">
+          <thead><tr><th style="width: 21%;">File</th><th style="width: 11%;">Category</th><th style="width: 23%;">Description</th><th style="width: 17%;">Access</th><th style="width: 12%;">Uploaded by</th><th style="width: 11%;">Date</th><th style="width: 5%;">Action</th></tr></thead>
+          <tbody id="documentsTable"><tr><td colspan="7" class="py-8 text-center text-white/60">Loading documents...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Insurance Tab -->
     <div id="insurance-tab" class="tab-content hidden">
       <div class="flex justify-between items-center mb-6">
@@ -303,6 +435,7 @@
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-black text-gold">Agreements</h1>
         <div class="flex gap-3">
+          <button id="openAgreementFormBtn" type="button" class="rounded-lg bg-royal px-4 py-2 font-bold text-white hover:bg-red">Generate Agreement</button>
           <select id="agreementsFilterStatus" class="px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold">
             <option value="">All Status</option>
             <option value="pending">Pending</option>
@@ -329,6 +462,41 @@
             <tr><td colspan="6" class="text-center py-8 text-white/60">Loading...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <div id="agreementFormModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 p-4">
+      <div class="mx-auto my-6 max-w-3xl rounded-lg border border-white/10 bg-navy p-6 shadow-2xl sm:p-8">
+        <div class="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-black text-gold">Generate Client Agreement</h2>
+            <p class="mt-1 text-sm text-white/60">Complete the payment and package details to generate a downloadable PDF.</p>
+          </div>
+          <button id="closeAgreementFormBtn" type="button" class="rounded border border-white/20 px-3 py-2 text-sm hover:bg-white/10" aria-label="Close agreement form">Close</button>
+        </div>
+        <form id="adminAgreementForm" class="grid gap-4 sm:grid-cols-2">
+          <label class="grid gap-1 text-sm text-white/75">Client name<input required name="fullName" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Phone number<input required name="phone" type="tel" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Date of birth<input required name="dateOfBirth" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Email address<input required name="email" type="email" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75 sm:col-span-2">Address<input required name="address" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Package type<select required name="packageType" id="agreementPackageType" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900"><option value="">Select package</option><option>Tour Package</option><option>Conference Package</option><option>Work Visa Package</option><option>Study Package</option></select></label>
+          <label class="grid gap-1 text-sm text-white/75">Package option<select required name="packageOption" id="agreementPackageOption" disabled class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900"><option value="">Choose package type first</option></select></label>
+          <label class="grid gap-1 text-sm text-white/75">Total package amount<input required name="totalAmount" type="number" min="0" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Amount deposited<input required name="amountDeposited" type="number" min="0" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Balance after visa approval<input required name="balanceAfterApproval" id="agreementBalanceAfterApproval" type="number" min="0" step="0.01" readonly class="rounded border border-slate-200 bg-slate-100 px-3 py-2 text-slate-700" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Payment date<input required name="paymentDate" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Agreement date<input required name="agreementDate" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75 sm:col-span-2">Description<textarea required name="description" rows="3" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" placeholder="Services and agreed package details"></textarea></label>
+          <div class="rounded border border-gold/20 bg-gold/5 p-4 text-sm leading-6 text-white/80 sm:col-span-2">
+            Confirmed payments are non-refundable because work begins once payment is received, except where applicable law requires otherwise. BisFly Limited provides travel and application support but does not issue or guarantee visas; all visa authorization decisions are made by the relevant authorities. Payments must be made only to Fidelity Bank, Account Name: Bisfly Limited, Account Number: 5601847112.
+          </div>
+          <div id="agreementFormStatus" class="hidden rounded bg-white/10 p-3 text-sm sm:col-span-2" role="status" aria-live="polite"></div>
+          <div class="flex flex-wrap justify-end gap-3 sm:col-span-2">
+            <button type="button" id="cancelAgreementFormBtn" class="rounded border border-white/20 px-4 py-2 hover:bg-white/10">Cancel</button>
+            <button type="submit" class="rounded bg-gold px-5 py-2 font-bold text-navy hover:bg-white">Generate and Download PDF</button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -518,7 +686,8 @@
         <select name="role" class="w-full px-4 py-2 rounded-lg bg-navy/50 border border-white/20 text-white outline-none focus:border-gold">
           <option value="admin">Admin</option>
           <option value="manager">Manager</option>
-          <option value="support">Support</option>
+          <option value="support">Support / Customer</option>
+          <option value="super-admin">Super Admin</option>
         </select>
         <div class="flex gap-3">
           <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition">Create User</button>
@@ -593,6 +762,16 @@
       return sorted;
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[character]);
+    }
+
     function updateSortIndicators(tableId) {
       const activeState = tableSortState[tableId];
       if (!activeState) return;
@@ -658,6 +837,280 @@
       }
     }
 
+    async function fetchProtectedFile(fileName) {
+      const response = await fetch(`/uploads/${encodeURIComponent(fileName)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Unable to download file');
+      return URL.createObjectURL(await response.blob());
+    }
+
+    async function loadDocuments() {
+      const documents = await apiCall('/api/admin/documents');
+      if (!documents) return;
+      const query = document.getElementById('documentSearch')?.value.trim().toLowerCase() || '';
+      const filtered = documents.filter(document => `${document.originalName} ${document.category} ${document.description || ''} ${document.uploadedBy}`.toLowerCase().includes(query));
+      const tbody = document.getElementById('documentsTable');
+      if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-white/60">No documents found. Upload a file to get started.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = filtered.map(document => `
+        <tr>
+          <td>${escapeHtml(document.originalName)}</td>
+          <td>${escapeHtml(document.category)}</td>
+          <td>${escapeHtml(document.description || 'No description')}</td>
+          <td>${escapeHtml((document.allowedUsers || []).map(user => user.username).join(', ') || 'Uploader only')}</td>
+          <td>${escapeHtml(document.uploadedBy)}</td>
+          <td>${escapeHtml(new Date(document.uploadedAt).toLocaleString())}</td>
+          <td><button type="button" class="download-admin-document rounded bg-white/10 px-3 py-1 text-xs font-bold hover:bg-white/20" data-file="${escapeHtml(document.storedName)}" data-name="${escapeHtml(document.originalName)}">Download</button></td>
+        </tr>
+      `).join('');
+      tbody.querySelectorAll('.download-admin-document').forEach(button => {
+        button.addEventListener('click', async () => {
+          try {
+            const url = await fetchProtectedFile(button.dataset.file);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = button.dataset.name;
+            link.click();
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            showDocumentMessage(error.message, true);
+          }
+        });
+      });
+    }
+
+    async function loadDocumentAccessUsers() {
+      const users = await apiCall('/api/admin/document-access-users');
+      if (!users) return;
+      const selector = document.getElementById('documentAccessUsers');
+      selector.innerHTML = users
+        .filter(user => user.active !== false)
+        .map(user => `<option value="${Number(user.id)}">${escapeHtml(user.username)} (${escapeHtml(user.role)})</option>`)
+        .join('');
+    }
+
+    function showDocumentMessage(message, isError = false) {
+      const status = document.getElementById('documentStatus');
+      status.className = `mb-4 rounded-lg p-3 text-sm ${isError ? 'bg-red-500/15 text-red-300' : 'bg-green-500/15 text-green-300'}`;
+      status.textContent = message;
+    }
+
+    async function uploadAdminDocument(event) {
+      event.preventDefault();
+      const input = document.getElementById('adminDocumentFile');
+      const file = input.files?.[0];
+      if (!file) return;
+      if (file.size > 15 * 1024 * 1024) {
+        showDocumentMessage('Documents must be smaller than 15 MB.', true);
+        return;
+      }
+      const form = new FormData();
+      form.append('document', file);
+      form.append('category', document.getElementById('documentCategory').value);
+      form.append('description', document.getElementById('documentDescription').value.trim());
+      const selectedUserId = Number(document.getElementById('documentAccessUsers').value);
+      if (!Number.isSafeInteger(selectedUserId) || selectedUserId <= 0) {
+        showDocumentMessage('Select the admin user who should have access to this document.', true);
+        return;
+      }
+      form.append('allowedUserIds', JSON.stringify([selectedUserId]));
+      const result = await apiCall('/api/admin/documents', { method: 'POST', body: form });
+      if (!result?.ok) {
+        showDocumentMessage(result?.message || 'Unable to upload document.', true);
+        return;
+      }
+      showDocumentMessage('Document uploaded and available to authorized team members.');
+      input.value = '';
+      document.getElementById('documentDescription').value = '';
+      document.getElementById('documentAccessUsers').value = '';
+      document.getElementById('documentSelectedFile').textContent = 'No file selected. Maximum size: 15 MB.';
+      document.getElementById('uploadDocumentBtn').disabled = true;
+      await loadDocuments();
+    }
+
+    function isManagerOrSuperAdmin() {
+      return isSuperAdminRole() || normalizedRole() === 'manager';
+    }
+
+    function setFormMessage(elementId, message, isError = false) {
+      const element = document.getElementById(elementId);
+      element.className = `rounded p-3 text-sm ${isError ? 'bg-red-500/15 text-red-300' : 'bg-green-500/15 text-green-300'}`;
+      element.textContent = message;
+    }
+
+    async function downloadAuthenticatedFile(endpoint, fallbackName, method = 'GET', body = undefined) {
+      const options = { method, headers: { Authorization: 'Bearer ' + token } };
+      if (body !== undefined) {
+        options.headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(body);
+      }
+      const response = await fetch(endpoint, options);
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type') || '';
+        const errorBody = contentType.includes('application/json') ? await response.json() : null;
+        throw new Error(errorBody?.message || `Unable to download ${fallbackName}.`);
+      }
+      const disposition = response.headers.get('content-disposition') || '';
+      const fileName = disposition.match(/filename="?([^";]+)"?/i)?.[1] || fallbackName;
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    }
+
+    async function loadClients() {
+      const records = await apiCall('/api/admin/clients');
+      if (!records) return;
+      const tbody = document.getElementById('clientsTable');
+      if (!records.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-white/60">No client records yet.</td></tr>';
+        return;
+      }
+      const canEditPaid = isManagerOrSuperAdmin();
+      tbody.innerHTML = records.map(client => `
+        <tr data-client-row="${escapeHtml(client.id)}">
+          <td><strong>${escapeHtml(client.fullName)}</strong><br><span class="text-xs text-white/50">${escapeHtml(client.gender)} · DOB ${escapeHtml(client.dateOfBirth)}</span><br><span class="text-xs text-white/50">${escapeHtml(client.address)}</span></td>
+          <td>${escapeHtml(client.phone)}</td>
+          <td>${escapeHtml(client.packageType)}</td>
+          <td><input class="client-paid-input w-28 rounded border border-white/15 bg-white px-2 py-1 text-slate-900" type="number" min="0" step="0.01" value="${Number(client.amountPaid || 0)}" ${canEditPaid ? '' : 'disabled aria-label="Only a Manager or Super Admin may edit the amount paid"'} /></td>
+          <td>${escapeHtml(client.paymentDate)}</td>
+          <td>NGN ${Number(client.balanceAfterApproval || 0).toLocaleString('en-NG')}</td>
+          <td><select class="client-status-select rounded border border-white/15 bg-navy/70 px-2 py-1 text-white">${['ongoing', 'pending', 'submitted', 'refused', 'approved'].map(status => `<option ${client.status === status ? 'selected' : ''}>${status}</option>`).join('')}</select><button type="button" class="save-client-row mt-2 block rounded bg-white/10 px-2 py-1 text-xs font-bold hover:bg-white/20" data-id="${escapeHtml(client.id)}">Save changes</button></td>
+          <td class="space-y-2">${client.signedDisclaimerFile ? `<button type="button" class="download-client-file block text-gold underline" data-file="${escapeHtml(client.signedDisclaimerFile)}" data-name="signed-disclaimer-${escapeHtml(client.fullName)}">Disclaimer</button>` : '<span class="block text-white/45">No disclaimer</span>'}${client.signedAgreementFile ? `<button type="button" class="download-client-file block text-gold underline" data-file="${escapeHtml(client.signedAgreementFile)}" data-name="signed-agreement-${escapeHtml(client.fullName)}">Agreement</button>` : '<span class="block text-white/45">No agreement</span>'}</td>
+        </tr>
+      `).join('');
+      tbody.querySelectorAll('.save-client-row').forEach(button => button.addEventListener('click', async () => {
+        const row = button.closest('tr');
+        const body = { status: row.querySelector('.client-status-select').value };
+        if (canEditPaid) body.amountPaid = Number(row.querySelector('.client-paid-input').value);
+        const result = await apiCall(`/api/admin/clients/${encodeURIComponent(button.dataset.id)}`, { method: 'PATCH', body: JSON.stringify(body) });
+        if (!result?.ok) {
+          setFormMessage('clientFormStatus', result?.message || 'Unable to update this client record.', true);
+          return;
+        }
+        await loadClients();
+      }));
+      tbody.querySelectorAll('.download-client-file').forEach(button => button.addEventListener('click', async () => {
+        try {
+          await downloadAuthenticatedFile(`/uploads/${encodeURIComponent(button.dataset.file)}`, `${button.dataset.name}.pdf`);
+        } catch (error) {
+          setFormMessage('clientFormStatus', error.message, true);
+        }
+      }));
+    }
+
+    async function loadDisclaimers() {
+      const records = await apiCall('/api/admin/disclaimers');
+      if (!records) return;
+      const tbody = document.getElementById('disclaimersTable');
+      if (!records.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-white/60">No signed disclaimers have been saved.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = records.map(record => `
+        <tr>
+          <td>${escapeHtml(record.fullName)}</td><td>${escapeHtml(record.gender)}</td><td>${escapeHtml(record.phone)}</td><td>${escapeHtml(record.email)}</td>
+          <td>${escapeHtml(record.secondPersonName ? `${record.secondPersonName} (${record.secondPersonRelationship})` : 'None')}</td>
+          <td>${escapeHtml(record.originalFileName)}</td><td>${new Date(record.createdAt).toLocaleDateString()}</td>
+          <td><button type="button" class="download-disclaimer-file rounded bg-white/10 px-3 py-1 text-xs font-bold hover:bg-white/20" data-file="${escapeHtml(record.signedFile)}" data-name="${escapeHtml(record.originalFileName)}">Download signed copy</button></td>
+        </tr>
+      `).join('');
+      tbody.querySelectorAll('.download-disclaimer-file').forEach(button => button.addEventListener('click', async () => {
+        try {
+          await downloadAuthenticatedFile(`/uploads/${encodeURIComponent(button.dataset.file)}`, button.dataset.name);
+        } catch (error) {
+          setFormMessage('disclaimerStatus', error.message, true);
+        }
+      }));
+    }
+
+    async function loadCashInflows() {
+      const from = document.getElementById('cashInflowFrom').value;
+      const to = document.getElementById('cashInflowTo').value;
+      const query = new URLSearchParams();
+      if (from) query.set('from', from);
+      if (to) query.set('to', to);
+      const queryString = query.toString();
+      const result = await apiCall(`/api/admin/cash-inflows${queryString ? `?${queryString}` : ''}`);
+      if (!result) return;
+      if (!Array.isArray(result.records)) {
+        const status = document.getElementById('cashInflowStatus');
+        status.className = 'mb-4 rounded-lg bg-red-500/15 p-3 text-sm text-red-300';
+        status.textContent = result.message || 'Unable to load cash inflow data.';
+        return;
+      }
+      document.getElementById('cashInflowStatus').className = 'hidden';
+      document.getElementById('cashInflowTotal').textContent = `NGN ${Number(result.amountTotal || 0).toLocaleString('en-NG')}`;
+      const tbody = document.getElementById('cashInflowsTable');
+      tbody.innerHTML = result.records.length ? result.records.map(record => `
+        <tr><td>${escapeHtml(record.paymentDate)}</td><td>${escapeHtml(record.fullName)}</td><td>NGN ${Number(record.amountPaid || 0).toLocaleString('en-NG')}</td><td>${escapeHtml(record.packageType)}</td><td>${escapeHtml(record.phone)}</td></tr>
+      `).join('') : '<tr><td colspan="5" class="py-8 text-center text-white/60">No payments found for this date range.</td></tr>';
+    }
+
+    async function loadExpenses() {
+      const records = await apiCall('/api/admin/expenses');
+      if (!records) return;
+      const tbody = document.getElementById('expensesTable');
+      const from = document.getElementById('expenseFrom').value;
+      const to = document.getElementById('expenseTo').value;
+      const filtered = records.filter(expense => (!from || expense.expenseDate >= from) && (!to || expense.expenseDate <= to));
+      tbody.innerHTML = filtered.length ? filtered.map(expense => `
+        <tr><td>${escapeHtml(expense.expenseDate)}</td><td>${escapeHtml(expense.adminName)}</td><td>${escapeHtml(expense.purpose)}</td><td>NGN ${Number(expense.amount || 0).toLocaleString('en-NG')}</td></tr>
+      `).join('') : '<tr><td colspan="4" class="py-8 text-center text-white/60">No expenses found for this date range.</td></tr>';
+    }
+
+    async function submitClient(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = await apiCall('/api/admin/clients', { method: 'POST', body: new FormData(form) });
+      if (!result?.ok) {
+        setFormMessage('clientFormStatus', result?.message || 'Unable to save client information.', true);
+        return;
+      }
+      setFormMessage('clientFormStatus', `Client record created for ${result.client.fullName}.`);
+      form.reset();
+      await loadClients();
+    }
+
+    async function submitDisclaimer(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = await apiCall('/api/admin/disclaimers', { method: 'POST', body: new FormData(form) });
+      if (!result?.ok) {
+        setFormMessage('disclaimerStatus', result?.message || 'Unable to save the signed disclaimer.', true);
+        return;
+      }
+      setFormMessage('disclaimerStatus', `Signed disclaimer saved for ${result.disclaimer.fullName}.`);
+      form.reset();
+      document.getElementById('secondPersonName').disabled = true;
+      await loadDisclaimers();
+    }
+
+    async function submitExpense(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = await apiCall('/api/admin/expenses', {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(new FormData(form)))
+      });
+      if (!result?.ok) {
+        setFormMessage('expenseStatus', result?.message || 'Unable to record this expense.', true);
+        return;
+      }
+      setFormMessage('expenseStatus', `Expense recorded for ${result.expense.adminName}.`);
+      form.reset();
+      document.getElementById('expenseAdminName').value = currentUser.username || '';
+      document.getElementById('expenseForm').elements.expenseDate.value = new Date().toISOString().slice(0, 10);
+      await loadExpenses();
+    }
+
     // Initialize
     async function init() {
       if (!token) {
@@ -674,12 +1127,70 @@
       currentUser = verified;
       localStorage.setItem('adminUser', JSON.stringify(currentUser));
       document.getElementById('userDisplay').textContent = `${currentUser.username} (${currentUser.role})`;
+      applyRoleAccess(currentUser.role);
+
+      const landingTab = isSuperAdminRole(currentUser) ? 'dashboard' : 'documents';
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+      document.getElementById(`${landingTab}-tab`).classList.remove('hidden');
+      document.querySelectorAll('.sidebar-item').forEach(button => button.classList.remove('sidebar-active'));
+      document.querySelector(`[data-tab="${landingTab}"]`).classList.add('sidebar-active');
       
       // Set up event listeners
       setupEventListeners();
 
       // Load initial data independently so one failed panel does not disable controls.
-      await Promise.allSettled([loadAnalytics(), loadLeads()]);
+      await Promise.allSettled([
+        isSuperAdminRole(currentUser) ? loadAnalytics() : Promise.resolve(),
+        loadLeads(),
+        loadDocuments()
+      ]);
+      await loadDocumentAccessUsers();
+    }
+
+    function normalizedRole(user = currentUser) {
+      const role = String(user?.role || '').toLowerCase();
+      return role === 'customer' ? 'support' : role;
+    }
+
+    function isSuperAdminRole(user = currentUser) {
+      const role = normalizedRole(user);
+      return ['super-admin', 'master-admin'].includes(role) || (role === 'admin' && user?.username === 'admin');
+    }
+
+    function applyRoleAccess(roleValue) {
+      const role = normalizedRole({ ...currentUser, role: roleValue });
+      const isSuperAdmin = isSuperAdminRole(currentUser);
+      const isManager = role === 'manager';
+      const isAdmin = role === 'admin';
+      const financeTabs = ['clients', 'disclaimers', 'cash-inflows', 'expenses'];
+      const allowedTabs = isSuperAdmin
+        ? ['dashboard', 'leads', 'documents', ...financeTabs, 'insurance', 'agreements', 'passports', 'partnerships', 'packages', 'users', 'activity']
+        : isManager
+          ? ['leads', 'documents', ...financeTabs, 'insurance', 'agreements', 'passports', 'partnerships', 'packages']
+          : isAdmin
+            ? ['leads', 'documents', ...financeTabs, 'insurance', 'agreements', 'passports', 'partnerships', 'packages']
+          : ['leads', 'documents', 'insurance', 'agreements', 'passports', 'partnerships', 'packages'];
+
+      document.querySelectorAll('.sidebar-item[data-tab]').forEach(button => {
+        button.classList.toggle('hidden', !allowedTabs.includes(button.dataset.tab));
+      });
+      if (!isSuperAdmin) {
+        document.getElementById('dashboard-tab').classList.add('hidden');
+        document.getElementById('changePasswordBtn').classList.add('hidden');
+        document.getElementById('openAgreementFormBtn').classList.add('hidden');
+        document.querySelectorAll('.action-btn[data-action]').forEach(button => button.classList.add('hidden'));
+        document.getElementById('addPackageBtn').classList.add('hidden');
+        document.getElementById('dashboardAddPackageBtn').classList.add('hidden');
+        document.getElementById('addUserBtn').classList.add('hidden');
+        document.getElementById('activity-tab').classList.add('hidden');
+        document.getElementById('users-tab').classList.add('hidden');
+        document.querySelectorAll('.approve-agreement').forEach(button => button.remove());
+      }
+      if (!isSuperAdmin && !isManager && !isAdmin) {
+        financeTabs.forEach(tab => document.querySelector(`[data-tab="${tab}"]`)?.classList.add('hidden'));
+      }
+      document.getElementById('expenseAdminName').value = currentUser.username || '';
+      document.getElementById('expenseForm').elements.expenseDate.value = new Date().toISOString().slice(0, 10);
     }
 
     // Load Analytics
@@ -782,10 +1293,24 @@
           <td>${app.email || 'N/A'}</td>
           <td>${app.destination || 'N/A'}</td>
           <td><span class="status-pill ${app.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${app.status}</span></td>
-          <td>${app.documentFile ? '✓ Uploaded' : '✗ Missing'}</td>
+          <td>${app.documentFile ? `<button type="button" class="download-upload text-gold hover:text-white" data-file="${escapeHtml(app.documentFile)}">Download document</button>` : '✗ Missing'}</td>
           <td>${new Date(app.createdAt).toLocaleDateString()}</td>
         </tr>
       `).join('');
+      tbody.querySelectorAll('.download-upload').forEach(button => {
+        button.addEventListener('click', async () => {
+          try {
+            const url = await fetchProtectedFile(button.dataset.file);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = button.dataset.file;
+            link.click();
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+      });
       bindSortableTable('insuranceTable', 'insurance', loadInsurance);
       updateSortIndicators('insurance');
     }
@@ -811,7 +1336,7 @@
           <td>${formatCurrency(ag.amountPaid)}</td>
           <td><span class="status-pill ${ag.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${ag.status}</span></td>
           <td>
-            ${ag.status === 'pending' ? `<button class="approve-agreement text-gold hover:text-white transition text-sm font-bold" data-id="${ag.id}">Approve</button>` : `<a href="/api/agreements/${ag.id}/download" class="text-gold hover:text-white transition text-sm font-bold">Download PDF</a>`}
+            ${isSuperAdminRole() && ag.status === 'pending' ? `<button class="approve-agreement text-gold hover:text-white transition text-sm font-bold" data-id="${ag.id}">Approve</button>` : `<button type="button" class="download-agreement text-gold hover:text-white transition text-sm font-bold" data-id="${ag.id}">Download PDF</button>`}
           </td>
         </tr>
       `).join('');
@@ -824,6 +1349,18 @@
             alert('Agreement approved and email sent!');
             await loadAgreements();
           }
+        });
+      });
+      document.querySelectorAll('.download-agreement').forEach(button => {
+        button.addEventListener('click', async () => {
+          const response = await fetch(`/api/agreements/${button.dataset.id}/download`, { headers: { Authorization: `Bearer ${token}` } });
+          if (!response.ok) return alert('Unable to download agreement PDF.');
+          const url = URL.createObjectURL(await response.blob());
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `agreement-${button.dataset.id}.pdf`;
+          link.click();
+          URL.revokeObjectURL(url);
         });
       });
 
@@ -869,6 +1406,7 @@
         return;
       }
       
+      const canManagePackages = isSuperAdminRole(currentUser);
       grid.innerHTML = data.map(pkg => {
         const safeTitle = pkg.title || 'Untitled Package';
         const safeDescription = pkg.description || 'No description provided.';
@@ -877,19 +1415,27 @@
         const tagList = Array.isArray(pkg.tags) && pkg.tags.length ? pkg.tags.map(tag => `<span class="inline-block rounded-full border border-gold/30 bg-gold/10 px-2 py-1 text-[10px] uppercase tracking-wide text-gold">${tag}</span>`).join(' ') : '<span class="text-white/40 text-xs">No highlights</span>';
         return `
           <div class="glass rounded-lg p-6 border border-white/10">
-            ${pkg.imageFile ? `<img src="/uploads/${pkg.imageFile}" alt="${safeTitle}" class="w-full h-40 object-cover rounded-lg mb-4"/>` : ''}
+            ${pkg.imageFile ? `<img data-package-image="${escapeHtml(pkg.imageFile)}" alt="${escapeHtml(safeTitle)}" class="w-full h-40 object-cover rounded-lg mb-4"/>` : ''}
             <h3 class="text-lg font-bold text-gold">${safeTitle}</h3>
             <p class="text-xs uppercase tracking-wide text-white/40 mt-2">${safeDuration}</p>
             <p class="text-sm text-white/60 mt-2 line-clamp-4">${safeDescription}</p>
             <p class="mt-3 text-sm font-black text-gold">${safePrice}</p>
             <div class="mt-3 flex flex-wrap gap-2">${tagList}</div>
-            <div class="mt-4 grid grid-cols-2 gap-2">
+            ${canManagePackages ? `<div class="mt-4 grid grid-cols-2 gap-2">
               <button class="edit-package px-3 py-2 rounded-lg bg-gold/20 hover:bg-gold/30 transition text-gold text-sm font-bold" data-id="${pkg.id}" data-title="${(pkg.title || '').replace(/"/g, '&quot;')}" data-description="${(pkg.description || '').replace(/"/g, '&quot;')}" data-price="${(pkg.price || '').replace(/"/g, '&quot;')}" data-duration="${(pkg.duration || '').replace(/"/g, '&quot;')}" data-tags="${Array.isArray(pkg.tags) ? pkg.tags.join(',') : ''}">Edit</button>
               <button class="delete-package px-3 py-2 rounded-lg bg-red/20 hover:bg-red/30 transition text-red text-sm font-bold" data-id="${pkg.id}">Delete</button>
-            </div>
+            </div>` : ''}
           </div>
         `;
       }).join('');
+
+      grid.querySelectorAll('[data-package-image]').forEach(async image => {
+        try {
+          image.src = await fetchProtectedFile(image.dataset.packageImage);
+        } catch (error) {
+          image.alt = 'Package image unavailable';
+        }
+      });
       
       document.querySelectorAll('.delete-package').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -924,12 +1470,11 @@
       tbody.innerHTML = sorted.map(user => `
         <tr>
           <td>${user.username}</td>
-          <td>${user.role}</td>
+          <td>${isSuperAdminRole() && user.username !== currentUser.username ? `<select class="user-role-select rounded border border-white/15 bg-navy/70 px-2 py-1 text-xs text-white" data-id="${user.id}"><option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option><option value="manager" ${user.role === 'manager' ? 'selected' : ''}>Manager</option><option value="support" ${['support', 'customer'].includes(user.role) ? 'selected' : ''}>Support / Customer</option><option value="super-admin" ${user.role === 'super-admin' ? 'selected' : ''}>Super Admin</option></select>` : escapeHtml(user.role)}</td>
           <td><span class="px-2 py-1 rounded-full text-xs font-bold ${user.active ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}">${user.active ? 'Active' : 'Inactive'}</span></td>
           <td>${new Date(user.createdAt).toLocaleDateString()}</td>
           <td class="flex flex-wrap gap-2">
-            <button class="reset-user bg-gold/20 text-gold hover:bg-gold/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}" data-username="${user.username}">Reset</button>
-            <button class="delete-user bg-red/20 text-red hover:bg-red/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}">Delete</button>
+            ${isSuperAdminRole() && user.username !== currentUser.username ? `<button class="save-user-role bg-white/10 text-white hover:bg-white/20 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}">Save role</button><button class="reset-user bg-gold/20 text-gold hover:bg-gold/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}" data-username="${escapeHtml(user.username)}">Reset password</button><button class="delete-user bg-red/20 text-red hover:bg-red/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}">Delete</button>` : ''}
           </td>
         </tr>
       `).join('');
@@ -943,6 +1488,19 @@
           } else {
             alert(result?.message || 'Failed to delete user');
           }
+        });
+      });
+
+      document.querySelectorAll('.save-user-role').forEach(button => {
+        button.addEventListener('click', async () => {
+          const role = document.querySelector(`.user-role-select[data-id="${button.dataset.id}"]`)?.value;
+          if (!role) return;
+          const result = await apiCall(`/api/admin/users/${button.dataset.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ role })
+          });
+          if (result?.ok) await loadUsers();
+          else alert(result?.message || 'Unable to change user role.');
         });
       });
 
@@ -1002,6 +1560,11 @@
           
           // Load data
           if (tabName === 'leads') await loadLeads();
+          if (tabName === 'documents') await loadDocuments();
+          if (tabName === 'clients') await loadClients();
+          if (tabName === 'disclaimers') await loadDisclaimers();
+          if (tabName === 'cash-inflows') await loadCashInflows();
+          if (tabName === 'expenses') await loadExpenses();
           if (tabName === 'insurance') await loadInsurance();
           if (tabName === 'agreements') await loadAgreements();
           if (tabName === 'passports') await loadPassports();
@@ -1311,6 +1874,300 @@
       // Refresh buttons
       document.getElementById('refreshAnalyticsBtn').addEventListener('click', loadAnalytics);
       document.getElementById('refreshActivityBtn').addEventListener('click', loadActivityLog);
+      document.getElementById('openAgreementFormBtn').addEventListener('click', () => document.getElementById('agreementFormModal').classList.remove('hidden'));
+      document.getElementById('closeAgreementFormBtn').addEventListener('click', closeAgreementForm);
+      document.getElementById('cancelAgreementFormBtn').addEventListener('click', closeAgreementForm);
+      document.getElementById('agreementPackageType').addEventListener('change', updateAgreementPackageOptions);
+      document.getElementById('adminAgreementForm').elements.totalAmount.addEventListener('input', calculateAgreementBalance);
+      document.getElementById('adminAgreementForm').elements.amountDeposited.addEventListener('input', calculateAgreementBalance);
+      document.getElementById('adminAgreementForm').addEventListener('submit', generateAdminAgreement);
+      document.getElementById('refreshDocumentsBtn').addEventListener('click', loadDocuments);
+      document.getElementById('documentSearch').addEventListener('input', loadDocuments);
+      document.getElementById('adminDocumentFile').addEventListener('change', event => {
+        const file = event.currentTarget.files?.[0];
+        document.getElementById('documentSelectedFile').textContent = file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB` : 'No file selected. Maximum size: 15 MB.';
+        document.getElementById('uploadDocumentBtn').disabled = !file;
+      });
+      document.getElementById('documentUploadForm').addEventListener('submit', uploadAdminDocument);
+      document.getElementById('clientForm').addEventListener('submit', submitClient);
+      document.getElementById('exportClientsBtn').addEventListener('click', async () => {
+        try {
+          await downloadAuthenticatedFile('/api/admin/clients/export', 'bisfly-client-report.pdf');
+        } catch (error) {
+          setFormMessage('clientFormStatus', error.message, true);
+        }
+      });
+      document.getElementById('disclaimerForm').addEventListener('submit', submitDisclaimer);
+      document.getElementById('secondPersonRelationship').addEventListener('change', event => {
+        const name = document.getElementById('secondPersonName');
+        name.disabled = !event.currentTarget.value;
+        name.required = Boolean(event.currentTarget.value);
+        if (!event.currentTarget.value) name.value = '';
+      });
+      document.getElementById('downloadDisclaimerTemplateBtn').addEventListener('click', async () => {
+        const form = document.getElementById('disclaimerForm');
+        const values = Object.fromEntries(new FormData(form));
+        delete values.signedDisclaimer;
+        try {
+          await downloadAuthenticatedFile('/api/admin/disclaimers/template', 'bisfly-client-disclaimer-template.pdf', 'POST', values);
+        } catch (error) {
+          setFormMessage('disclaimerStatus', error.message, true);
+        }
+      });
+      document.getElementById('filterCashInflowsBtn').addEventListener('click', loadCashInflows);
+      document.getElementById('downloadCashInflowReportBtn').addEventListener('click', async () => {
+        const query = new URLSearchParams();
+        const from = document.getElementById('cashInflowFrom').value;
+        const to = document.getElementById('cashInflowTo').value;
+        if (from) query.set('from', from);
+        if (to) query.set('to', to);
+        try {
+          await downloadAuthenticatedFile(`/api/admin/cash-inflows/report${query.toString() ? `?${query}` : ''}`, 'bisfly-cash-inflow-report.pdf');
+        } catch (error) {
+          document.getElementById('cashInflowStatus').className = 'mb-4 rounded-lg bg-red-500/15 p-3 text-sm text-red-300';
+          document.getElementById('cashInflowStatus').textContent = error.message;
+        }
+      });
+      document.getElementById('expenseForm').addEventListener('submit', submitExpense);
+      document.getElementById('downloadExpenseReportBtn').addEventListener('click', async () => {
+        const query = new URLSearchParams();
+        const from = document.getElementById('expenseFrom').value;
+        const to = document.getElementById('expenseTo').value;
+        if (from) query.set('from', from);
+        if (to) query.set('to', to);
+        try {
+          await downloadAuthenticatedFile(`/api/admin/expenses/report${query.toString() ? `?${query}` : ''}`, 'bisfly-expense-report.pdf');
+        } catch (error) {
+          setFormMessage('expenseStatus', error.message, true);
+        }
+      });
+      document.getElementById('cashInflowFrom').addEventListener('change', loadCashInflows);
+      document.getElementById('cashInflowTo').addEventListener('change', loadCashInflows);
+      document.getElementById('expenseFrom').addEventListener('change', loadExpenses);
+      document.getElementById('expenseTo').addEventListener('change', loadExpenses);
+    }
+
+    function closeAgreementForm() {
+      document.getElementById('agreementFormModal').classList.add('hidden');
+      document.getElementById('adminAgreementForm').reset();
+      document.getElementById('agreementPackageOption').disabled = true;
+      document.getElementById('agreementFormStatus').classList.add('hidden');
+    }
+
+    function updateAgreementPackageOptions() {
+      const type = document.getElementById('agreementPackageType').value;
+      const option = document.getElementById('agreementPackageOption');
+      const choices = {
+        'Tour Package': ['Single', 'Couple', 'Family of one', 'Family of two', 'Family of three'],
+        'Conference Package': ['Single', 'Couple', 'Family of one', 'Family of two', 'Family of three'],
+        'Work Visa Package': ['Single', 'Couple', 'Family of one', 'Family of two', 'Family of three'],
+        'Study Package': ['Single', 'Couple', 'Family of one', 'Family of two', 'Family of three']
+      }[type] || [];
+      option.innerHTML = choices.length
+        ? '<option value="">Select package option</option>' + choices.map(value => `<option>${escapeHtml(value)}</option>`).join('')
+        : '<option value="">Choose package type first</option>';
+      option.disabled = choices.length === 0;
+    }
+
+    function calculateAgreementBalance() {
+      const form = document.getElementById('adminAgreementForm');
+      const total = Number(form.elements.totalAmount.value);
+      const deposit = Number(form.elements.amountDeposited.value);
+      form.elements.balanceAfterApproval.value = Number.isFinite(total) && Number.isFinite(deposit) ? Math.max(0, total - deposit).toFixed(2) : '';
+    }
+
+    async function generateAdminAgreement(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const values = Object.fromEntries(new FormData(form).entries());
+      const total = Number(values.totalAmount);
+      const deposit = Number(values.amountDeposited);
+      const balance = total - deposit;
+      values.balanceAfterApproval = balance.toFixed(2);
+      if (Math.abs(deposit + balance - total) > 0.01) {
+        showAgreementFormMessage('The deposit and balance after visa approval must add up to the total package amount.', true);
+        return;
+      }
+
+      const submitButton = form.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Generating...';
+      try {
+        const result = await apiCall('/api/admin/agreements/generate', {
+          method: 'POST',
+          body: JSON.stringify(values)
+        });
+        if (!result?.ok) throw new Error(result?.message || 'Unable to generate the agreement.');
+        const response = await fetch(result.downloadUrl, { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) throw new Error('Agreement was saved, but PDF download failed.');
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `bisfly-agreement-${result.id}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+        closeAgreementForm();
+        await loadAgreements();
+        document.querySelector('[data-tab="agreements"]').click();
+      } catch (error) {
+        showAgreementFormMessage(error.message || 'Unable to generate the agreement.', true);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Generate and Download PDF';
+      }
+    }
+
+    function showAgreementFormMessage(message, isError = false) {
+      const status = document.getElementById('agreementFormStatus');
+      status.className = `rounded p-3 text-sm sm:col-span-2 ${isError ? 'bg-red-500/15 text-red-300' : 'bg-green-500/15 text-green-300'}`;
+      status.textContent = message;
+    }
+
+    function showInflowMessage(message, isError = false) {
+      const status = document.getElementById('inflowImportStatus');
+      status.className = `mb-6 rounded-lg p-4 text-sm font-semibold ${isError ? 'bg-red-500/15 text-red-300' : 'bg-green-500/15 text-green-300'}`;
+      status.textContent = message;
+    }
+
+    async function loadInflows() {
+      const statementSelect = document.getElementById('inflowStatementSelect');
+      const requestedBatch = statementSelect.value;
+      const data = await apiCall(`/api/bank-inflows${requestedBatch ? `?batch=${encodeURIComponent(requestedBatch)}` : ''}`);
+      if (!data) return;
+
+      const currency = value => value === null || value === undefined
+        ? 'Not provided'
+        : `₦ ${Number(value).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('inflowTotal').textContent = currency(data.summary.totalInflows);
+      document.getElementById('outflowTotal').textContent = currency(data.summary.totalOutflows);
+      document.getElementById('inflowNet').textContent = currency(data.summary.net);
+      document.getElementById('inflowOpeningBalance').textContent = currency(data.summary.openingBalance);
+      document.getElementById('inflowClosingBalance').textContent = currency(data.summary.closingBalance);
+      document.getElementById('inflowReconciliationCount').textContent = `${data.summary.matchedCount} matched / ${data.summary.unmatchedCount} unmatched`;
+
+      const selectedBatch = data.selectedBatch || '';
+      const knownBatch = data.batches.some(batch => batch.id === selectedBatch);
+      statementSelect.innerHTML = data.batches.length
+        ? data.batches.map(batch => `<option value="${escapeHtml(batch.id)}">${escapeHtml(batch.sourceFile)} · ${escapeHtml(new Date(batch.importedAt).toLocaleDateString('en-NG'))}</option>`).join('')
+        : '<option value="">No statements imported</option>';
+      statementSelect.value = knownBatch ? selectedBatch : (data.batches[0]?.id || '');
+      document.getElementById('downloadInflowsBtn').disabled = !data.records.length;
+      document.getElementById('downloadInflowsBtn').classList.toggle('opacity-50', !data.records.length);
+      const tbody = document.getElementById('inflowsTable');
+      if (!data.records.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-white/60">No statement transactions found. Upload a Fidelity PDF or CSV statement to begin.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.records.map(record => {
+        const clientValue = escapeHtml(record.matchedClient || '');
+        const status = record.status === 'matched' ? 'matched' : 'unmatched';
+        const signedAmount = Number(record.signedAmount ?? (record.type === 'outflow' ? -record.amount : record.amount));
+        const isOutflow = record.type === 'outflow' || signedAmount < 0;
+        return `
+          <tr>
+            <td>${escapeHtml(new Date(record.date).toLocaleDateString('en-NG'))}</td>
+            <td class="font-bold text-green-300">${isOutflow ? '—' : currency(record.amount)}</td>
+            <td class="font-bold text-red-300">${isOutflow ? currency(record.amount) : '—'}</td>
+            <td>${record.balance === null || record.balance === undefined ? '—' : currency(record.balance)}</td>
+            <td>${escapeHtml(record.reference || 'N/A')}</td>
+            <td><span title="${escapeHtml(record.sourceFile || '')}">${escapeHtml(record.description || 'N/A')}</span></td>
+            <td><span class="status-pill ${status === 'matched' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${status}</span></td>
+            <td class="space-y-2">
+              ${status === 'matched' ? `<span class="block">${clientValue || 'Matched'}</span>` : '<span class="block text-white/40">Not matched</span>'}
+              ${status === 'unmatched' ? `<input type="text" class="inflow-client-input w-full rounded border border-white/15 bg-navy/70 px-2 py-1 text-xs text-white" placeholder="Client / booking ref" aria-label="Client or booking reference" />` : ''}
+              <button type="button" class="reconcile-inflow rounded bg-white/10 px-2 py-1 text-xs font-bold hover:bg-white/20" data-id="${escapeHtml(record.id)}" data-status="${status === 'matched' ? 'unmatched' : 'matched'}">${status === 'matched' ? 'Unmatch' : 'Match client'}</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.querySelectorAll('.reconcile-inflow').forEach(button => {
+        button.addEventListener('click', async () => {
+          const nextStatus = button.dataset.status;
+          const matchedClient = nextStatus === 'matched' ? button.closest('tr').querySelector('.inflow-client-input')?.value.trim() : '';
+          if (nextStatus === 'matched' && !matchedClient) {
+            showInflowMessage('Enter a client name or booking reference before matching this deposit.', true);
+            return;
+          }
+          const result = await apiCall(`/api/bank-inflows/${encodeURIComponent(button.dataset.id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: nextStatus, matchedClient })
+          });
+          if (result?.ok) await loadInflows();
+        });
+      });
+    }
+
+    async function importBankStatement(event) {
+      const input = event.currentTarget;
+      const file = input.files?.[0];
+      if (!file) return;
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      if (!['pdf', 'csv'].includes(extension)) {
+        showInflowMessage('Choose a PDF statement or CSV exported from Fidelity online banking.', true);
+        input.value = '';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showInflowMessage('This statement is larger than the 5 MB upload limit.', true);
+        input.value = '';
+        return;
+      }
+
+      showInflowMessage('Importing statement and checking for duplicate transactions...');
+      const contentType = extension === 'pdf' ? 'application/pdf' : 'text/csv';
+      try {
+        const response = await fetch('/api/bank-inflows/import', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': contentType,
+            'X-File-Name': file.name
+          },
+          body: file
+        });
+        const result = await response.json();
+        if (response.status === 401) {
+          window.location.href = '/admin-login.html';
+          return;
+        }
+        if (!response.ok) throw new Error(result.message || 'Unable to import this statement.');
+        showInflowMessage(`Import complete: ${result.imported} transactions added, ${result.duplicates} duplicates skipped, ${result.skipped} invalid or empty rows skipped.`);
+        if (result.batchId) document.getElementById('inflowStatementSelect').value = result.batchId;
+        input.value = '';
+        await loadInflows();
+      } catch (error) {
+        showInflowMessage(error.message || 'Unable to import this statement.', true);
+        input.value = '';
+      }
+    }
+
+    async function downloadInflows() {
+      const batchId = document.getElementById('inflowStatementSelect').value;
+      try {
+        const response = await fetch(`/api/bank-inflows/export${batchId ? `?batch=${encodeURIComponent(batchId)}` : ''}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.status === 401) {
+          window.location.href = '/admin-login.html';
+          return;
+        }
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.message || 'Unable to download this statement.');
+        }
+        const disposition = response.headers.get('content-disposition') || '';
+        const fileName = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'fidelity-account.csv';
+        const blobUrl = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        showInflowMessage(error.message || 'Unable to download this statement.', true);
+      }
     }
 
     // Initialize app

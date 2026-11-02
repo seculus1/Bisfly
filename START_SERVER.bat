@@ -1,11 +1,11 @@
 @echo off
-REM BisFly Travel Platform - Server Startup Script
+REM BisFly Limited - Server Startup Script
 REM This script starts the Node.js server on port 8082
 
 echo.
 echo ╔════════════════════════════════════════════════════════════╗
 echo ║                                                            ║
-echo ║          BisFly Travel Platform - Server Starting         ║
+echo ║          BisFly Limited - Server Starting         ║
 echo ║                                                            ║
 echo ╚════════════════════════════════════════════════════════════╝
 echo.

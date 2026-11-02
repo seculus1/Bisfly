@@ -1,4 +1,4 @@
-# BisFly Platform - Developer Quick Reference
+# BisFly Limited - Developer Quick Reference
 
 ## 🚀 **QUICK START (30 seconds)**
 

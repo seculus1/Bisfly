@@ -1,7 +1,7 @@
-# BisFly Travel Platform - Complete Feature Testing Guide
+# BisFly Limited - Complete Feature Testing Guide
 
 ## Overview
-This document provides comprehensive instructions for testing all the new features, fixes, and enhancements to the BisFly Travel Platform.
+This document provides comprehensive instructions for testing all the new features, fixes, and enhancements to the BisFly Limited platform.
 
 ---
 
@@ -53,7 +53,7 @@ This document provides comprehensive instructions for testing all the new featur
    - Should show error: "Name must be at least 2 characters"
 
 **Test Forms:**
-- Booking form (Plan a trip with BisFly)
+- Booking form (Plan a trip with BisFly Limited)
 - Visa eligibility form (Check Your Visa Eligibility)
 
 ---
@@ -269,7 +269,7 @@ DELETE /api/admin/users/:id - Delete user
 #### **Download PDF**
 1. Click "Download PDF" link
 2. **Expected**: PDF downloads with:
-   - BisFly logo
+   - BisFly Limited wordmark
    - Agreement details
    - Customer information
    - Terms and conditions

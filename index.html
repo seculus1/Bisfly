@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BisFly Travel and Tours</title>
+  <title>BisFly Limited</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <script>
     tailwind.config = {
       theme: {
@@ -74,17 +75,19 @@
     <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
       <div class="flex flex-wrap items-center gap-5">
         <span class="inline-flex items-center gap-2"><i data-lucide="phone" class="h-4 w-4 text-gold"></i> +234 705 193 5203</span>
-        <a class="inline-flex items-center gap-2 hover:text-gold" href="mailto:bisflytravels@gmail.com"><i data-lucide="mail" class="h-4 w-4 text-gold"></i> bisflytravels@gmail.com</a>
+        <a class="inline-flex items-center gap-2 hover:text-gold" href="mailto:info@bisflytravel.com"><i data-lucide="mail" class="h-4 w-4 text-gold"></i> info@bisflytravel.com</a>
+        <a class="inline-flex items-center gap-2 hover:text-gold" href="https://www.bisflytravel.com" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa-solid fa-globe text-gold"></i> www.bisflytravel.com</a>
       </div>
-      <div class="flex items-center gap-4">
+      <div class="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
         <span class="hidden items-center gap-2 md:inline-flex"><i data-lucide="clock" class="h-4 w-4 text-gold"></i> Mon - Fri: 9:00 AM - 6:00 PM</span>
-        <a aria-label="Facebook" href="https://www.facebook.com/profile.php?id=61587200745381" target="_blank" rel="noreferrer" class="flex h-5 w-5 items-center justify-center rounded-full border border-white/35 text-xs font-black hover:border-gold hover:text-gold">f</a>
-        <a aria-label="Instagram" href="https://www.instagram.com/bisfly_travels?igsh=cm5tdTVuanFqNGM0" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="camera" class="h-4 w-4"></i></a>
-        <a aria-label="Twitter" href="https://twitter.com/bisflytravels" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="twitter" class="h-4 w-4"></i></a>
-        <a aria-label="LinkedIn" href="https://www.linkedin.com/company/bisfly-travel-and-tours" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="linkedin" class="h-4 w-4"></i></a>
-        <a aria-label="YouTube" href="https://www.youtube.com/@bisflytravels" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="play-circle" class="h-4 w-4"></i></a>
-        <a aria-label="TikTok" href="https://www.tiktok.com/@bisflytravels" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="music-2" class="h-4 w-4"></i></a>
-        <a aria-label="WhatsApp" href="https://wa.me/2347051935203" target="_blank" rel="noreferrer" class="hover:text-gold"><i data-lucide="message-circle" class="h-4 w-4"></i></a>
+        <button type="button" data-open-login class="rounded-md border border-gold/50 px-3 py-1.5 font-black text-gold transition hover:bg-gold hover:text-navy">Staff Login</button>
+        <a aria-label="Facebook" href="https://www.facebook.com/profile.php?id=61587200745381" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-facebook-f"></i></a>
+        <a aria-label="Instagram" href="https://www.instagram.com/bisfly_travels?igsh=cm5tdTVuanFqNGM0" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-instagram"></i></a>
+        <a aria-label="Twitter" href="https://twitter.com/bisflytravels" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-x-twitter"></i></a>
+        <a aria-label="LinkedIn" href="https://www.linkedin.com/company/bisfly-travel-and-tours" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-linkedin-in"></i></a>
+        <a aria-label="YouTube" href="https://www.youtube.com/@bisflytravels" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-youtube"></i></a>
+        <a aria-label="TikTok" href="https://www.tiktok.com/@bisflytravels" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-tiktok"></i></a>
+        <a aria-label="WhatsApp" href="https://wa.me/2347051935203" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i></a>
       </div>
     </div>
   </div>
@@ -92,7 +95,7 @@
   <header class="sticky top-0 z-40 border-b border-white/10 bg-navy/95 backdrop-blur-xl">
     <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
       <a href="#home" class="flex items-center gap-3">
-        <img src="bisfly-logo.png" alt="BisFly Travel and Tours logo" class="h-12 w-auto rounded bg-white/95 p-1 sm:h-14" />
+        <span class="text-xl font-black text-white sm:text-2xl">BisFly Limited</span>
       </a>
       <div class="hidden items-center gap-8 text-sm font-bold lg:flex">
         <a class="text-gold" href="#home">Home</a>
@@ -113,9 +116,25 @@
         <a class="rounded-xl border border-white/10 bg-white/5 px-3 py-3" href="/service.html?service=passport">International Passport</a>
         <a class="rounded-xl border border-white/10 bg-white/5 px-3 py-3" href="/partnership.html">Partnership</a>
         <a class="rounded-xl border border-red/40 bg-red/10 px-3 py-3 text-gold" href="#visa-check">Apply for Visa</a>
+        <button type="button" data-open-login class="rounded-xl border border-gold/40 bg-gold/10 px-3 py-3 text-left font-black text-gold">Staff Login</button>
       </div>
     </div>
   </header>
+
+  <div id="homeLoginModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="homeLoginTitle">
+    <div class="w-full max-w-md rounded-2xl border border-white/15 bg-navy p-6 shadow-blue sm:p-8">
+      <div class="mb-6 flex items-start justify-between gap-4">
+        <div><h2 id="homeLoginTitle" class="text-2xl font-black text-gold">BisFly Limited Staff Login</h2><p class="mt-1 text-sm text-white/65">Sign in to the administration portal.</p></div>
+        <button id="closeHomeLogin" type="button" class="rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/10" aria-label="Close login">Close</button>
+      </div>
+      <form id="homeLoginForm" class="grid gap-4">
+        <label class="grid gap-1 text-sm font-bold text-white/80">Username<input required name="username" autocomplete="username" class="rounded border border-white/20 bg-white px-4 py-3 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm font-bold text-white/80">Password<input required name="password" type="password" autocomplete="current-password" class="rounded border border-white/20 bg-white px-4 py-3 text-slate-900" /></label>
+        <p id="homeLoginStatus" class="hidden rounded p-3 text-sm" role="status" aria-live="polite"></p>
+        <button type="submit" class="rounded bg-gold px-5 py-3 font-black text-navy hover:bg-white">Sign in</button>
+      </form>
+    </div>
+  </div>
 
   <div class="fixed bottom-20 right-4 z-50 lg:hidden">
     <a href="#visa-check" class="floating-cta inline-flex items-center gap-2 rounded-full bg-gold px-4 py-3 text-[11px] font-black uppercase tracking-wide text-navy">Apply Now</a>
@@ -138,7 +157,7 @@
           <h1 class="text-4xl font-black leading-[1.03] tracking-normal sm:text-5xl lg:text-7xl">
             Explore The World <span class="block bg-gradient-to-r from-gold via-white to-gold bg-clip-text text-transparent">Without Limits</span>
           </h1>
-          <p class="mt-6 max-w-2xl text-base leading-7 text-white/90 sm:text-xl sm:leading-9">Visa processing   | Flight booking   | Study abroad   | Work permits  | Hotel reservations   |   International Passport Processing and Group tours at BisFly Travel and Tours.</p>
+          <p class="mt-6 max-w-2xl text-base leading-7 text-white/90 sm:text-xl sm:leading-9">Visa processing   | Flight booking   | Study abroad   | Work permits  | Hotel reservations   |   International Passport Processing and Group tours at BisFly Limited.</p>
           <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
             <a href="#visa-check" class="inline-flex items-center justify-center gap-2 rounded-lg bg-gold px-6 py-4 font-black text-navy shadow-gold hover:bg-white"><i data-lucide="clipboard-check" class="h-5 w-5"></i> Apply for Visa</a>
             <a href="/service.html?service=passport" class="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-6 py-4 font-black text-white border border-white/20 shadow-lg hover:bg-white/20"><i data-lucide="passport" class="h-5 w-5"></i> Passport Support</a>
@@ -157,7 +176,7 @@
               <div class="text-sm font-black">VISA APPROVED</div>
             </div>
             <p class="mt-4 text-sm font-bold text-white/90">Canada Study Visa</p>
-            <p class="mt-1 text-xs text-white/70">BisFly client</p>
+            <p class="mt-1 text-xs text-white/70">BisFly Limited client</p>
             <p class="mt-3 inline-block rotate-[-8deg] border-2 border-red px-3 py-1 font-black text-red">APPROVED</p>
           </div>
           <div class="absolute bottom-5 right-5 flex h-36 w-36 items-center justify-center rounded-full border-4 border-gold bg-black text-center shadow-gold">
@@ -188,7 +207,7 @@
           <article class="soft-card rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="globe-lock" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">E-Visas</h3><p class="mt-3 text-sm leading-6 text-white/72">Online visa guidance for eligible destinations.</p><a href="/service.html?service=evisa" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
           <article class="soft-card rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="passport" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">International Passport</h3><p class="mt-3 text-sm leading-6 text-white/72">Assistance with passport applications, renewals, and required documentation.</p><a href="/service.html?service=passport" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
           <article class="soft-card rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="shield" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">Travel Insurance</h3><p class="mt-3 text-sm leading-6 text-white/72">Comprehensive travel protection and coverage.</p><a href="/service.html?service=insurance" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
-          <article id="partnership" class="soft-card rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="handshake" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">Partnership</h3><p class="mt-3 text-sm leading-6 text-white/72">Partner with BisFly for tours, client referrals, hotel bookings, and flight ticketing opportunities.</p><a href="/partnership.html" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
+          <article id="partnership" class="soft-card rounded-lg border border-blue-300/25 bg-blue-950/50 p-5 hover:border-gold"><i data-lucide="handshake" class="mb-4 h-10 w-10 text-gold"></i><h3 class="font-black">Partnership</h3><p class="mt-3 text-sm leading-6 text-white/72">Partner with BisFly Limited for tours, client referrals, hotel bookings, and flight ticketing opportunities.</p><a href="/partnership.html" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-gold">Learn More <i data-lucide="arrow-right" class="h-4 w-4"></i></a></article>
         </div>
       </div>
 
@@ -204,7 +223,7 @@
           <input type="date" name="travelDate" class="rounded border border-blue-200/25 bg-navy/60 px-4 py-3 text-sm outline-none focus:border-gold" />
         </div>
         <button class="mt-5 flex w-full items-center justify-center gap-3 rounded bg-red px-5 py-4 font-black hover:bg-gold hover:text-navy" type="submit">Check Eligibility Now <i data-lucide="arrow-right" class="h-5 w-5"></i></button>
-        <p id="eligibilityStatus" class="mt-4 hidden rounded bg-green-500/15 p-3 text-sm font-bold text-green-200">Eligibility request sent to BisFly.</p>
+        <p id="eligibilityStatus" class="mt-4 hidden rounded bg-green-500/15 p-3 text-sm font-bold text-green-200">Eligibility request sent to BisFly Limited.</p>
       </form>
     </section>
 
@@ -234,12 +253,13 @@
       <div>
         <form id="bookingForm" class="mx-auto max-w-4xl rounded-lg border border-white/15 bg-white p-6 text-slate-900 shadow-blue soft-card">
           <p class="text-sm font-black uppercase tracking-wide text-red">Travel request</p>
-          <h2 class="mt-1 text-3xl font-black text-navy">Plan a trip with BisFly</h2>
+          <h2 class="mt-1 text-3xl font-black text-navy">Plan a trip with BisFly Limited</h2>
           <p class="mt-2 text-sm text-slate-600">Tell us where you want to go and what you need. We will suggest the best travel plan for you.</p>
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
             <input required name="name" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Full name" />
             <input required name="phone" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Phone or WhatsApp" />
             <input required type="email" name="email" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Email address" />
+            <label class="grid gap-1 text-sm font-bold text-slate-700">Date of birth<input required type="date" name="dateOfBirth" class="rounded border border-slate-200 px-4 py-3 font-normal outline-none focus:border-royal" /></label>
             <input required name="destination" id="destinationInput" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Preferred destination" />
             <select name="service" class="rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal">
               <option value="">Select service</option>
@@ -256,7 +276,7 @@
           </div>
           <textarea name="message" rows="4" class="mt-4 w-full rounded border border-slate-200 px-4 py-3 outline-none focus:border-royal" placeholder="Budget, number of travellers, preferred trip month, and any other travel details..."></textarea>
           <button class="mt-4 w-full rounded bg-gradient-to-r from-royal via-red to-gold px-5 py-4 font-black text-white" type="submit">Submit Travel Request</button>
-          <p id="formStatus" class="mt-3 hidden rounded bg-green-50 p-3 text-sm font-bold text-green-700">Your travel request has been sent successfully. BisFly will contact you shortly.</p>
+          <p id="formStatus" class="mt-3 hidden rounded bg-green-50 p-3 text-sm font-bold text-green-700">Your travel request has been sent successfully. BisFly Limited will contact you shortly.</p>
         </form>
       </div>
     </section>
@@ -264,10 +284,13 @@
     <section id="about" class="bg-white py-14 text-slate-900 sm:py-16 lg:py-20">
       <div class="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[.8fr_1.2fr] lg:px-8">
         <div>
-          <p class="text-sm font-black uppercase tracking-wide text-red">About BisFly</p>
+          <p class="text-sm font-black uppercase tracking-wide text-red">About BisFly Limited</p>
           <h2 class="mt-2 text-3xl font-black text-navy">Professional travel support</h2>
         </div>
-        <p class="text-lg leading-8 text-slate-600 text-justify">BisFly Travel and Tours guides travelers from first itinerary sketch to confirmed bookings with precise direction, fast follow-ups, and hands-on problem solving. We manage full cycle visa applications for tourism, business, study, International passport processing, work routes scrutinizing paperwork, completing forms, and securing embassy appointments to cut bottlenecks. Our desk sources vetted travel insurance, negotiates airline fares across carriers, and locks in hotel stays that fit your route and budget. From weekend getaways to family tours and study-abroad placements, we stitch the moving parts together so you board with documents in order and zero last-minute scramble.</p>
+        <div class="space-y-4 text-lg leading-8 text-slate-600 text-justify">
+          <p>BisFly Limited provides professional travel support, guiding clients from their first itinerary plans through visa-application assistance, international passport processing, travel insurance, flight reservations, hotel bookings, and tour arrangements. Our team helps clients prepare documentation, complete application forms, and navigate the relevant appointment processes with clear communication and practical guidance.</p>
+          <p>BisFly Limited is duly registered in Nigeria under RC No. 9918583 and complies with applicable tax regulations.</p>
+        </div>
       </div>
     </section>
 
@@ -275,18 +298,19 @@
       <div class="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
         <div>
           <p class="text-sm font-black uppercase tracking-wide text-gold">Contact</p>
-          <h2 class="mt-2 text-3xl font-black">Connect with BisFly</h2>
+          <h2 class="mt-2 text-3xl font-black">Connect with BisFly Limited</h2>
           <p class="mt-4 text-white/80">Address: Ibadan, Oyo State, Nigeria.</p>
           <p class="mt-2 text-white/80">Phone Number: 07077411421, 08129701410</p>
-          <p class="mt-2 text-white/80">Email: bisflytravels@gmail.com</p>
+          <p class="mt-2 text-white/80">Email: <a class="hover:text-gold" href="mailto:info@bisflytravel.com">info@bisflytravel.com</a></p>
+          <p class="mt-2 inline-flex items-center gap-2 text-white/80"><i aria-hidden="true" class="fa-solid fa-globe text-gold"></i> Website: <a class="hover:text-gold" href="https://www.bisflytravel.com" target="_blank" rel="noreferrer">www.bisflytravel.com</a></p>
           <div class="mt-8 grid gap-3 sm:grid-cols-2">
-            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://wa.me/2347051935203" target="_blank" rel="noreferrer"><i data-lucide="message-circle" class="mb-3 h-7 w-7 text-gold"></i>WhatsApp<br><span class="text-sm font-semibold text-white/60">Chat now</span></a>
-            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.facebook.com/profile.php?id=61587200745381" target="_blank" rel="noreferrer"><i data-lucide="facebook" class="mb-3 h-7 w-7 text-gold"></i>Facebook<br><span class="text-sm font-semibold text-white/60">BisFly Travel</span></a>
-            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.instagram.com/bisfly_travels?igsh=cm5tdTVuanFqNGM0" target="_blank" rel="noreferrer"><i data-lucide="camera" class="mb-3 h-7 w-7 text-gold"></i>Instagram<br><span class="text-sm font-semibold text-white/60">@bisfly_travels</span></a>
-            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.tiktok.com/@bisflytravels" target="_blank" rel="noreferrer"><i data-lucide="music-2" class="mb-3 h-7 w-7 text-gold"></i>TikTok<br><span class="text-sm font-semibold text-white/60">@bisflytravels</span></a>
-            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://twitter.com/bisflytravels" target="_blank" rel="noreferrer"><i data-lucide="twitter" class="mb-3 h-7 w-7 text-gold"></i>Twitter<br><span class="text-sm font-semibold text-white/60">@bisflytravels</span></a>
-            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.linkedin.com/company/bisfly-travel-and-tours" target="_blank" rel="noreferrer"><i data-lucide="linkedin" class="mb-3 h-7 w-7 text-gold"></i>LinkedIn<br><span class="text-sm font-semibold text-white/60">Company profile</span></a>
-            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.youtube.com/@bisflytravels" target="_blank" rel="noreferrer"><i data-lucide="play-circle" class="mb-3 h-7 w-7 text-gold"></i>YouTube<br><span class="text-sm font-semibold text-white/60">Travel videos</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://wa.me/2347051935203" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa-brands fa-whatsapp mb-3 inline-flex h-9 w-9 items-center justify-center text-3xl text-gold"></i>WhatsApp<br><span class="text-sm font-semibold text-white/60">Chat now</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.facebook.com/profile.php?id=61587200745381" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa-brands fa-facebook mb-3 inline-flex h-9 w-9 items-center justify-center text-3xl text-gold"></i>Facebook<br><span class="text-sm font-semibold text-white/60">BisFly Limited</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.instagram.com/bisfly_travels?igsh=cm5tdTVuanFqNGM0" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa-brands fa-instagram mb-3 inline-flex h-9 w-9 items-center justify-center text-3xl text-gold"></i>Instagram<br><span class="text-sm font-semibold text-white/60">@bisfly_travels</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.tiktok.com/@bisflytravels" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa-brands fa-tiktok mb-3 inline-flex h-9 w-9 items-center justify-center text-3xl text-gold"></i>TikTok<br><span class="text-sm font-semibold text-white/60">@bisflytravels</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://twitter.com/bisflytravels" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa-brands fa-x-twitter mb-3 inline-flex h-9 w-9 items-center justify-center text-3xl text-gold"></i>Twitter<br><span class="text-sm font-semibold text-white/60">@bisflytravels</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.linkedin.com/company/bisfly-travel-and-tours" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa-brands fa-linkedin-in mb-3 inline-flex h-9 w-9 items-center justify-center text-3xl text-gold"></i>LinkedIn<br><span class="text-sm font-semibold text-white/60">Company profile</span></a>
+            <a class="rounded-3xl border border-white/15 bg-white/5 p-5 font-black text-white transition hover:border-gold hover:bg-white/10" href="https://www.youtube.com/@bisflytravels" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa-brands fa-youtube mb-3 inline-flex h-9 w-9 items-center justify-center text-3xl text-gold"></i>YouTube<br><span class="text-sm font-semibold text-white/60">Travel videos</span></a>
           </div>
         </div>
 
@@ -294,7 +318,7 @@
           <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
             <p class="text-sm font-black uppercase tracking-wide text-gold">Find us on Google</p>
             <h3 class="mt-2 text-2xl font-black text-white">Google Map</h3>
-            <p class="mt-3 text-sm text-white/70">See BisFly Travel and Tours location in Ibadan.</p>
+            <p class="mt-3 text-sm text-white/70">See BisFly Limited location in Ibadan.</p>
             <div class="mt-5 overflow-hidden rounded-3xl border border-white/10 bg-black/40">
               <iframe class="h-72 w-full" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.763928834378!2d3.898091315043783!3d7.377525094711605!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x103a3ca2a92fbb69%3A0x30be8a39d91d0852!2sIbadan%2C%20Nigeria!5e0!3m2!1sen!2sus!4v1710000000000" allowfullscreen="" loading="lazy"></iframe>
             </div>
@@ -318,15 +342,15 @@
     </section>
   </main>
 
-  <a href="https://wa.me/2347051935203?text=Hello%20BisFly%20Travels%20and%20Tours%2C%20I%20need%20help%20with%20my%20travel%20request." id="whatsappBubble" class="fixed bottom-6 left-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white shadow-2xl" aria-label="Chat on WhatsApp" target="_blank" rel="noreferrer noopener"><i data-lucide="message-circle"></i><span class="absolute -right-1 -top-1 rounded-full bg-red px-2 py-0.5 text-xs font-black">1</span></a>
-  <a href="https://wa.me/2347051935203?text=Hello%20BisFly%20Travels%20and%20Tours%2C%20I%20need%20help%20with%20my%20travel%20request." id="chatToggle" class="fixed bottom-6 right-5 z-50 flex items-center gap-2 rounded-full bg-green-500 px-5 py-4 text-sm font-black shadow-2xl hover:bg-green-600 hover:text-white" target="_blank" rel="noreferrer noopener"><i data-lucide="messages-square" class="h-5 w-5"></i> Chat on WhatsApp</a>
+  <a href="https://wa.me/2347051935203?text=Hello%20BisFly%20Travel%20Limited%2C%20I%20need%20help%20with%20my%20travel%20request." id="whatsappBubble" class="fixed bottom-6 left-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white shadow-2xl" aria-label="Chat on WhatsApp" target="_blank" rel="noreferrer noopener"><i data-lucide="message-circle"></i><span class="absolute -right-1 -top-1 rounded-full bg-red px-2 py-0.5 text-xs font-black">1</span></a>
+  <a href="https://wa.me/2347051935203?text=Hello%20BisFly%20Travel%20Limited%2C%20I%20need%20help%20with%20my%20travel%20request." id="chatToggle" class="fixed bottom-6 right-5 z-50 flex items-center gap-2 rounded-full bg-green-500 px-5 py-4 text-sm font-black shadow-2xl hover:bg-green-600 hover:text-white" target="_blank" rel="noreferrer noopener"><i data-lucide="messages-square" class="h-5 w-5"></i> Chat on WhatsApp</a>
 
   <footer class="border-t border-white/10 bg-black px-4 py-8 text-sm font-semibold text-white/75">
     <div class="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_.8fr_.8fr] lg:px-8">
       <div>
-        <h3 class="text-lg font-black text-white">BisFly Travel and Tours</h3>
+        <h3 class="text-lg font-black text-white">BisFly Limited</h3>
         <p class="mt-3 max-w-md">Ibadan, Oyo State, Nigeria.</p>
-        <p class="mt-2">bisflytravels@gmail.com</p>
+        <p class="mt-2">info@bisflytravel.com</p>
       </div>
       <div>
         <h4 class="text-sm font-black uppercase tracking-wide text-gold">Quick Links</h4>
@@ -347,10 +371,63 @@
         </div>
       </div>
     </div>
-    <p class="mt-6 text-center">© 2026 BisFly Travel and Tours. All rights reserved.</p>
+    <p class="mt-6 text-center">© 2026 BisFly Limited. All rights reserved.</p>
   </footer>
 
   <script>
+    const homeLoginModal = document.getElementById('homeLoginModal');
+    const homeLoginForm = document.getElementById('homeLoginForm');
+    const homeLoginStatus = document.getElementById('homeLoginStatus');
+
+    function openHomeLogin() {
+      homeLoginModal.classList.remove('hidden');
+      homeLoginModal.classList.add('flex');
+      homeLoginForm.elements.username.focus();
+    }
+
+    function closeHomeLogin() {
+      homeLoginModal.classList.add('hidden');
+      homeLoginModal.classList.remove('flex');
+      homeLoginStatus.classList.add('hidden');
+    }
+
+    document.querySelectorAll('[data-open-login]').forEach(button => button.addEventListener('click', openHomeLogin));
+    document.getElementById('closeHomeLogin').addEventListener('click', closeHomeLogin);
+    homeLoginModal.addEventListener('click', event => {
+      if (event.target === homeLoginModal) closeHomeLogin();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !homeLoginModal.classList.contains('hidden')) closeHomeLogin();
+    });
+    homeLoginForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      const username = homeLoginForm.elements.username.value.trim();
+      const password = homeLoginForm.elements.password.value;
+      homeLoginStatus.className = 'rounded bg-white/10 p-3 text-sm text-white/80';
+      homeLoginStatus.textContent = 'Signing in...';
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.ok || !result.token) {
+          homeLoginStatus.className = 'rounded bg-red/20 p-3 text-sm font-bold text-red-200';
+          homeLoginStatus.textContent = result.message || 'Login failed. Check your username and password.';
+          return;
+        }
+        localStorage.setItem('adminToken', result.token);
+        localStorage.setItem('adminUser', JSON.stringify({ username: result.username, role: result.role }));
+        homeLoginStatus.className = 'rounded bg-green-500/20 p-3 text-sm font-bold text-green-200';
+        homeLoginStatus.textContent = 'Sign-in successful. Opening the dashboard...';
+        window.location.assign('/admin-dashboard.html');
+      } catch (error) {
+        homeLoginStatus.className = 'rounded bg-red/20 p-3 text-sm font-bold text-red-200';
+        homeLoginStatus.textContent = 'Unable to reach the server. Please try again.';
+      }
+    });
+
     // Form Validation Utilities
     function validateEmail(email) {
       const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -424,7 +501,7 @@
       if (!modal || !title || !image || !description || !price || !duration || !tags) return;
 
       const packageTitle = pkg.title || 'Travel Package';
-      const packageDescription = pkg.description || 'Explore this exciting travel package with BisFly Travel and Tours.';
+      const packageDescription = pkg.description || 'Explore this exciting travel package with BisFly Limited.';
       const formattedPrice = pkg.price || 'Price not set';
       const packageDuration = pkg.duration || 'Flexible duration';
       const tagList = Array.isArray(pkg.tags) && pkg.tags.length ? pkg.tags : ['Travel', 'Accommodation', 'Visa Guidance'];
@@ -498,7 +575,7 @@
           })();
           const isPopular = index < 2 || lowerTitle.includes('canada') || lowerTitle.includes('uk') || lowerTitle.includes('germany') || lowerTitle.includes('australia');
           const isBestSeller = index === 0 || lowerTitle.includes('canada') || lowerTitle.includes('australia');
-          const packageText = encodeURIComponent(`Hello BisFly Travel and Tours, I want to book the package: ${p.title || 'Travel package'}.`);
+          const packageText = encodeURIComponent(`Hello BisFly Limited, I want to book the package: ${p.title || 'Travel package'}.`);
           const whatsappLink = `https://wa.me/2347051935203?text=${packageText}`;
 
           const galleryItem = document.createElement('div');

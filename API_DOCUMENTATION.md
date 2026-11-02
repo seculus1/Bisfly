@@ -1,7 +1,7 @@
-# BisFly Travel Platform - API Documentation
+# BisFly Limited - API Documentation
 
 ## Overview
-Complete REST API reference for the BisFly Travel Platform server running on port 8082.
+Complete REST API reference for the BisFly Limited server running on port 8082.
 
 ---
 
@@ -645,6 +645,35 @@ Authorization: Bearer <token>
 - `package_deleted` - Package removed
 - `agreement_approved` - Agreement approved
 - `lead_created` - New lead submitted
+
+---
+
+## 🧾 **CLIENT, DISCLAIMER, AND FINANCE OPERATIONS**
+
+All endpoints in this section require a valid admin bearer token and an Admin, Manager, or Super Admin role unless noted. Reports are generated as PDF files.
+
+### Client records
+- `GET /api/admin/clients` — List client records.
+- `POST /api/admin/clients` — Create a client using multipart form data. Fields: `fullName`, `gender`, `dateOfBirth`, `address`, `phone`, `packageType`, `amountPaid`, `paymentDate`, `balanceAfterApproval`, and `status` (`ongoing`, `pending`, `submitted`, `refused`, or `approved`). Optional files: `signedDisclaimer` and `signedAgreement` (PDF/JPG/PNG).
+- `PATCH /api/admin/clients/:id` — Update client details or progress. Only Managers and Super Admins can change `amountPaid`; other admins receive `403 Forbidden` if they attempt to change it.
+- `GET /api/admin/clients/export` — Download the client information report PDF.
+
+### Client disclaimers
+- `POST /api/admin/disclaimers/template` — Generate a signature-ready PDF from JSON fields `fullName`, `gender`, `phone`, `address`, `email`, and optional `secondPersonRelationship` / `secondPersonName`.
+- `GET /api/admin/disclaimers` — List saved signed disclaimers.
+- `POST /api/admin/disclaimers` — Save client details and the signed disclaimer using multipart form data. Required file field: `signedDisclaimer` (valid PDF/JPG/PNG). The optional relationship must be Brother, Sister, Wife, Husband, or Friend.
+- `GET /api/admin/disclaimers/:id/template` — Download a saved disclaimer PDF.
+
+### Cash inflow report
+- `GET /api/admin/cash-inflows?from=YYYY-MM-DD&to=YYYY-MM-DD` — Return client payment rows and the total amount received for the optional payment-date range.
+- `GET /api/admin/cash-inflows/report?from=YYYY-MM-DD&to=YYYY-MM-DD` — Download the matching PDF report, including client name, paid amount, package, phone number, and total.
+
+### Expenses
+- `GET /api/admin/expenses` — List recorded expenses.
+- `POST /api/admin/expenses` — Record an expense using JSON fields `purpose`, `amount`, and `expenseDate`. The server records the authenticated admin’s username.
+- `GET /api/admin/expenses/report?from=YYYY-MM-DD&to=YYYY-MM-DD` — Download the expense PDF report for the optional date range.
+
+The agreement PDF includes the BisFly logo, payment and visa-authority terms, official corporate payment details, and signature spaces.
 
 ---
 

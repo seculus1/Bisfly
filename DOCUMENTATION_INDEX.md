@@ -1,4 +1,4 @@
-# 📚 BisFly Platform - Complete Documentation Index
+# 📚 BisFly Limited - Complete Documentation Index
 
 ## 🎯 **WHERE TO START**
 
@@ -399,7 +399,7 @@ Review [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) code patterns
 
 ## 📞 **SUPPORT CONTACTS**
 
-**BisFly Travel Agency**
+**BisFly Limited**
 - 📧 Email: bisflytravels@gmail.com
 - 📱 WhatsApp: +234 705 193 5203
 - 🌐 Admin Panel: http://localhost:8082/admin
@@ -515,7 +515,7 @@ Review [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) code patterns
 
 ---
 
-**🎉 You have everything you need to understand and use the BisFly Platform!**
+**🎉 You have everything you need to understand and use the BisFly Limited platform!**
 
 ---
 

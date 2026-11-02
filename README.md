@@ -1,8 +1,8 @@
-# BisFly Travel Platform - Complete Setup Guide
+# BisFly Limited - Complete Setup Guide
 
 ![BisFly](https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1000&q=80)
 
-**BisFly** is a comprehensive travel agency management platform with admin dashboard, travel package management, visa services, insurance applications, and passport management - all powered by a secure Node.js backend.
+**BisFly Limited** is a comprehensive travel agency management platform with admin dashboard, travel package management, visa services, insurance applications, and passport management - all powered by a secure Node.js backend.
 
 ---
 
@@ -50,8 +50,14 @@
 - ✅ Secure login with PBKDF2 password hashing
 - ✅ Real-time analytics dashboard
 - ✅ Lead management
+- ✅ Client records with progress tracking and signed-document uploads
+- ✅ Signature-ready client disclaimers with optional additional person
+- ✅ Client payment-date cash inflow reports with totals
+- ✅ Shared expense ledger and downloadable PDF reports
+- ✅ Per-document admin-user access selection
 - ✅ Insurance application tracking
 - ✅ Agreement approval workflow
+- ✅ Branded agreements with payment, visa-authority, and corporate account terms
 - ✅ Passport request management
 - ✅ Travel package management
 - ✅ Admin user management
@@ -107,6 +113,9 @@ outputs/
     ├── leads.json                # Customer inquiries
     ├── insurance-applications.json # Insurance data
     ├── agreements.json           # Agreement records
+    ├── clients.json              # Client information and payment records
+    ├── disclaimers.json          # Signed client disclaimers
+    ├── expenses.json             # Admin expense records
     ├── packages.json             # Travel packages
     ├── passport-requests.json    # Passport applications
     └── admin-users.json          # Admin user accounts
@@ -427,7 +436,7 @@ cp -r data-backup-20260814/* data/
 
 ## 📞 **SUPPORT & CONTACT**
 
-**BisFly Travel Agency**
+**BisFly Limited**
 - 📧 Email: bisflytravels@gmail.com
 - 📱 WhatsApp: +234 705 193 5203
 - 🌐 Website: bisflytravels.com
@@ -437,7 +446,7 @@ cp -r data-backup-20260814/* data/
 
 ## 📜 **LICENSE**
 
-© 2026 BisFly Travel Platform. All rights reserved.
+© 2026 BisFly Limited. All rights reserved.
 
 ---
 

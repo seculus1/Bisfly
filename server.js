@@ -5,6 +5,7 @@ const url = require("url");
 const crypto = require("crypto");
 const PDFDocument = require("pdfkit");
 const nodemailer = require("nodemailer");
+const { PDFParse } = require("pdf-parse");
 
 const root = __dirname;
 const dataFile = path.join(root, "leads.json");
@@ -17,6 +18,11 @@ const sessionsDir = path.join(root, "sessions");
 const packagesFile = path.join(root, "packages.json");
 const passportFile = path.join(root, "passport-requests.json");
 const partnershipFile = path.join(root, "partnerships.json");
+const inflowsFile = path.join(root, "bank-inflows.json");
+const documentsFile = path.join(root, "admin-documents.json");
+const clientsFile = path.join(root, "clients.json");
+const disclaimersFile = path.join(root, "disclaimers.json");
+const expensesFile = path.join(root, "expenses.json");
 
 function loadEnvFile() {
   const candidates = [path.join(root, ".env.local"), path.join(root, ".env")];
@@ -97,6 +103,13 @@ function validatePhone(phone) {
 function validateDate(dateStr) {
   const date = new Date(dateStr);
   return !isNaN(date.getTime());
+}
+
+function validateDateOnly(dateStr) {
+  const value = String(dateStr || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function sanitizeInput(input) {
@@ -259,10 +272,10 @@ async function sendApprovalEmail(agreement) {
     const mailOptions = {
       from: fromEmail,
       to: agreement.email,
-      subject: "Your BisFly Travels Agreement - Approved",
+      subject: "Your BisFly Limited Agreement - Approved",
       html: `
         <h2>Dear ${agreement.fullName},</h2>
-        <p>Your BisFly Travels and Tours agreement has been approved by our admin team.</p>
+        <p>Your BisFly Limited agreement has been approved by our admin team.</p>
         <p><strong>Agreement Details:</strong></p>
         <ul>
           <li><strong>Destination:</strong> ${agreement.destination}</li>
@@ -272,7 +285,7 @@ async function sendApprovalEmail(agreement) {
         </ul>
         <p>Your approved agreement is attached as a PDF. Please download and keep it for your records.</p>
         <p>If you have any questions, please contact us at bisflytravels@gmail.com</p>
-        <p>Best regards,<br/>BisFly Travels and Tours Team</p>
+        <p>Best regards,<br/>BisFly Limited Team</p>
       `,
       attachments: [
         {
@@ -422,6 +435,337 @@ function writePartnerships(data) {
   fs.writeFileSync(partnershipFile, JSON.stringify(data, null, 2));
 }
 
+function readInflows() {
+  try {
+    const records = JSON.parse(fs.readFileSync(inflowsFile, "utf8"));
+    return Array.isArray(records) ? records : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeInflows(records) {
+  const temporaryFile = `${inflowsFile}.tmp`;
+  fs.writeFileSync(temporaryFile, JSON.stringify(records, null, 2), "utf8");
+  fs.renameSync(temporaryFile, inflowsFile);
+}
+
+function readAdminDocuments() {
+  try {
+    const documents = JSON.parse(fs.readFileSync(documentsFile, "utf8"));
+    return Array.isArray(documents) ? documents : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeAdminDocuments(documents) {
+  const temporaryFile = `${documentsFile}.tmp`;
+  fs.writeFileSync(temporaryFile, JSON.stringify(documents, null, 2), "utf8");
+  fs.renameSync(temporaryFile, documentsFile);
+}
+
+function readJsonArray(filePath) {
+  try {
+    const records = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    if (!Array.isArray(records)) throw new Error("Expected a JSON array.");
+    return records;
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    console.error(`Unable to read ${path.basename(filePath)}:`, error.message);
+    throw error;
+  }
+}
+
+function writeJsonArray(filePath, records) {
+  const temporaryFile = `${filePath}.tmp`;
+  fs.writeFileSync(temporaryFile, JSON.stringify(records, null, 2), "utf8");
+  fs.renameSync(temporaryFile, filePath);
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (quoted) {
+      if (character === '"' && text[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else if (character === '"') {
+        quoted = false;
+      } else {
+        field += character;
+      }
+    } else if (character === '"') {
+      quoted = true;
+    } else if (character === ",") {
+      row.push(field.trim());
+      field = "";
+    } else if (character === "\n" || character === "\r") {
+      if (character === "\r" && text[index + 1] === "\n") index += 1;
+      row.push(field.trim());
+      if (row.some(value => value !== "")) rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += character;
+    }
+  }
+
+  row.push(field.trim());
+  if (row.some(value => value !== "")) rows.push(row);
+  return rows;
+}
+
+function normalizeCsvHeader(value) {
+  return String(value || "").replace(/^\uFEFF/, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function parseStatementAmount(value) {
+  const cleaned = String(value || "").replace(/[₦,\s]/g, "").replace(/^NGN/i, "").trim();
+  if (!cleaned) return 0;
+  const parenthesized = /^\(.*\)$/.test(cleaned);
+  const amount = Number(cleaned.replace(/[()]/g, ""));
+  if (!Number.isFinite(amount)) return 0;
+  return parenthesized ? -Math.abs(amount) : amount;
+}
+
+function parseStatementDate(value) {
+  const text = String(value || "").trim();
+  const dayFirst = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+.*)?$/);
+  if (dayFirst) {
+    const [, dayText, monthText, yearText] = dayFirst;
+    const parsed = new Date(Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText)));
+    if (parsed.getUTCFullYear() === Number(yearText) && parsed.getUTCMonth() === Number(monthText) - 1 && parsed.getUTCDate() === Number(dayText)) {
+      return parsed;
+    }
+    return new Date(NaN);
+  }
+  return new Date(text);
+}
+
+function parseBankStatementCsv(text, filename) {
+  const rows = parseCsv(String(text || ""));
+  if (rows.length < 2) throw new Error("The CSV file has no transaction rows.");
+
+  const headers = rows[0].map(normalizeCsvHeader);
+  const findColumn = names => headers.findIndex(header => names.includes(header));
+  const dateIndex = findColumn(["date", "transactiondate", "valuedate", "postingdate", "posteddate"]);
+  const descriptionIndex = findColumn(["narration", "description", "transactiondetails", "details", "remarks", "particulars"]);
+  const referenceIndex = findColumn(["reference", "transactionreference", "refno", "transactionid", "sessionid"]);
+  const creditIndex = findColumn(["credit", "creditamount", "paidin", "deposit", "depositamount"]);
+  const debitIndex = findColumn(["debit", "debitamount", "withdrawal", "withdrawalamount"]);
+  const amountIndex = findColumn(["amount", "transactionamount"]);
+  const directionIndex = findColumn(["type", "transactiontype", "drcr", "transactionindicator", "direction"]);
+  const balanceIndex = findColumn(["balance", "availablebalance", "runningbalance"]);
+
+  if (dateIndex < 0 || (creditIndex < 0 && amountIndex < 0)) {
+    throw new Error("CSV needs a transaction date and a Credit or Amount column.");
+  }
+
+  const existing = readInflows();
+  const knownIds = new Set(existing.map(record => record.id));
+  const importedAt = new Date().toISOString();
+  const batchId = crypto.randomBytes(12).toString("hex");
+  const accepted = [];
+  let skipped = 0;
+  let duplicates = 0;
+  let openingBalance = null;
+  let closingBalance = null;
+
+  for (const cells of rows.slice(1)) {
+    const valueAt = index => index < 0 ? "" : String(cells[index] || "").trim();
+    const dateText = valueAt(dateIndex);
+    const parsedDate = parseStatementDate(dateText);
+    const direction = valueAt(directionIndex).toLowerCase();
+    const credit = creditIndex >= 0 ? parseStatementAmount(valueAt(creditIndex)) : 0;
+    const debit = debitIndex >= 0 ? parseStatementAmount(valueAt(debitIndex)) : 0;
+    const genericAmount = amountIndex >= 0 ? parseStatementAmount(valueAt(amountIndex)) : 0;
+    let signedAmount;
+    if (creditIndex >= 0 || debitIndex >= 0) {
+      signedAmount = credit > 0 ? credit : debit > 0 ? -debit : 0;
+    } else {
+      const isDebit = genericAmount < 0 || /(debit|\bdr\b|withdrawal|outflow|paid.?out)/i.test(direction);
+      const isCredit = /(credit|\bcr\b|deposit|inflow|paid.?in)/i.test(direction);
+      signedAmount = isDebit ? -Math.abs(genericAmount) : isCredit ? Math.abs(genericAmount) : genericAmount;
+    }
+    if (creditIndex < 0 && debitIndex < 0 && directionIndex >= 0 && !/(credit|\bcr\b|deposit|inflow|paid.?in|debit|\bdr\b|withdrawal|outflow|paid.?out)/i.test(direction)) {
+      skipped += 1;
+      continue;
+    }
+    const amount = Math.abs(signedAmount);
+    if (!dateText || Number.isNaN(parsedDate.getTime()) || amount <= 0) {
+      skipped += 1;
+      continue;
+    }
+
+    const description = valueAt(descriptionIndex);
+    const reference = valueAt(referenceIndex);
+    const id = crypto.createHash("sha256")
+      .update([parsedDate.toISOString().slice(0, 10), signedAmount.toFixed(2), reference, description].join("|"))
+      .digest("hex")
+      .slice(0, 24);
+    if (knownIds.has(id)) {
+      duplicates += 1;
+      continue;
+    }
+
+    knownIds.add(id);
+    const balance = parseStatementAmount(valueAt(balanceIndex));
+    if (balanceIndex >= 0 && valueAt(balanceIndex)) {
+      if (openingBalance === null) openingBalance = balance - signedAmount;
+      closingBalance = balance;
+    }
+    accepted.push({
+      id,
+      date: parsedDate.toISOString(),
+      amount,
+      signedAmount,
+      type: signedAmount > 0 ? "inflow" : "outflow",
+      currency: "NGN",
+      reference,
+      description,
+      balance: balanceIndex >= 0 && valueAt(balanceIndex) ? balance : null,
+      batchId,
+      sourceFile: String(filename || "bank-statement.csv").slice(0, 120),
+      importedAt,
+      status: "unmatched",
+      matchedClient: ""
+    });
+  }
+
+  return { accepted, skipped, duplicates, openingBalance, closingBalance };
+}
+
+async function parseBankStatementPdf(buffer, filename) {
+  const parser = new PDFParse({ data: buffer });
+  let text;
+  try {
+    const result = await parser.getText();
+    text = result.text || "";
+  } finally {
+    await parser.destroy();
+  }
+
+  if (!text.trim()) {
+    throw new Error("This PDF contains no selectable text. It may be scanned; save a text-based PDF or export the statement as CSV.");
+  }
+
+  const parseLabeledBalance = label => {
+    const match = text.match(new RegExp(`${label}\\s*(?:balance)?\\s*[:：]?\\s*(?:NGN|₦)?\\s*([\\d,]+(?:\\.\\d{1,2})?)`, "i"));
+    return match ? parseStatementAmount(match[1]) : null;
+  };
+  const statedOpening = parseLabeledBalance("opening");
+  const statedClosing = parseLabeledBalance("closing");
+  const existing = readInflows();
+  const knownIds = new Set(existing.map(record => record.id));
+  const batchId = crypto.randomBytes(12).toString("hex");
+  const importedAt = new Date().toISOString();
+  const accepted = [];
+  let skipped = 0;
+  let duplicates = 0;
+  let previousBalance = statedOpening;
+  let firstDerivedOpening = null;
+  let lastTransactionBalance = null;
+
+  const datePattern = /^(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}-\d{2}-\d{2})\s+(.+)$/;
+  const amountPattern = /(?:₦\s*|NGN\s*)?-?\(?\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\)?|-?\(?\d+\.\d{2}\)?/gi;
+  const ignoredLine = /^(date\b|transaction\s*(details|date)|description\b|reference\b|page\s+\d+|fidelity\s+bank\b|account\s+(name|number)\b)/i;
+
+  const statementLines = [];
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.replace(/\s+/g, " ").trim();
+    if (!line || ignoredLine.test(line)) continue;
+    const dateMatch = line.match(datePattern);
+    if (dateMatch) {
+      statementLines.push({ dateText: dateMatch[1], text: dateMatch[2] });
+    } else if (statementLines.length && /^(?:NGN\s*)?[\d,]+\.\d{2}$/.test(line)) {
+      statementLines[statementLines.length - 1].text += ` ${line}`;
+    }
+  }
+
+  for (const statementLine of statementLines) {
+    const parsedDate = parseStatementDate(statementLine.dateText);
+    const tail = statementLine.text;
+    const amountMatches = [...tail.matchAll(amountPattern)];
+    if (Number.isNaN(parsedDate.getTime()) || amountMatches.length < 1) {
+      skipped += 1;
+      continue;
+    }
+
+    const values = amountMatches.map(match => parseStatementAmount(match[0]));
+    const hasDirectionMarker = /\b(CR|CREDIT|DR|DEBIT)\b/i.test(tail);
+    const useTrailingBalance = values.length >= 2 || (values.length === 1 && previousBalance !== null && previousBalance !== undefined && !hasDirectionMarker);
+    const balance = useTrailingBalance ? values[values.length - 1] : null;
+    const candidateAmounts = balance === null ? values : values.slice(0, -1);
+    const nonZeroTransactions = candidateAmounts.filter(value => value !== 0);
+    const direction = tail.match(/\b(CR|CREDIT|DR|DEBIT)\b/i)?.[1]?.toLowerCase();
+    let signedAmount = null;
+
+    if (balance !== null && previousBalance !== null && previousBalance !== undefined) {
+      signedAmount = balance - previousBalance;
+    } else if (nonZeroTransactions.length === 1) {
+      const magnitude = Math.abs(nonZeroTransactions[0]);
+      if (direction === "cr" || direction === "credit") signedAmount = magnitude;
+      if (direction === "dr" || direction === "debit") signedAmount = -magnitude;
+      if (signedAmount === null && /refund|deposit|credit|transfer\s+in|paid\s+in/i.test(tail)) signedAmount = magnitude;
+      if (signedAmount === null && /charge|fee|withdraw|debit|transfer\s+out|paid\s+out/i.test(tail)) signedAmount = -magnitude;
+    }
+
+    if (signedAmount === null || Math.abs(signedAmount) < 0.005) {
+      skipped += 1;
+      if (balance !== null && previousBalance === null) previousBalance = balance;
+      continue;
+    }
+
+    if (balance !== null) previousBalance = balance;
+    if (firstDerivedOpening === null && statedOpening === null && balance !== null) firstDerivedOpening = balance - signedAmount;
+    if (balance !== null) lastTransactionBalance = balance;
+    const description = tail.replace(amountPattern, " ").replace(/\s+/g, " ").trim();
+    const id = crypto.createHash("sha256")
+      .update([parsedDate.toISOString().slice(0, 10), signedAmount.toFixed(2), description].join("|"))
+      .digest("hex")
+      .slice(0, 24);
+    if (knownIds.has(id)) {
+      duplicates += 1;
+      continue;
+    }
+    knownIds.add(id);
+    accepted.push({
+      id,
+      date: parsedDate.toISOString(),
+      amount: Math.abs(signedAmount),
+      signedAmount,
+      type: signedAmount > 0 ? "inflow" : "outflow",
+      currency: "NGN",
+      reference: "",
+      description,
+      balance,
+      batchId,
+      sourceFile: String(filename || "fidelity-statement.pdf").slice(0, 120),
+      importedAt,
+      status: "unmatched",
+      matchedClient: ""
+    });
+  }
+
+  if (!accepted.length && duplicates === 0) {
+    throw new Error("No transaction rows were recognized in this PDF. If it is scanned, OCR or a CSV export is required.");
+  }
+
+  return {
+    accepted,
+    skipped,
+    duplicates,
+    openingBalance: statedOpening ?? firstDerivedOpening,
+    closingBalance: statedClosing ?? lastTransactionBalance
+  };
+}
+
 function normalizeCustomerFields(input = {}) {
   const fullName = input.fullName || input.name || input.clientName || input.customerName || "";
   const name = input.name || fullName;
@@ -469,7 +813,7 @@ function normalizePackageTags(value) {
 
 function generateTablePdf(title, rows = []) {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 30, size: "A4", layout: "landscape" });
+    const doc = new PDFDocument({ margin: 32, size: "A4", layout: "landscape" });
     const buffers = [];
 
     doc.on("data", chunk => buffers.push(chunk));
@@ -479,50 +823,102 @@ function generateTablePdf(title, rows = []) {
     const safeRows = Array.isArray(rows) ? rows : [];
     const headers = safeRows.length ? Object.keys(safeRows[0] || {}) : [];
 
-    doc.font("Helvetica-Bold").fontSize(18).text(title, { align: "center" });
-    doc.moveDown(0.5);
+    doc.font("Helvetica-Bold").fontSize(17).fillColor("#10264a").text(title, { align: "center" });
+    doc.moveDown(0.35);
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b")
+      .text(`Generated ${new Date().toLocaleString()} | ${safeRows.length} record${safeRows.length === 1 ? "" : "s"}`, { align: "center" });
+    doc.moveDown(0.8);
 
     if (!headers.length) {
-      doc.font("Helvetica").fontSize(11).text("No data available", { align: "center" });
+      doc.font("Helvetica").fontSize(11).fillColor("#334155").text("No data available", { align: "center" });
       doc.end();
       return;
     }
 
     const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const colWidth = pageWidth / headers.length;
-    let y = doc.y;
-    let pageStartY = y;
+    const cellPaddingX = 5;
+    const cellPaddingY = 5;
+    const minColumnWidth = Math.max(38, Math.min(58, pageWidth / headers.length));
+    const maxColumnWidth = Math.min(180, pageWidth);
+    const cellValues = safeRows.map(row => headers.map(header => {
+      const value = row?.[header];
+      const text = value === null || value === undefined
+        ? ""
+        : typeof value === "object"
+          ? JSON.stringify(value)
+          : String(value);
+      return text.length > 600 ? `${text.slice(0, 597)}...` : text;
+    }));
+    const naturalWidths = headers.map((header, columnIndex) => {
+      const sample = [String(header), ...cellValues.slice(0, 100).map(values => values[columnIndex])];
+      const longestLine = sample.reduce((longest, text) => Math.max(longest, ...text.split(/\r?\n/).map(line => line.length)), 0);
+      return Math.max(minColumnWidth, Math.min(maxColumnWidth, longestLine * 4 + cellPaddingX * 2));
+    });
+    const naturalWidthTotal = naturalWidths.reduce((total, width) => total + width, 0);
+    const widthScale = naturalWidthTotal > pageWidth ? pageWidth / naturalWidthTotal : 1;
+    const columnWidths = naturalWidths.map(width => width * widthScale);
+    if (naturalWidthTotal < pageWidth) {
+      const extraPerColumn = (pageWidth - naturalWidthTotal) / headers.length;
+      columnWidths.forEach((_, index) => { columnWidths[index] += extraPerColumn; });
+    }
 
-    const drawHeader = () => {
-      doc.font("Helvetica-Bold").fontSize(8);
-      headers.forEach((header, index) => {
-        const x = doc.page.margins.left + index * colWidth;
-        doc.text(String(header || "").slice(0, 24), x, y, { width: colWidth - 6, align: "left" });
-      });
-      y += 18;
-      doc.moveTo(doc.page.margins.left, y - 5).lineTo(doc.page.width - doc.page.margins.right, y - 5).stroke();
+    const getRowHeight = (values, fontName, fontSize) => {
+      doc.font(fontName).fontSize(fontSize);
+      const heights = values.map((text, index) => doc.heightOfString(text || " ", {
+        width: Math.max(1, columnWidths[index] - cellPaddingX * 2),
+        lineGap: 1
+      }));
+      return Math.max(24, Math.max(...heights) + cellPaddingY * 2);
     };
 
-    const drawRow = (row) => {
-      if (y > doc.page.height - 70) {
-        doc.addPage({ size: "A4", layout: "landscape" });
+    let y = doc.y;
+    const drawHeader = () => {
+      const headerValues = headers.map(header => String(header || ""));
+      const headerHeight = getRowHeight(headerValues, "Helvetica-Bold", 8);
+      const tableX = doc.page.margins.left;
+      doc.save().fillColor("#10264a").rect(tableX, y, pageWidth, headerHeight).fill().restore();
+      let x = tableX;
+      headerValues.forEach((header, index) => {
+        doc.save().rect(x, y, columnWidths[index], headerHeight).lineWidth(0.5).strokeColor("#cbd5e1").stroke().restore();
+        doc.font("Helvetica-Bold").fontSize(8).fillColor("#ffffff").text(header, x + cellPaddingX, y + cellPaddingY, {
+          width: columnWidths[index] - cellPaddingX * 2,
+          height: headerHeight - cellPaddingY * 2,
+          lineGap: 1
+        });
+        x += columnWidths[index];
+      });
+      y += headerHeight;
+    };
+
+    const drawRow = (values, rowIndex) => {
+      const rowHeight = getRowHeight(values, "Helvetica", 7.5);
+      const bottomLimit = doc.page.height - doc.page.margins.bottom;
+      if (y + rowHeight > bottomLimit) {
+        doc.addPage({ size: "A4", layout: "landscape", margin: 32 });
         y = doc.page.margins.top;
         drawHeader();
       }
 
-      doc.font("Helvetica").fontSize(7);
-      headers.forEach((header, index) => {
-        const value = row[header];
-        const stringValue = value === null || value === undefined ? "" : typeof value === "object" ? JSON.stringify(value) : String(value);
-        const x = doc.page.margins.left + index * colWidth;
-        doc.text(stringValue.slice(0, 80), x, y, { width: colWidth - 6, align: "left" });
+      const tableX = doc.page.margins.left;
+      if (rowIndex % 2 === 1) {
+        doc.save().fillColor("#f1f5f9").rect(tableX, y, pageWidth, rowHeight).fill().restore();
+      }
+
+      let x = tableX;
+      values.forEach((text, index) => {
+        doc.save().rect(x, y, columnWidths[index], rowHeight).lineWidth(0.35).strokeColor("#cbd5e1").stroke().restore();
+        doc.font("Helvetica").fontSize(7.5).fillColor("#1e293b").text(text, x + cellPaddingX, y + cellPaddingY, {
+          width: columnWidths[index] - cellPaddingX * 2,
+          height: rowHeight - cellPaddingY * 2,
+          lineGap: 1
+        });
+        x += columnWidths[index];
       });
-      y += 16;
-      doc.moveTo(doc.page.margins.left, y - 4).lineTo(doc.page.width - doc.page.margins.right, y - 4).stroke();
+      y += rowHeight;
     };
 
     drawHeader();
-    safeRows.forEach(row => drawRow(row));
+    cellValues.forEach((values, index) => drawRow(values, index));
     doc.end();
   });
 }
@@ -537,94 +933,216 @@ function generateAgreementPdf(agreement) {
     doc.on("error", reject);
 
     const logoPath = path.join(root, "bisfly-logo.png");
-    const signaturePath = agreement.signatureFile ? path.join(uploadsDir, agreement.signatureFile) : null;
-
     if (fs.existsSync(logoPath)) {
-      try {
-        doc.image(logoPath, { fit: [120, 120], align: "center" });
-      } catch (error) {
-        // ignore missing or invalid logo image
-      }
+      doc.image(logoPath, doc.page.width / 2 - 38, 35, { width: 76, height: 56, fit: [76, 56], align: "center", valign: "center" });
+      doc.y = 101;
     }
+    doc.font("Helvetica-Bold").fontSize(19).fillColor("#10264a").text("TRAVEL SERVICE AGREEMENT", { align: "center" });
+    doc.moveDown(0.25);
+    doc.font("Helvetica").fontSize(10).fillColor("#64748b").text("BisFly Limited", { align: "center" });
+    doc.moveDown(1.2);
 
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(20)
-      .text("BisFly Travels and Tours Agreement", { align: "center" })
-      .moveDown(0.5);
+    const drawSection = (heading, fields) => {
+      const x = doc.page.margins.left;
+      const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      doc.font("Helvetica-Bold").fontSize(11).fillColor("#10264a").text(heading);
+      doc.moveDown(0.35);
+      const labelWidth = 145;
+      fields.forEach(([label, value], index) => {
+        const rowY = doc.y;
+        const valueText = String(value || "N/A");
+        const valueHeight = doc.heightOfString(valueText, { width: width - labelWidth - 24, font: "Helvetica", fontSize: 10 });
+        const rowHeight = Math.max(27, valueHeight + 12);
+        if (index % 2 === 0) doc.save().fillColor("#f1f5f9").rect(x, rowY - 3, width, rowHeight).fill().restore();
+        doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text(label, x + 10, rowY + 5, { width: labelWidth - 16 });
+        doc.font("Helvetica").fontSize(10).fillColor("#0f172a").text(valueText, x + labelWidth, rowY + 5, { width: width - labelWidth - 12 });
+        doc.y = rowY + rowHeight;
+      });
+      doc.moveDown(0.6);
+    };
 
-    doc
-      .font("Helvetica")
-      .fontSize(10)
-      .fillColor("#555")
-      .text("Agreement between BisFly Travels and Tours and the customer.", { align: "center" })
-      .moveDown(1.5);
+    const agreementDate = agreement.agreementDate || agreement.signatureDate || new Date(agreement.createdAt).toLocaleDateString();
+    drawSection("CLIENT DETAILS", [
+      ["Client Name", agreement.fullName],
+      ["Phone Number", agreement.phone],
+      ["Email Address", agreement.email],
+      ["Date of Birth", agreement.dateOfBirth],
+      ["Address", agreement.address],
+      ["Agreement Date", agreementDate]
+    ]);
+    drawSection("PACKAGE DETAILS", [
+      ["Package Type", agreement.packageType || agreement.destination],
+      ["Package Option", agreement.packageOption || "Single"],
+      ["Description", agreement.description]
+    ]);
+    drawSection("PAYMENT SCHEDULE", [
+      ["Total Package Amount", agreement.totalAmount ?? agreement.amountPaid],
+      ["Amount Deposited", agreement.amountDeposited ?? agreement.amountPaid],
+      ["Balance After Visa Approval", agreement.balanceAfterApproval ?? agreement.balanceAmount],
+      ["Payment Date", agreement.paymentDate || agreement.createdAt]
+    ]);
+    drawSection("OFFICIAL PAYMENT ACCOUNT", [
+      ["Bank", "Fidelity Bank"],
+      ["Account Name", "Bisfly Limited"],
+      ["Account Number", "5601847112"]
+    ]);
 
-    doc.fontSize(12).fillColor("#111");
-    doc.text("Customer Information", { underline: true });
-    doc.moveDown(0.5);
+    doc.font("Helvetica-Bold").fontSize(11).fillColor("#10264a").text("TERMS AND CONDITIONS");
+    doc.moveDown(0.35);
+    doc.font("Helvetica").fontSize(9).fillColor("#334155").text(
+      agreement.terms || "The client agrees to the package and payment schedule recorded above. Once payment is confirmed, work begins on the client's behalf. Because resources and professional services are committed at that point, confirmed payments are non-refundable, except where applicable law requires otherwise. Any balance shown as payable after visa approval remains due in accordance with the agreed package. BisFly Limited provides travel and application support only; visa applications are decided solely by the relevant government or consular authority. BisFly Limited cannot guarantee approval and is not responsible for visa authorization, refusal, processing delays, or decisions made by those authorities. Payments must be made only to the official corporate account listed in this agreement.",
+      { align: "justify", lineGap: 2 }
+    );
 
-    const info = [
-      ["Client Name:", agreement.fullName],
-      ["Email:", agreement.email],
-      ["Date of Birth:", agreement.dateOfBirth],
-      ["Destination:", agreement.destination],
-      ["Location:", agreement.location],
-      ["Amount Paid:", agreement.amountPaid],
-      ["Balance Amount:", agreement.balanceAmount],
-      ["Agreement Date:", agreement.signatureDate || new Date(agreement.createdAt).toLocaleDateString()]
-    ];
+    doc.moveDown(1);
+    doc.moveDown(1.2);
+    if (doc.y > doc.page.height - 185) doc.addPage();
+    const leftX = doc.page.margins.left;
+    const rightX = doc.page.width / 2 + 12;
+    const signatureY = doc.y + 38;
+    doc.font("Helvetica-Oblique").fontSize(17).fillColor("#073c9a").text("BisFly Limited", leftX, signatureY - 28, { width: 210, align: "center" });
+    doc.moveTo(leftX + 8, signatureY).lineTo(leftX + 218, signatureY).strokeColor("#334155").lineWidth(0.8).stroke();
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text("For BisFly Limited", leftX + 8, signatureY + 7, { width: 210, align: "center" });
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(`Authorized representative - ${agreement.generatedBy || "Admin"}`, leftX + 8, signatureY + 21, { width: 210, align: "center" });
 
-    info.forEach(([label, value]) => {
-      doc.font("Helvetica-Bold").text(label, { continued: true, width: 150 });
-      doc.font("Helvetica").text(value || "N/A");
+    doc.moveTo(rightX, signatureY).lineTo(rightX + 210, signatureY).strokeColor("#334155").lineWidth(0.8).stroke();
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text(String(agreement.fullName || "Client"), rightX, signatureY + 7, { width: 210, align: "center" });
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b").text("Client signature", rightX, signatureY + 21, { width: 210, align: "center" });
+    const watermarkX = doc.page.width / 2 - 34;
+    if (fs.existsSync(logoPath)) {
+      doc.save().opacity(0.12).image(logoPath, watermarkX, signatureY - 22, { width: 68, height: 54, fit: [68, 54], align: "center", valign: "center" }).restore();
+    } else {
+      doc.save().opacity(0.12).font("Helvetica-Bold").fontSize(9).fillColor("#073c9a").text("BISFLY", watermarkX - 10, signatureY - 2, { width: 88, align: "center" }).restore();
+    }
+    doc.moveTo(rightX + 50, signatureY + 65).lineTo(rightX + 160, signatureY + 65).strokeColor("#64748b").lineWidth(0.6).stroke();
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b").text("Date", rightX, signatureY + 71, { width: 210, align: "center" });
+
+    doc.y = signatureY + 100;
+    doc.moveDown(0.4);
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(`Generated by ${agreement.generatedBy || "BisFly Limited"} on ${new Date(agreement.createdAt).toLocaleString()}`, { align: "center" });
+
+    doc.end();
+  });
+}
+
+function generateDisclaimerPdf(disclaimer) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 52, size: "A4" });
+    const buffers = [];
+    doc.on("data", chunk => buffers.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(buffers)));
+    doc.on("error", reject);
+
+    const logoPath = path.join(root, "bisfly-logo.png");
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, doc.page.width / 2 - 38, 38, { width: 76, height: 56, fit: [76, 56], align: "center", valign: "center" });
+      doc.y = 107;
+    }
+    doc.font("Helvetica-Bold").fontSize(18).fillColor("#10264a").text("CLIENT SERVICE DISCLAIMER", { align: "center" });
+    doc.moveDown(0.3);
+    doc.font("Helvetica").fontSize(10).fillColor("#64748b").text("BisFly Limited and the Client", { align: "center" });
+    doc.moveDown(1.3);
+    doc.font("Helvetica-Bold").fontSize(11).fillColor("#10264a").text("CLIENT INFORMATION");
+    doc.moveDown(0.4);
+    [
+      ["Client name", disclaimer.fullName],
+      ["Gender", disclaimer.gender],
+      ["Phone number", disclaimer.phone],
+      ["Address", disclaimer.address],
+      ["Email address", disclaimer.email]
+    ].forEach(([label, value]) => {
+      doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text(`${label}: `, { continued: true });
+      doc.font("Helvetica").fontSize(9).fillColor("#0f172a").text(String(value || "Not provided"));
+      doc.moveDown(0.25);
     });
-
-    doc.moveDown(1);
-    doc.font("Helvetica-Bold").text("Terms and Conditions");
-    doc.moveDown(0.5);
-    doc.font("Helvetica").fontSize(10).text(
-      "This agreement confirms that the customer accepts BisFly Travels and Tours terms and conditions of service. There is a strict no refund policy under all circumstances, regardless of reason or condition. The customer acknowledges that payments made are non-refundable once confirmed and processed.",
-      { align: "justify" }
-    );
-
-    doc.moveDown(1);
-    doc.font("Helvetica-Bold").text("Customer Signature");
-    doc.moveDown(0.5);
-    doc.font("Helvetica-Bold").text("Signature Name:", { continued: true, width: 150 });
-    doc.font("Helvetica").text(agreement.customerSignature || "_____________________________");
-    doc.font("Helvetica-Bold").text("Signature Date:", { continued: true, width: 150 });
-    doc.font("Helvetica").text(agreement.signatureDate || new Date(agreement.createdAt).toLocaleDateString());
-
-    if (signaturePath && fs.existsSync(signaturePath)) {
-      try {
-        doc.moveDown(0.5);
-        doc.image(signaturePath, { fit: [250, 120] });
-      } catch (error) {
-        // ignore invalid signature image
-      }
+    if (disclaimer.secondPersonRelationship) {
+      doc.moveDown(0.4);
+      doc.font("Helvetica-Bold").fontSize(11).fillColor("#10264a").text("ADDITIONAL PERSON");
+      doc.moveDown(0.3);
+      doc.font("Helvetica").fontSize(9).fillColor("#0f172a").text(
+        `${disclaimer.secondPersonName || "Name not provided"} (${disclaimer.secondPersonRelationship})`
+      );
     }
-
-    doc.moveDown(1);
-    const stampX = doc.x;
-    const currentY = doc.y;
-    const stampText = `BisFly Travels and Tours Stamp\n${new Date(agreement.createdAt).toLocaleDateString()}`;
-    doc.rect(stampX, currentY, 220, 90).stroke();
-    if (fs.existsSync(logoPath)) {
-      try {
-        doc.image(logoPath, stampX + 10, currentY + 10, { fit: [80, 80] });
-      } catch (error) {
-        // ignore logo drawing errors
-      }
-    }
-    doc.font("Helvetica-Bold").fontSize(10).text(stampText, stampX + 100, currentY + 22, { width: 110 });
-
-    doc.moveDown(5);
-    doc.font("Helvetica").fontSize(9).fillColor("#555").text(
-      "This agreement was prepared for the customer listed above and reflects the current payment details and terms agreed at the time of signing.",
-      { align: "justify" }
+    doc.moveDown(0.8);
+    doc.font("Helvetica-Bold").fontSize(11).fillColor("#10264a").text("CLIENT ACKNOWLEDGEMENT");
+    doc.moveDown(0.4);
+    doc.font("Helvetica").fontSize(9).fillColor("#334155").text(
+      "I confirm that the information and documents I provide to BisFly Limited are accurate and complete to the best of my knowledge. I understand that BisFly Limited provides travel planning and application-support services but does not issue visas and cannot guarantee that a visa or other authorization will be granted. All visa decisions, requirements, processing times, and authorizations are determined by the relevant government or consular authorities. BisFly Limited is not responsible for a refusal, delay, or decision made by those authorities. I understand that work begins once my payment is confirmed and that confirmed payments are non-refundable, except where applicable law requires otherwise. I will make payments only to the company's official corporate account below.",
+      { align: "justify", lineGap: 3 }
     );
+    doc.moveDown(0.8);
+    doc.font("Helvetica-Bold").fontSize(10).fillColor("#10264a").text("OFFICIAL CORPORATE ACCOUNT");
+    doc.moveDown(0.3);
+    doc.font("Helvetica").fontSize(9).fillColor("#0f172a").text("Fidelity Bank | Bisfly Limited | Account Number: 5601847112");
+    doc.moveDown(1.7);
+    if (doc.y > doc.page.height - 150) doc.addPage();
+    const signatureY = doc.y;
+    const leftX = doc.page.margins.left;
+    const rightX = doc.page.width / 2 + 12;
+    doc.moveTo(leftX, signatureY).lineTo(leftX + 210, signatureY).strokeColor("#334155").stroke();
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text("Client signature", leftX, signatureY + 6, { width: 210, align: "center" });
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(`Client: ${disclaimer.fullName}`, leftX, signatureY + 19, { width: 210, align: "center" });
+    doc.moveTo(rightX, signatureY).lineTo(rightX + 210, signatureY).strokeColor("#334155").stroke();
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text("For BisFly Limited", rightX, signatureY + 6, { width: 210, align: "center" });
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(`Authorized representative: ${disclaimer.generatedBy || "Admin"}`, rightX, signatureY + 19, { width: 210, align: "center" });
+    doc.moveTo(leftX, signatureY + 55).lineTo(leftX + 210, signatureY + 55).strokeColor("#64748b").stroke();
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b").text("Date", leftX, signatureY + 60, { width: 210, align: "center" });
+    if (disclaimer.secondPersonRelationship) {
+      doc.moveTo(rightX, signatureY + 55).lineTo(rightX + 210, signatureY + 55).strokeColor("#64748b").stroke();
+      doc.font("Helvetica").fontSize(8).fillColor("#64748b").text("Additional person signature / date", rightX, signatureY + 60, { width: 210, align: "center" });
+    }
+    doc.end();
+  });
+}
 
+function generateReportPdf(title, subtitle, headers, rows, totalLabel = "", totalValue = null) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 36, size: "A4", layout: "landscape" });
+    const buffers = [];
+    doc.on("data", chunk => buffers.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(buffers)));
+    doc.on("error", reject);
+    const logoPath = path.join(root, "bisfly-logo.png");
+    if (fs.existsSync(logoPath)) doc.image(logoPath, 36, 24, { width: 55, height: 42, fit: [55, 42] });
+    doc.font("Helvetica-Bold").fontSize(17).fillColor("#10264a").text(title, 102, 29);
+    doc.font("Helvetica").fontSize(9).fillColor("#64748b").text(subtitle, 102, 53);
+    let y = 90;
+    const tableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const widths = headers.map(() => tableWidth / headers.length);
+    const drawHeader = () => {
+      let x = doc.page.margins.left;
+      headers.forEach((header, index) => {
+        doc.save().fillColor("#10264a").rect(x, y, widths[index], 24).fill().restore();
+        doc.font("Helvetica-Bold").fontSize(8).fillColor("#ffffff").text(String(header), x + 5, y + 7, { width: widths[index] - 10 });
+        x += widths[index];
+      });
+      y += 24;
+    };
+    drawHeader();
+    rows.forEach((row, rowIndex) => {
+      const values = headers.map(header => String(row[header] ?? ""));
+      const rowHeight = 28;
+      if (y + rowHeight > doc.page.height - doc.page.margins.bottom - 34) {
+        doc.addPage();
+        y = 40;
+        drawHeader();
+      }
+      let x = doc.page.margins.left;
+      values.forEach((value, index) => {
+        doc.save().fillColor(rowIndex % 2 ? "#f8fafc" : "#eef2f7").rect(x, y, widths[index], rowHeight).fill().restore();
+        doc.font("Helvetica").fontSize(7.5).fillColor("#1e293b").text(value, x + 5, y + 6, { width: widths[index] - 10, height: rowHeight - 10, ellipsis: true });
+        x += widths[index];
+      });
+      y += rowHeight;
+    });
+    if (totalLabel && totalValue !== null) {
+      if (y + 36 > doc.page.height - doc.page.margins.bottom) {
+        doc.addPage();
+        y = 40;
+      }
+      doc.moveDown(0.5);
+      doc.font("Helvetica-Bold").fontSize(11).fillColor("#10264a").text(`${totalLabel}: ${totalValue}`, doc.page.margins.left, y + 8);
+    }
     doc.end();
   });
 }
@@ -696,6 +1214,44 @@ function isMasterAdminSession(session) {
   return role === "super-admin" || role === "master-admin" || role === "admin" && session?.username === "admin";
 }
 
+function normalizeAdminRole(role) {
+  const normalized = String(role || "").trim().toLowerCase();
+  return normalized === "customer" ? "support" : normalized;
+}
+
+function isManagerSession(session) {
+  return normalizeAdminRole(session?.role) === "manager";
+}
+
+function isSupportSession(session) {
+  return normalizeAdminRole(session?.role) === "support";
+}
+
+function requireSuperAdmin(response, session) {
+  if (!session) {
+    send(response, 401, { ok: false, message: "Unauthorized" });
+    return false;
+  }
+  if (!isMasterAdminSession(session)) {
+    send(response, 403, { ok: false, message: "Super-admin access required" });
+    return false;
+  }
+  return true;
+}
+
+function requireAdminOperationsAccess(response, session) {
+  if (!session) {
+    send(response, 401, { ok: false, message: "Unauthorized" });
+    return false;
+  }
+  const role = normalizeAdminRole(session.role);
+  if (!isMasterAdminSession(session) && role !== "manager" && role !== "admin") {
+    send(response, 403, { ok: false, message: "Admin, Manager, or Super Admin access required." });
+    return false;
+  }
+  return true;
+}
+
 function generateSessionToken() {
   return crypto.randomBytes(32).toString("hex");
 }
@@ -703,8 +1259,10 @@ function generateSessionToken() {
 function createSession(adminUsername, role = "admin") {
   const token = generateSessionToken();
   const sessionFile = path.join(sessionsDir, token);
+  const account = readAdminUsers().find(user => String(user.username).toLowerCase() === String(adminUsername).toLowerCase());
   fs.writeFileSync(sessionFile, JSON.stringify({
     username: adminUsername,
+    userId: account ? Number(account.id) : null,
     role,
     createdAt: Date.now(),
     expiresAt: Date.now() + 24 * 60 * 60 * 1000
@@ -721,6 +1279,13 @@ function validateSession(token) {
       fs.unlinkSync(sessionFile);
       return null;
     }
+    const account = readAdminUsers().find(user => String(user.username).toLowerCase() === String(session.username).toLowerCase());
+    if (!account || account.active === false) {
+      fs.unlinkSync(sessionFile);
+      return null;
+    }
+    session.userId = Number(account.id);
+    session.role = account.role || "support";
     return session;
   } catch (error) {
     return null;
@@ -789,7 +1354,7 @@ function readBody(request) {
     request.on("data", chunk => {
       chunks.push(chunk);
       size += chunk.length;
-      if (size > 10_000_000) {
+      if (size > 20_000_000) {
         request.destroy();
         reject(new Error("Body too large"));
       }
@@ -828,30 +1393,30 @@ function send(response, status, data, contentType = "application/json; charset=u
 function chatReply(message) {
   const text = String(message || "").toLowerCase();
   if (text.includes("insurance")) {
-    return "BisFly offers comprehensive travel insurance. Visit our Insurance section to submit your application with travel document and personal information.";
+    return "BisFly Limited offers comprehensive travel insurance. Visit our Insurance section to submit your application with travel document and personal information.";
   }
   if (text.includes("schengen")) {
-    return "BisFly can guide Schengen travel plans, including itinerary support, hotel reservation, insurance reminders, and appointment preparation.";
+    return "BisFly Limited can guide Schengen travel plans, including itinerary support, hotel reservation, insurance reminders, and appointment preparation.";
   }
   if (text.includes("e-visa") || text.includes("evisa") || text.includes("online visa")) {
-    return "For E-Visas, BisFly helps confirm eligibility, required documents, processing expectations, and safe application steps.";
+    return "For E-Visas, BisFly Limited helps confirm eligibility, required documents, processing expectations, and safe application steps.";
   }
   if (text.includes("visa")) {
-    return "Great. Which country are you applying to, and is it for tourism, study, business, or work? BisFly can help with document checks and next steps.";
+    return "Great. Which country are you applying to, and is it for tourism, study, business, or work? BisFly Limited can help with document checks and next steps.";
   }
   if (text.includes("flight") || text.includes("ticket")) {
-    return "Please share your departure city, destination, travel date, passenger count, and budget range so BisFly can compare flight options.";
+    return "Please share your departure city, destination, travel date, passenger count, and budget range so BisFly Limited can compare flight options.";
   }
   if (text.includes("study")) {
     return "For study abroad, tell me your preferred country, course level, timeline, and whether you already have admission.";
   }
   if (text.includes("hotel")) {
-    return "BisFly can help with hotel options. Share the city, dates, guest count, and preferred budget.";
+    return "BisFly Limited can help with hotel options. Share the city, dates, guest count, and preferred budget.";
   }
   if (text.includes("contact") || text.includes("instagram") || text.includes("facebook")) {
-    return "You can email bisflytravels@gmail.com, message @bisfly_travels on Instagram (https://www.instagram.com/bisfly_travels), or contact BisFly through the Facebook page.";
+    return "You can email bisflytravels@gmail.com, message @bisfly_travels on Instagram (https://www.instagram.com/bisfly_travels), or contact BisFly Limited through the Facebook page.";
   }
-  return "Thanks for chatting with BisFly. Tell me your destination, travel date, number of travelers, budget range, and the service you need.";
+  return "Thanks for chatting with BisFly Limited. Tell me your destination, travel date, number of travelers, budget range, and the service you need.";
 }
 
 function serveStatic(request, response) {
@@ -887,21 +1452,6 @@ const server = http.createServer(async (request, response) => {
     response.writeHead(200);
     response.end();
     return;
-  }
-
-  // Restrict direct public access to the agreement page; require admin session
-  try {
-    const reqPath = parsedUrl.pathname;
-    if (request.method === "GET" && reqPath === "/agreement.html") {
-      const token = request.headers.authorization?.replace("Bearer ", "");
-      const session = validateSession(token);
-      if (!session) {
-        send(response, 404, "Not found", "text/plain; charset=utf-8");
-        return;
-      }
-    }
-  } catch (e) {
-    // ignore session validation errors and continue
   }
 
   try {
@@ -993,7 +1543,12 @@ const server = http.createServer(async (request, response) => {
       const body = await readBody(request);
       const username = String(body.username || "").trim();
       const password = String(body.password || "");
-      const role = String(body.role || "admin").trim();
+      const role = normalizeAdminRole(body.role || "admin");
+
+      if (!new Set(["admin", "manager", "support", "super-admin"]).has(role)) {
+        send(response, 400, { ok: false, message: "Role must be Admin, Manager, Support/Customer, or Super Admin." });
+        return;
+      }
 
       if (!username || !password || password.length < 8) {
         send(response, 400, { ok: false, message: "Username and a password of at least 8 characters are required" });
@@ -1049,6 +1604,11 @@ const server = http.createServer(async (request, response) => {
 
       const existing = users[userIndex];
       const nextUsername = String(body.username || existing.username).trim();
+      const nextRole = normalizeAdminRole(body.role || existing.role || "admin");
+      if (!new Set(["admin", "manager", "support", "super-admin"]).has(nextRole)) {
+        send(response, 400, { ok: false, message: "Role must be Admin, Manager, Support/Customer, or Super Admin." });
+        return;
+      }
       if (nextUsername && nextUsername.toLowerCase() !== existing.username.toLowerCase()) {
         const conflict = users.some(item => item.id !== id && String(item.username).toLowerCase() === nextUsername.toLowerCase());
         if (conflict) {
@@ -1057,15 +1617,32 @@ const server = http.createServer(async (request, response) => {
         }
       }
 
+      if (String(existing.username).toLowerCase() === String(session.username).toLowerCase() &&
+          (nextRole !== normalizeAdminRole(existing.role) || body.active === false)) {
+        send(response, 400, { ok: false, message: "You cannot change your own role or deactivate your own account." });
+        return;
+      }
+
+      const activeSuperAdmins = users.filter(user => user.active !== false && normalizeAdminRole(user.role) === "super-admin").length;
+      if (normalizeAdminRole(existing.role) === "super-admin" &&
+          (nextRole !== "super-admin" || body.active === false) && activeSuperAdmins <= 1) {
+        send(response, 400, { ok: false, message: "At least one active super-admin account must remain." });
+        return;
+      }
+
       const updated = {
         ...existing,
         username: nextUsername || existing.username,
-        role: String(body.role || existing.role || "admin").trim(),
+        role: nextRole,
         active: body.active !== undefined ? body.active !== false : existing.active !== false,
         updatedAt: new Date().toISOString()
       };
 
       if (body.password) {
+        if (String(body.password).length < 8) {
+          send(response, 400, { ok: false, message: "Password must be at least 8 characters." });
+          return;
+        }
         const { hash, salt } = hashPasswordWithSalt(body.password);
         updated.passwordHash = hash;
         updated.passwordSalt = salt;
@@ -1101,6 +1678,13 @@ const server = http.createServer(async (request, response) => {
       const [removed] = users.splice(index, 1);
       if (String(removed.username).toLowerCase() === String(session.username).toLowerCase()) {
         send(response, 400, { ok: false, message: "You cannot delete your own account while logged in" });
+        users.splice(index, 0, removed);
+        return;
+      }
+
+      const activeSuperAdmins = users.filter(user => user.active !== false && normalizeAdminRole(user.role) === "super-admin").length;
+      if (normalizeAdminRole(removed.role) === "super-admin" && removed.active !== false && activeSuperAdmins === 0) {
+        send(response, 400, { ok: false, message: "At least one active super-admin account must remain." });
         users.splice(index, 0, removed);
         return;
       }
@@ -1203,8 +1787,8 @@ const server = http.createServer(async (request, response) => {
       writeInsurance(insurance);
       send(response, 201, { ok: true, message: "Insurance application submitted" });
       if (normalized.email) {
-        const html = `<p>Dear ${normalized.fullName || normalized.name || 'Customer'},</p><p>Thank you for submitting your travel insurance application. We will review it and contact you shortly.</p><p>Reference ID: ${insurance[0].id}</p><p>Best regards,<br/>BisFly Travels and Tours</p>`;
-        notifySubmission(normalized.email, 'BisFly: Insurance application received', html, 'BisFly: New insurance application', `<p>A new travel insurance application was submitted.</p><p><strong>Name:</strong> ${normalized.fullName || normalized.name || 'Customer'}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Reference ID:</strong> ${insurance[0].id}</p>`);
+        const html = `<p>Dear ${normalized.fullName || normalized.name || 'Customer'},</p><p>Thank you for submitting your travel insurance application. We will review it and contact you shortly.</p><p>Reference ID: ${insurance[0].id}</p><p>Best regards,<br/>BisFly Limited</p>`;
+        notifySubmission(normalized.email, 'BisFly Limited: Insurance application received', html, 'BisFly Limited: New insurance application', `<p>A new travel insurance application was submitted.</p><p><strong>Name:</strong> ${normalized.fullName || normalized.name || 'Customer'}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Reference ID:</strong> ${insurance[0].id}</p>`);
       }
       return;
     }
@@ -1230,10 +1814,7 @@ const server = http.createServer(async (request, response) => {
     if (parsedUrl.pathname === "/api/packages" && request.method === "POST") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
-      if (!session) {
-        send(response, 401, { ok: false, message: "Unauthorized" });
-        return;
-      }
+      if (!requireSuperAdmin(response, session)) return;
 
       const parsed = await readBody(request);
       const fields = parsed.fields || parsed;
@@ -1277,7 +1858,7 @@ const server = http.createServer(async (request, response) => {
     if (parsedUrl.pathname.match(/^\/api\/packages\/[^\/]+$/) && request.method === "PUT") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
-      if (!session) return send(response, 401, { ok: false, message: "Unauthorized" });
+      if (!requireSuperAdmin(response, session)) return;
 
       const id = Number(parsedUrl.pathname.split("/")[3]);
       const packages = readPackages();
@@ -1328,7 +1909,7 @@ const server = http.createServer(async (request, response) => {
     if (parsedUrl.pathname.match(/^\/api\/packages\/[^\/]+$/) && request.method === "DELETE") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
-      if (!session) return send(response, 401, { ok: false, message: "Unauthorized" });
+      if (!requireSuperAdmin(response, session)) return;
       const id = Number(parsedUrl.pathname.split("/")[3]);
       const packages = readPackages();
       const idx = packages.findIndex(p => p.id === id);
@@ -1374,8 +1955,8 @@ const server = http.createServer(async (request, response) => {
       writePassports(passports);
       send(response, 201, { ok: true, message: "Passport request submitted" });
       if (normalized.email) {
-        const html = `<p>Dear ${normalized.fullName || normalized.name || 'Customer'},</p><p>Your passport request has been received. We will contact you shortly with next steps.</p><p>Reference ID: ${passports[0].id}</p><p>Thank you,<br/>BisFly Travels and Tours</p>`;
-        notifySubmission(normalized.email, 'BisFly: Passport request received', html, 'BisFly: New passport request', `<p>A new passport request was submitted.</p><p><strong>Name:</strong> ${normalized.fullName || normalized.name || 'Customer'}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Reference ID:</strong> ${passports[0].id}</p>`);
+        const html = `<p>Dear ${normalized.fullName || normalized.name || 'Customer'},</p><p>Your passport request has been received. We will contact you shortly with next steps.</p><p>Reference ID: ${passports[0].id}</p><p>Thank you,<br/>BisFly Limited</p>`;
+        notifySubmission(normalized.email, 'BisFly Limited: Passport request received', html, 'BisFly Limited: New passport request', `<p>A new passport request was submitted.</p><p><strong>Name:</strong> ${normalized.fullName || normalized.name || 'Customer'}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Reference ID:</strong> ${passports[0].id}</p>`);
       }
       return;
     }
@@ -1411,8 +1992,8 @@ const server = http.createServer(async (request, response) => {
       writePartnerships(partnerships);
       send(response, 201, { ok: true, message: "Partnership request submitted" });
       if (normalized.email) {
-        const html = `<p>Dear ${normalized.contactName || 'Partner'},</p><p>Thank you for your interest in partnering with BisFly Travel and Tours. Our team will review your proposal and contact you soon.</p><p>Partnership Type: ${normalized.partnershipType}</p><p>Reference ID: ${normalized.id}</p><p>Best regards,<br/>BisFly Travels and Tours</p>`;
-        notifySubmission(normalized.email, 'BisFly: Partnership request received', html, 'BisFly: New partnership request', `<p>A new partnership request was submitted.</p><p><strong>Company:</strong> ${normalized.companyName}</p><p><strong>Contact:</strong> ${normalized.contactName}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Phone:</strong> ${normalized.phone}</p><p><strong>Type:</strong> ${normalized.partnershipType}</p>`);
+        const html = `<p>Dear ${normalized.contactName || 'Partner'},</p><p>Thank you for your interest in partnering with BisFly Limited. Our team will review your proposal and contact you soon.</p><p>Partnership Type: ${normalized.partnershipType}</p><p>Reference ID: ${normalized.id}</p><p>Best regards,<br/>BisFly Limited</p>`;
+        notifySubmission(normalized.email, 'BisFly Limited: Partnership request received', html, 'BisFly Limited: New partnership request', `<p>A new partnership request was submitted.</p><p><strong>Company:</strong> ${normalized.companyName}</p><p><strong>Contact:</strong> ${normalized.contactName}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Phone:</strong> ${normalized.phone}</p><p><strong>Type:</strong> ${normalized.partnershipType}</p>`);
       }
       return;
     }
@@ -1425,6 +2006,16 @@ const server = http.createServer(async (request, response) => {
         return;
       }
       send(response, 200, readPartnerships());
+      return;
+    }
+
+    if (parsedUrl.pathname === "/api/leads" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      if (!validateSession(token)) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+      send(response, 200, readLeads());
       return;
     }
 
@@ -1442,10 +2033,7 @@ const server = http.createServer(async (request, response) => {
     if (parsedUrl.pathname.match(/^\/api\/passports\/[^\/]+$/) && request.method === "DELETE") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
-      if (!session) {
-        send(response, 401, { ok: false, message: "Unauthorized" });
-        return;
-      }
+      if (!requireSuperAdmin(response, session)) return;
       const id = Number(parsedUrl.pathname.split("/")[3]);
       const passports = readPassports();
       const idx = passports.findIndex(item => item.id === id);
@@ -1460,41 +2048,65 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (parsedUrl.pathname === "/api/agreement" && request.method === "POST") {
-      const parsed = await readBody(request);
-      const fields = parsed.fields || parsed;
-      const files = parsed.files || {};
-      const requiredFields = ["fullName", "email", "dateOfBirth", "location", "destination", "amountPaid", "balanceAmount", "customerSignature", "signatureDate"];
+      send(response, 403, { ok: false, message: "Agreements can only be generated from the admin dashboard." });
+      return;
+    }
+
+    if (parsedUrl.pathname === "/api/admin/agreements/generate" && request.method === "POST") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      const session = validateSession(token);
+      if (!requireSuperAdmin(response, session)) return;
+
+      const fields = await readBody(request);
+      const requiredFields = ["fullName", "phone", "email", "dateOfBirth", "address", "packageType", "packageOption", "totalAmount", "amountDeposited", "paymentDate", "agreementDate", "description"];
       for (const field of requiredFields) {
-        if (!fields[field]) {
+        if (!String(fields[field] ?? "").trim()) {
           send(response, 400, { ok: false, message: `${field} is required` });
           return;
         }
       }
 
+      const totalAmount = Number(fields.totalAmount);
+      const amountDeposited = Number(fields.amountDeposited);
+      const balanceAfterApproval = totalAmount - amountDeposited;
+      if (![totalAmount, amountDeposited].every(Number.isFinite) || totalAmount < 0 || amountDeposited < 0 || amountDeposited > totalAmount) {
+        send(response, 400, { ok: false, message: "The deposited amount must be between zero and the total package amount." });
+        return;
+      }
+      if (!new Set(["Tour Package", "Conference Package", "Work Visa Package", "Study Package"]).has(String(fields.packageType))) {
+        send(response, 400, { ok: false, message: "Select a valid package type." });
+        return;
+      }
+      if (!new Set(["Single", "Couple", "Family of one", "Family of two", "Family of three"]).has(String(fields.packageOption))) {
+        send(response, 400, { ok: false, message: "Select a valid package option." });
+        return;
+      }
+
       const agreement = {
-        ...fields,
         id: Date.now(),
-        status: "pending",
+        fullName: String(fields.fullName).trim(),
+        phone: String(fields.phone).trim(),
+        email: String(fields.email).trim(),
+        dateOfBirth: String(fields.dateOfBirth),
+        address: String(fields.address).trim(),
+        packageType: String(fields.packageType),
+        packageOption: String(fields.packageOption),
+        totalAmount,
+        amountDeposited,
+        balanceAfterApproval,
+        paymentDate: String(fields.paymentDate),
+        agreementDate: String(fields.agreementDate),
+        description: String(fields.description).trim(),
+        generatedBy: session.username,
+        status: "generated",
         createdAt: new Date().toISOString()
       };
-
-      if (files.signatureFile) {
-        const file = files.signatureFile;
-        const ext = path.extname(file.filename).toLowerCase();
-        if (![".jpg", ".jpeg", ".png"].includes(ext)) {
-          send(response, 400, { ok: false, message: "Signature image must be JPG or PNG" });
-          return;
-        }
-        const signatureName = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}${ext}`;
-        fs.writeFileSync(path.join(uploadsDir, signatureName), file.data);
-        agreement.signatureFile = signatureName;
-        agreement.signatureMime = file.contentType || (ext === ".png" ? "image/png" : "image/jpeg");
-      }
 
       const agreements = readAgreements();
       agreements.unshift(agreement);
       writeAgreements(agreements);
-      send(response, 201, { ok: true, id: agreement.id, downloadUrl: `/api/agreements/${agreement.id}/download`, message: "Agreement submitted" });
+      logActivity("agreement_generated", { id: agreement.id, client: agreement.fullName }, session.username);
+      send(response, 201, { ok: true, id: agreement.id, downloadUrl: `/api/agreements/${agreement.id}/download`, message: "Agreement generated" });
       return;
     }
 
@@ -1509,13 +2121,322 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (parsedUrl.pathname === "/api/admin/clients" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      return send(response, 200, readJsonArray(clientsFile));
+    }
+
+    if (parsedUrl.pathname === "/api/admin/clients" && request.method === "POST") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const parsed = await readBody(request);
+      const fields = parsed.fields || {};
+      const files = parsed.files || {};
+      const required = ["fullName", "gender", "dateOfBirth", "address", "phone", "packageType", "amountPaid", "paymentDate", "balanceAfterApproval"];
+      for (const field of required) {
+        if (!String(fields[field] ?? "").trim()) return send(response, 400, { ok: false, message: `${field} is required.` });
+      }
+      if (!validateDateOnly(fields.dateOfBirth) || !validateDateOnly(fields.paymentDate)) {
+        return send(response, 400, { ok: false, message: "Enter valid dates of birth and payment." });
+      }
+      if (!validatePhone(fields.phone)) return send(response, 400, { ok: false, message: "Enter a valid phone number." });
+      const amountPaid = Number(fields.amountPaid);
+      const balanceAfterApproval = Number(fields.balanceAfterApproval);
+      if (!Number.isFinite(amountPaid) || amountPaid < 0 || !Number.isFinite(balanceAfterApproval) || balanceAfterApproval < 0) {
+        return send(response, 400, { ok: false, message: "Amounts must be valid non-negative numbers." });
+      }
+      const status = String(fields.status || "pending");
+      if (!["ongoing", "pending", "submitted", "refused", "approved"].includes(status)) {
+        return send(response, 400, { ok: false, message: "Select a valid client progress status." });
+      }
+      const record = {
+        id: crypto.randomBytes(12).toString("hex"),
+        fullName: String(fields.fullName).trim().slice(0, 160),
+        gender: String(fields.gender).trim().slice(0, 40),
+        dateOfBirth: String(fields.dateOfBirth),
+        address: String(fields.address).trim().slice(0, 500),
+        phone: String(fields.phone).trim().slice(0, 40),
+        packageType: String(fields.packageType).trim().slice(0, 120),
+        amountPaid,
+        paymentDate: String(fields.paymentDate),
+        balanceAfterApproval,
+        status,
+        createdBy: session.username,
+        createdAt: new Date().toISOString()
+      };
+      const signedAttachments = [["signedDisclaimer", "disclaimer"], ["signedAgreement", "agreement"]]
+        .map(([field, label]) => ({ field, label, file: files[field] }))
+        .filter(attachment => attachment.file?.data?.length);
+      for (const { label, file } of signedAttachments) {
+        if (file.data.length > 15_000_000) return send(response, 413, { ok: false, message: `The signed ${label} must be smaller than 15 MB.` });
+        const extension = path.extname(file.filename).toLowerCase();
+        const header = file.data.subarray(0, 8);
+        const validFile = extension === ".pdf" ? header.subarray(0, 5).toString("ascii") === "%PDF-"
+          : [".jpg", ".jpeg"].includes(extension) ? header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff
+            : extension === ".png" && header.equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+        if (!validFile) return send(response, 400, { ok: false, message: "Signed documents must be valid PDF, JPG, or PNG files." });
+      }
+      for (const { field, file } of signedAttachments) {
+        const extension = path.extname(file.filename).toLowerCase();
+        const storedName = `client-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${extension}`;
+        fs.writeFileSync(path.join(uploadsDir, storedName), file.data, { flag: "wx" });
+        record[field === "signedDisclaimer" ? "signedDisclaimerFile" : "signedAgreementFile"] = storedName;
+      }
+      const records = readJsonArray(clientsFile);
+      records.unshift(record);
+      writeJsonArray(clientsFile, records);
+      logActivity("client_created", { id: record.id, client: record.fullName }, session.username);
+      return send(response, 201, { ok: true, client: record });
+    }
+
+    if (parsedUrl.pathname.match(/^\/api\/admin\/clients\/[^/]+$/) && request.method === "PATCH") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const clientId = parsedUrl.pathname.split("/").pop();
+      const records = readJsonArray(clientsFile);
+      const client = records.find(item => item.id === clientId);
+      if (!client) return send(response, 404, { ok: false, message: "Client record not found." });
+      const body = await readBody(request);
+      const isPrivileged = isMasterAdminSession(session) || isManagerSession(session);
+      if (body.amountPaid !== undefined && !isPrivileged && Number(body.amountPaid) !== Number(client.amountPaid)) {
+        return send(response, 403, { ok: false, message: "Only a Manager or Super Admin may change the amount paid." });
+      }
+      const allowedFields = ["fullName", "gender", "dateOfBirth", "address", "phone", "packageType", "paymentDate", "balanceAfterApproval", "status"];
+      for (const field of allowedFields) {
+        if (body[field] !== undefined) client[field] = String(body[field]).trim();
+      }
+      for (const field of ["dateOfBirth", "paymentDate"]) {
+        if (body[field] !== undefined && !validateDateOnly(client[field])) {
+          return send(response, 400, { ok: false, message: `Enter a valid ${field === "dateOfBirth" ? "date of birth" : "payment date"}.` });
+        }
+      }
+      if (body.amountPaid !== undefined && isPrivileged) {
+        const amountPaid = Number(body.amountPaid);
+        if (!Number.isFinite(amountPaid) || amountPaid < 0) return send(response, 400, { ok: false, message: "Amount paid must be a non-negative number." });
+        client.amountPaid = amountPaid;
+      }
+      if (body.status !== undefined && !["ongoing", "pending", "submitted", "refused", "approved"].includes(client.status)) {
+        return send(response, 400, { ok: false, message: "Select a valid client progress status." });
+      }
+      client.updatedAt = new Date().toISOString();
+      client.updatedBy = session.username;
+      writeJsonArray(clientsFile, records);
+      logActivity("client_updated", { id: client.id, amountPaidChanged: body.amountPaid !== undefined }, session.username);
+      return send(response, 200, { ok: true, client });
+    }
+
+    if (parsedUrl.pathname === "/api/admin/clients/export" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const records = readJsonArray(clientsFile);
+      const from = parsedUrl.searchParams.get("from") || "";
+      const to = parsedUrl.searchParams.get("to") || "";
+      const filtered = records.filter(record => (!from || record.paymentDate >= from) && (!to || record.paymentDate <= to));
+      const rows = filtered.map(record => ({
+        "Client name": record.fullName,
+        "Gender": record.gender,
+        "Date of birth": record.dateOfBirth,
+        "Address": record.address,
+        "Phone": record.phone,
+        "Package": record.packageType,
+        "Amount paid": `NGN ${Number(record.amountPaid || 0).toLocaleString("en-NG")}`,
+        "Payment date": record.paymentDate,
+        "Balance after approval": `NGN ${Number(record.balanceAfterApproval || 0).toLocaleString("en-NG")}`,
+        "Progress": record.status,
+        "Signed disclaimer": record.signedDisclaimerFile ? "Uploaded" : "Not uploaded",
+        "Signed agreement": record.signedAgreementFile ? "Uploaded" : "Not uploaded"
+      }));
+      const pdf = await generateTablePdf("BisFly Limited - Client Information Report", rows.length ? rows : [{
+        "Client name": "", "Gender": "", "Date of birth": "", "Address": "", "Phone": "", "Package": "", "Amount paid": "", "Payment date": "", "Balance after approval": "", "Progress": "", "Signed disclaimer": "", "Signed agreement": ""
+      }]);
+      response.setHeader("Content-Disposition", `attachment; filename="bisfly-client-report-${new Date().toISOString().slice(0, 10)}.pdf"`);
+      return send(response, 200, pdf, "application/pdf");
+    }
+
+    if (parsedUrl.pathname === "/api/admin/disclaimers/template" && request.method === "POST") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const body = await readBody(request);
+      const required = ["fullName", "gender", "phone", "address", "email"];
+      for (const field of required) {
+        if (!String(body[field] ?? "").trim()) return send(response, 400, { ok: false, message: `${field} is required.` });
+      }
+      if (!validateEmail(body.email)) return send(response, 400, { ok: false, message: "Enter a valid email address." });
+      const relationship = String(body.secondPersonRelationship || "");
+      if (relationship && !["Brother", "Sister", "Wife", "Husband", "Friend"].includes(relationship)) {
+        return send(response, 400, { ok: false, message: "Select a valid relationship for the additional person." });
+      }
+      if (relationship && !String(body.secondPersonName || "").trim()) {
+        return send(response, 400, { ok: false, message: "Enter the additional person's name." });
+      }
+      const disclaimer = {
+        ...body,
+        fullName: String(body.fullName).trim(),
+        gender: String(body.gender).trim(),
+        phone: String(body.phone).trim(),
+        address: String(body.address).trim(),
+        email: String(body.email).trim(),
+        secondPersonRelationship: relationship,
+        secondPersonName: String(body.secondPersonName || "").trim(),
+        generatedBy: session.username
+      };
+      const pdf = await generateDisclaimerPdf(disclaimer);
+      response.setHeader("Content-Disposition", 'attachment; filename="bisfly-client-disclaimer-template.pdf"');
+      return send(response, 200, pdf, "application/pdf");
+    }
+
+    if (parsedUrl.pathname === "/api/admin/disclaimers" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      return send(response, 200, readJsonArray(disclaimersFile));
+    }
+
+    if (parsedUrl.pathname === "/api/admin/disclaimers" && request.method === "POST") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const parsed = await readBody(request);
+      const fields = parsed.fields || {};
+      const signedFile = parsed.files?.signedDisclaimer;
+      const required = ["fullName", "gender", "phone", "address", "email"];
+      for (const field of required) {
+        if (!String(fields[field] ?? "").trim()) return send(response, 400, { ok: false, message: `${field} is required.` });
+      }
+      if (!validateEmail(fields.email)) return send(response, 400, { ok: false, message: "Enter a valid email address." });
+      if (!signedFile?.data?.length) return send(response, 400, { ok: false, message: "Upload the client-signed disclaimer file." });
+      if (signedFile.data.length > 15_000_000) return send(response, 413, { ok: false, message: "Signed disclaimers must be smaller than 15 MB." });
+      const extension = path.extname(signedFile.filename).toLowerCase();
+      const header = signedFile.data.subarray(0, 8);
+      const validFile = extension === ".pdf" ? header.subarray(0, 5).toString("ascii") === "%PDF-"
+        : [".jpg", ".jpeg"].includes(extension) ? header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff
+          : extension === ".png" && header.equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+      if (!validFile) return send(response, 400, { ok: false, message: "Upload a valid signed PDF, JPG, or PNG file." });
+      const relationship = String(fields.secondPersonRelationship || "");
+      if (relationship && !["Brother", "Sister", "Wife", "Husband", "Friend"].includes(relationship)) {
+        return send(response, 400, { ok: false, message: "Select a valid relationship for the additional person." });
+      }
+      if (relationship && !String(fields.secondPersonName || "").trim()) {
+        return send(response, 400, { ok: false, message: "Enter the additional person's name." });
+      }
+      const storedName = `disclaimer-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${extension}`;
+      fs.writeFileSync(path.join(uploadsDir, storedName), signedFile.data, { flag: "wx" });
+      const disclaimer = {
+        id: crypto.randomBytes(12).toString("hex"),
+        fullName: String(fields.fullName).trim().slice(0, 160),
+        gender: String(fields.gender).trim().slice(0, 40),
+        phone: String(fields.phone).trim().slice(0, 40),
+        address: String(fields.address).trim().slice(0, 500),
+        email: String(fields.email).trim().slice(0, 180),
+        secondPersonRelationship: relationship,
+        secondPersonName: String(fields.secondPersonName || "").trim().slice(0, 160),
+        signedFile: storedName,
+        originalFileName: path.basename(signedFile.filename).slice(0, 180),
+        generatedBy: session.username,
+        createdAt: new Date().toISOString()
+      };
+      const records = readJsonArray(disclaimersFile);
+      records.unshift(disclaimer);
+      writeJsonArray(disclaimersFile, records);
+      logActivity("client_disclaimer_uploaded", { id: disclaimer.id, client: disclaimer.fullName }, session.username);
+      return send(response, 201, { ok: true, disclaimer });
+    }
+
+    const disclaimerTemplateMatch = parsedUrl.pathname.match(/^\/api\/admin\/disclaimers\/([^/]+)\/template$/);
+    if (disclaimerTemplateMatch && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const disclaimer = readJsonArray(disclaimersFile).find(item => item.id === disclaimerTemplateMatch[1]);
+      if (!disclaimer) return send(response, 404, { ok: false, message: "Disclaimer record not found." });
+      const pdf = await generateDisclaimerPdf(disclaimer);
+      response.setHeader("Content-Disposition", `attachment; filename="bisfly-disclaimer-${disclaimer.id}.pdf"`);
+      return send(response, 200, pdf, "application/pdf");
+    }
+
+    if (parsedUrl.pathname === "/api/admin/cash-inflows" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const from = parsedUrl.searchParams.get("from") || "";
+      const to = parsedUrl.searchParams.get("to") || "";
+      if (from && !validateDateOnly(from) || to && !validateDateOnly(to) || from && to && from > to) {
+        return send(response, 400, { ok: false, message: "Enter a valid date range." });
+      }
+      const records = readJsonArray(clientsFile).filter(record => (!from || record.paymentDate >= from) && (!to || record.paymentDate <= to));
+      const amountTotal = records.reduce((sum, record) => sum + Number(record.amountPaid || 0), 0);
+      return send(response, 200, { records, amountTotal });
+    }
+
+    if (parsedUrl.pathname === "/api/admin/cash-inflows/report" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const from = parsedUrl.searchParams.get("from") || "";
+      const to = parsedUrl.searchParams.get("to") || "";
+      if (from && !validateDateOnly(from) || to && !validateDateOnly(to) || from && to && from > to) {
+        return send(response, 400, { ok: false, message: "Enter a valid date range." });
+      }
+      const records = readJsonArray(clientsFile).filter(record => (!from || record.paymentDate >= from) && (!to || record.paymentDate <= to));
+      const rows = records.map(record => ({
+        "Payment date": record.paymentDate,
+        "Client name": record.fullName,
+        "Amount paid": `NGN ${Number(record.amountPaid || 0).toLocaleString("en-NG")}`,
+        "Package": record.packageType,
+        "Phone": record.phone
+      }));
+      const total = records.reduce((sum, record) => sum + Number(record.amountPaid || 0), 0);
+      const period = `${from || "All dates"} to ${to || "Present"}`;
+      const pdf = await generateReportPdf("BisFly Limited - Cash Inflow Report", `Payment date range: ${period} | ${records.length} payment(s)`, Object.keys(rows[0] || { "Payment date": "", "Client name": "", "Amount paid": "", "Package": "", "Phone": "" }), rows, "TOTAL AMOUNT RECEIVED", `NGN ${total.toLocaleString("en-NG")}`);
+      response.setHeader("Content-Disposition", `attachment; filename="bisfly-cash-inflow-${from || "all"}-${to || "present"}.pdf"`);
+      return send(response, 200, pdf, "application/pdf");
+    }
+
+    if (parsedUrl.pathname === "/api/admin/expenses" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      return send(response, 200, readJsonArray(expensesFile));
+    }
+
+    if (parsedUrl.pathname === "/api/admin/expenses" && request.method === "POST") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const body = await readBody(request);
+      const purpose = String(body.purpose || "").trim();
+      const amount = Number(body.amount);
+      const expenseDate = String(body.expenseDate || "");
+      if (!purpose || purpose.length > 500 || !Number.isFinite(amount) || amount <= 0 || !validateDateOnly(expenseDate)) {
+        return send(response, 400, { ok: false, message: "Enter an expense purpose, a positive amount, and a valid date." });
+      }
+      const expense = { id: crypto.randomBytes(12).toString("hex"), adminName: session.username, purpose, amount, expenseDate, createdAt: new Date().toISOString() };
+      const records = readJsonArray(expensesFile);
+      records.unshift(expense);
+      writeJsonArray(expensesFile, records);
+      logActivity("expense_recorded", { id: expense.id, amount: expense.amount, purpose: expense.purpose }, session.username);
+      return send(response, 201, { ok: true, expense });
+    }
+
+    if (parsedUrl.pathname === "/api/admin/expenses/report" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session)) return;
+      const from = parsedUrl.searchParams.get("from") || "";
+      const to = parsedUrl.searchParams.get("to") || "";
+      if (from && !validateDateOnly(from) || to && !validateDateOnly(to) || from && to && from > to) {
+        return send(response, 400, { ok: false, message: "Enter a valid date range." });
+      }
+      const records = readJsonArray(expensesFile).filter(record => (!from || record.expenseDate >= from) && (!to || record.expenseDate <= to));
+      const rows = records.map(record => ({
+        "Date": record.expenseDate,
+        "Admin": record.adminName,
+        "Purpose": record.purpose,
+        "Amount": `NGN ${Number(record.amount || 0).toLocaleString("en-NG")}`
+      }));
+      const total = records.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+      const pdf = await generateReportPdf("BisFly Limited - Expense Report", `Expense date range: ${from || "All dates"} to ${to || "Present"} | ${records.length} expense(s)`, Object.keys(rows[0] || { "Date": "", "Admin": "", "Purpose": "", "Amount": "" }), rows, "TOTAL EXPENSES", `NGN ${total.toLocaleString("en-NG")}`);
+      response.setHeader("Content-Disposition", `attachment; filename="bisfly-expense-report-${from || "all"}-${to || "present"}.pdf"`);
+      return send(response, 200, pdf, "application/pdf");
+    }
+
     if (parsedUrl.pathname.match(/^\/api\/agreements\/[^\/]+\/approve$/) && request.method === "POST") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
-      if (!session) {
-        send(response, 401, { ok: false, message: "Unauthorized" });
-        return;
-      }
+      if (!requireSuperAdmin(response, session)) return;
       const id = Number(parsedUrl.pathname.split("/")[3]);
       const agreements = readAgreements();
       const agreement = agreements.find(item => item.id === id);
@@ -1548,7 +2469,7 @@ const server = http.createServer(async (request, response) => {
         send(response, 404, "Agreement not found", "text/plain; charset=utf-8");
         return;
       }
-      if (agreement.status !== "approved" && !session) {
+      if (!session && agreement.status !== "approved") {
         send(response, 403, "Agreement not approved yet", "text/plain; charset=utf-8");
         return;
       }
@@ -1559,11 +2480,6 @@ const server = http.createServer(async (request, response) => {
     }
 
     // Regular Leads Endpoints
-    if (parsedUrl.pathname === "/api/leads" && request.method === "GET") {
-      send(response, 200, readLeads());
-      return;
-    }
-
     if (parsedUrl.pathname === "/api/leads" && request.method === "POST") {
       const body = await readBody(request);
       const normalized = normalizeCustomerFields(body);
@@ -1573,13 +2489,16 @@ const server = http.createServer(async (request, response) => {
       send(response, 201, { ok: true });
       if (normalized.email) {
         const lead = leads[0];
-        const html = `<p>Dear ${lead.name || lead.fullName || 'Customer'},</p><p>Thank you for contacting BisFly Travels. We received your request and will follow up soon.</p><p>Reference ID: ${lead.id}</p><p>Best regards,<br/>BisFly Travels and Tours</p>`;
-        notifySubmission(normalized.email, 'BisFly: We received your request', html, 'BisFly: New customer request', `<p>A new customer request was submitted.</p><p><strong>Name:</strong> ${lead.name || lead.fullName || 'Customer'}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Phone:</strong> ${normalized.phone || 'Not provided'}</p><p><strong>Reference ID:</strong> ${lead.id}</p>`);
+        const html = `<p>Dear ${lead.name || lead.fullName || 'Customer'},</p><p>Thank you for contacting BisFly Limited. We received your request and will follow up soon.</p><p>Reference ID: ${lead.id}</p><p>Best regards,<br/>BisFly Limited</p>`;
+        notifySubmission(normalized.email, 'BisFly Limited: We received your request', html, 'BisFly Limited: New customer request', `<p>A new customer request was submitted.</p><p><strong>Name:</strong> ${lead.name || lead.fullName || 'Customer'}</p><p><strong>Email:</strong> ${normalized.email}</p><p><strong>Phone:</strong> ${normalized.phone || 'Not provided'}</p><p><strong>Reference ID:</strong> ${lead.id}</p>`);
       }
       return;
     }
 
     if (parsedUrl.pathname === "/api/leads" && request.method === "DELETE") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      const session = validateSession(token);
+      if (!requireSuperAdmin(response, session)) return;
       writeLeads([]);
       send(response, 200, { ok: true });
       return;
@@ -1588,6 +2507,20 @@ const server = http.createServer(async (request, response) => {
     // File Download Endpoint
     if (parsedUrl.pathname.startsWith("/uploads/")) {
       const fileName = path.basename(parsedUrl.pathname);
+      const isPublicPackageImage = readPackages().some(pkg => pkg.imageFile === fileName);
+      if (!isPublicPackageImage) {
+        const token = request.headers.authorization?.replace("Bearer ", "");
+        const session = validateSession(token);
+        if (!session) {
+          send(response, 401, "Unauthorized", "text/plain; charset=utf-8");
+          return;
+        }
+        const adminDocument = readAdminDocuments().find(document => document.storedName === fileName);
+        if (adminDocument && !isMasterAdminSession(session) && adminDocument.uploadedById !== session.userId && !(adminDocument.allowedUserIds || []).includes(session.userId)) {
+          send(response, 403, "You do not have access to this document", "text/plain; charset=utf-8");
+          return;
+        }
+      }
       const filePath = path.normalize(path.join(uploadsDir, fileName));
       if (!filePath.startsWith(uploadsDir)) {
         send(response, 403, "Forbidden", "text/plain; charset=utf-8");
@@ -1598,8 +2531,17 @@ const server = http.createServer(async (request, response) => {
           send(response, 404, "Not found", "text/plain; charset=utf-8");
           return;
         }
-        response.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-        send(response, 200, data, "image/jpeg");
+        const extension = path.extname(fileName).toLowerCase();
+        const contentType = mimeTypes[extension] || ({
+          ".pdf": "application/pdf",
+          ".doc": "application/msword",
+          ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          ".xls": "application/vnd.ms-excel",
+          ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          ".csv": "text/csv; charset=utf-8"
+        })[extension] || "application/octet-stream";
+        response.setHeader("Content-Disposition", `${isPublicPackageImage ? "inline" : "attachment"}; filename="${fileName}"`);
+        send(response, 200, data, contentType);
       });
       return;
     }
@@ -1608,6 +2550,8 @@ const server = http.createServer(async (request, response) => {
     
     // Search in leads
     if (parsedUrl.pathname === "/api/leads/search" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      if (!validateSession(token)) return send(response, 401, { ok: false, message: "Unauthorized" });
       const query = parsedUrl.searchParams.get("q") || "";
       const leads = readLeads().filter(lead => 
         (lead.fullName || lead.name || "").toLowerCase().includes(query.toLowerCase()) ||
@@ -1657,6 +2601,8 @@ const server = http.createServer(async (request, response) => {
 
     // Filter leads by status/date
     if (parsedUrl.pathname === "/api/leads/filter" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      if (!validateSession(token)) return send(response, 401, { ok: false, message: "Unauthorized" });
       const status = parsedUrl.searchParams.get("status");
       const fromDate = parsedUrl.searchParams.get("from");
       const toDate = parsedUrl.searchParams.get("to");
@@ -1710,6 +2656,292 @@ const server = http.createServer(async (request, response) => {
 
     // ==================== DATA EXPORT (PDF TABLES) ====================
 
+    if (parsedUrl.pathname === "/api/admin/documents" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      const session = validateSession(token);
+      if (!session) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+      const documents = readAdminDocuments()
+        .filter(document => isMasterAdminSession(session) || document.uploadedById === session.userId || (document.allowedUserIds || []).includes(session.userId))
+        .sort((first, second) => new Date(second.uploadedAt) - new Date(first.uploadedAt));
+      send(response, 200, documents);
+      return;
+    }
+
+    if (parsedUrl.pathname === "/api/admin/document-access-users" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      if (!validateSession(token)) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+      send(response, 200, readAdminUsers().filter(user => user.active !== false).map(sanitizeUser));
+      return;
+    }
+
+    if (parsedUrl.pathname === "/api/admin/documents" && request.method === "POST") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      const session = validateSession(token);
+      if (!session) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+
+      const parsed = await readBody(request);
+      const fields = parsed.fields || {};
+      const files = parsed.files || {};
+      const file = files.document;
+      if (!file?.data?.length) {
+        send(response, 400, { ok: false, message: "Choose a document to upload." });
+        return;
+      }
+      if (file.data.length > 15_000_000) {
+        send(response, 413, { ok: false, message: "Documents must be smaller than 15 MB." });
+        return;
+      }
+      const extension = path.extname(file.filename).toLowerCase();
+      const allowedExtensions = new Set([".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx", ".xls", ".xlsx", ".csv"]);
+      if (!allowedExtensions.has(extension)) {
+        send(response, 400, { ok: false, message: "Allowed files: PDF, JPG, PNG, DOC/DOCX, XLS/XLSX, or CSV." });
+        return;
+      }
+      const signature = file.data.subarray(0, 8);
+      const validSignature = extension === ".pdf" ? signature.subarray(0, 5).toString("ascii") === "%PDF-"
+        : [".jpg", ".jpeg"].includes(extension) ? signature[0] === 0xff && signature[1] === 0xd8 && signature[2] === 0xff
+          : extension === ".png" ? signature.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+            : [".docx", ".xlsx"].includes(extension) ? signature[0] === 0x50 && signature[1] === 0x4b
+              : true;
+      if (!validSignature) {
+        send(response, 400, { ok: false, message: "File contents do not match the selected document type." });
+        return;
+      }
+
+      let allowedUserIds;
+      try {
+        const rawAllowedUsers = JSON.parse(String(fields.allowedUserIds || "[]"));
+        if (!Array.isArray(rawAllowedUsers)) throw new Error("Expected a list of users.");
+        const activeUsers = readAdminUsers().filter(user => user.active !== false);
+        const activeIds = new Set(activeUsers.map(user => Number(user.id)));
+        allowedUserIds = [...new Set(rawAllowedUsers.map(Number))].filter(id => Number.isSafeInteger(id) && activeIds.has(id));
+        if (allowedUserIds.length !== new Set(rawAllowedUsers.map(Number)).size) throw new Error("One or more selected users are not active.");
+        if (allowedUserIds.length === 0) throw new Error("Select at least one user who should have access to this document.");
+      } catch (error) {
+        send(response, 400, { ok: false, message: error.message || "Choose valid active accounts for document access." });
+        return;
+      }
+
+      const storedName = `admin-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${extension}`;
+      fs.writeFileSync(path.join(uploadsDir, storedName), file.data, { flag: "wx" });
+      const document = {
+        id: crypto.randomBytes(12).toString("hex"),
+        originalName: path.basename(file.filename).slice(0, 180),
+        storedName,
+        category: String(fields.category || "General").trim().slice(0, 60) || "General",
+        description: String(fields.description || "").trim().slice(0, 300),
+        uploadedBy: session.username,
+        uploadedById: Number(session.userId),
+        allowedUserIds,
+        allowedUsers: allowedUserIds.map(id => {
+          const user = readAdminUsers().find(account => Number(account.id) === id);
+          return { id, username: user?.username || "Unknown" };
+        }),
+        uploadedAt: new Date().toISOString(),
+        size: file.data.length,
+        contentType: file.contentType || "application/octet-stream"
+      };
+      const documents = readAdminDocuments();
+      documents.unshift(document);
+      writeAdminDocuments(documents);
+      logActivity("admin_document_uploaded", { name: document.originalName, category: document.category }, session.username);
+      send(response, 201, { ok: true, document });
+      return;
+    }
+
+    if (parsedUrl.pathname === "/api/bank-inflows" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      const session = validateSession(token);
+      if (!session) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+      if (!isMasterAdminSession(session) && !isManagerSession(session)) {
+        send(response, 403, { ok: false, message: "Manager or super-admin access required." });
+        return;
+      }
+      const requestedBatch = parsedUrl.searchParams.get("batch") || "";
+      const allRecords = readInflows();
+      const batchIds = [...new Set(allRecords.map(record => record.batchId).filter(Boolean))];
+      const selectedBatch = requestedBatch || batchIds[batchIds.length - 1] || "";
+      const records = allRecords
+        .filter(record => !selectedBatch || record.batchId === selectedBatch)
+        .sort((first, second) => new Date(second.date) - new Date(first.date));
+      const inflows = records.filter(record => (record.type || (Number(record.signedAmount ?? record.amount) >= 0 ? "inflow" : "outflow")) === "inflow");
+      const outflows = records.filter(record => (record.type || (Number(record.signedAmount ?? record.amount) >= 0 ? "inflow" : "outflow")) === "outflow");
+      const totalInflows = inflows.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+      const totalOutflows = outflows.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+      const batchRecords = selectedBatch
+        ? allRecords.filter(record => record.batchId === selectedBatch).sort((first, second) => new Date(first.date) - new Date(second.date))
+        : [];
+      const balances = batchRecords.filter(record => record.balance !== null && record.balance !== undefined && Number.isFinite(Number(record.balance)));
+      const openingBalance = balances.length
+        ? Number(balances[0].balance) - Number(balances[0].signedAmount ?? (balances[0].type === "outflow" ? -balances[0].amount : balances[0].amount))
+        : null;
+      const closingBalance = balances.length ? Number(balances[balances.length - 1].balance) : null;
+      const batches = batchIds.map(batchId => {
+        const firstRecord = allRecords.find(record => record.batchId === batchId);
+        return { id: batchId, sourceFile: firstRecord?.sourceFile || "Statement", importedAt: firstRecord?.importedAt || "" };
+      });
+      if (selectedBatch && !batches.some(batch => batch.id === selectedBatch)) {
+        send(response, 404, { ok: false, message: "Statement batch not found." });
+        return;
+      }
+      send(response, 200, {
+        records,
+        batches,
+        selectedBatch,
+        summary: {
+          totalInflows,
+          totalOutflows,
+          net: totalInflows - totalOutflows,
+          openingBalance,
+          closingBalance,
+          count: records.length,
+          unmatchedCount: records.filter(record => record.status === "unmatched").length,
+          matchedCount: records.filter(record => record.status === "matched").length
+        }
+      });
+      return;
+    }
+
+    if (parsedUrl.pathname === "/api/bank-inflows/import" && request.method === "POST") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      const session = validateSession(token);
+      if (!session) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+      if (!isMasterAdminSession(session) && !isManagerSession(session)) {
+        send(response, 403, { ok: false, message: "Manager or super-admin access required." });
+        return;
+      }
+
+      const contentType = request.headers["content-type"] || "";
+      const isCsv = contentType.includes("text/csv");
+      const isPdf = contentType.includes("application/pdf");
+      if (!isCsv && !isPdf) {
+        send(response, 415, { ok: false, message: "Upload a PDF or CSV bank statement." });
+        return;
+      }
+      const chunks = [];
+      let byteLength = 0;
+      for await (const chunk of request) {
+        byteLength += chunk.length;
+        if (byteLength > 5_000_000) {
+          send(response, 413, { ok: false, message: "Statement files must be smaller than 5 MB." });
+          return;
+        }
+        chunks.push(chunk);
+      }
+
+      try {
+        const filename = String(request.headers["x-file-name"] || (isPdf ? "fidelity-statement.pdf" : "fidelity-statement.csv"));
+        const fileBuffer = Buffer.concat(chunks);
+        const result = isPdf
+          ? await parseBankStatementPdf(fileBuffer, filename)
+          : parseBankStatementCsv(fileBuffer.toString("utf8"), filename);
+        const records = readInflows();
+        writeInflows([...records, ...result.accepted]);
+        logActivity("bank_inflows_imported", {
+          filename: filename.slice(0, 120),
+          format: isPdf ? "pdf" : "csv",
+          imported: result.accepted.length,
+          skipped: result.skipped,
+          duplicates: result.duplicates
+        }, session.username);
+        send(response, 200, {
+          ok: true,
+          imported: result.accepted.length,
+          skipped: result.skipped,
+          duplicates: result.duplicates,
+          batchId: result.accepted[0]?.batchId || null,
+          openingBalance: result.openingBalance,
+          closingBalance: result.closingBalance
+        });
+      } catch (error) {
+        send(response, 400, { ok: false, message: error.message || "Unable to process this CSV file." });
+      }
+      return;
+    }
+
+    if (parsedUrl.pathname === "/api/bank-inflows/export" && request.method === "GET") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      const session = validateSession(token);
+      if (!session) {
+        send(response, 401, { ok: false, message: "Unauthorized" });
+        return;
+      }
+      if (!isMasterAdminSession(session) && !isManagerSession(session)) {
+        send(response, 403, { ok: false, message: "Manager or super-admin access required." });
+        return;
+      }
+      const batchId = parsedUrl.searchParams.get("batch") || "";
+      const records = readInflows()
+        .filter(record => !batchId || record.batchId === batchId)
+        .sort((first, second) => new Date(first.date) - new Date(second.date));
+      if (!records.length) {
+        send(response, 404, { ok: false, message: "No transactions are available to download." });
+        return;
+      }
+      const escapeCsv = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
+      const lines = ["Date,Type,Inflow (NGN),Outflow (NGN),Balance (NGN),Reference,Description,Client Match,Status,Source File"];
+      records.forEach(record => {
+        const isOutflow = (record.type || (Number(record.signedAmount ?? record.amount) < 0 ? "outflow" : "inflow")) === "outflow";
+        lines.push([
+          new Date(record.date).toISOString(),
+          isOutflow ? "Outflow" : "Inflow",
+          isOutflow ? "" : Number(record.amount || 0).toFixed(2),
+          isOutflow ? Number(record.amount || 0).toFixed(2) : "",
+          record.balance ?? "",
+          record.reference,
+          record.description,
+          record.matchedClient,
+          record.status,
+          record.sourceFile
+        ].map(escapeCsv).join(","));
+      });
+      const batchKey = batchId || records[0].batchId || "all-statements";
+      response.setHeader("Content-Disposition", `attachment; filename="fidelity-account-${batchKey}.csv"`);
+      send(response, 200, `\uFEFF${lines.join("\r\n")}`, "text/csv; charset=utf-8");
+      return;
+    }
+
+    if (parsedUrl.pathname.match(/^\/api\/bank-inflows\/[^/]+$/) && request.method === "PATCH") {
+      const token = request.headers.authorization?.replace("Bearer ", "");
+      const session = validateSession(token);
+      if (!requireSuperAdmin(response, session)) return;
+      const id = decodeURIComponent(parsedUrl.pathname.split("/").pop());
+      const body = await readBody(request);
+      const status = String(body.status || "");
+      if (!["matched", "unmatched"].includes(status)) {
+        send(response, 400, { ok: false, message: "Status must be matched or unmatched." });
+        return;
+      }
+      const records = readInflows();
+      const record = records.find(item => item.id === id);
+      if (!record) {
+        send(response, 404, { ok: false, message: "Transaction not found." });
+        return;
+      }
+      record.status = status;
+      record.matchedClient = status === "matched" ? String(body.matchedClient || "").trim().slice(0, 160) : "";
+      record.updatedAt = new Date().toISOString();
+      writeInflows(records);
+      logActivity("bank_inflow_reconciled", { id, status }, session.username);
+      send(response, 200, { ok: true, record });
+      return;
+    }
+
     // Export leads to PDF table
     if (parsedUrl.pathname === "/api/leads/export" && request.method === "GET") {
       const token = request.headers.authorization?.replace("Bearer ", "");
@@ -1718,7 +2950,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
       const leads = readLeads();
-      const pdfBuffer = await generateTablePdf("BisFly Leads Export", leads);
+      const pdfBuffer = await generateTablePdf("BisFly Limited Leads Export", leads);
       response.setHeader("Content-Disposition", 'attachment; filename="leads-' + new Date().toISOString().split("T")[0] + '.pdf"');
       send(response, 200, pdfBuffer, "application/pdf");
       return;
@@ -1733,7 +2965,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
       const insurance = readInsurance();
-      const pdfBuffer = await generateTablePdf("BisFly Insurance Applications Export", insurance);
+      const pdfBuffer = await generateTablePdf("BisFly Limited Insurance Applications Export", insurance);
       response.setHeader("Content-Disposition", 'attachment; filename="insurance-' + new Date().toISOString().split("T")[0] + '.pdf"');
       send(response, 200, pdfBuffer, "application/pdf");
       return;
@@ -1748,7 +2980,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
       const agreements = readAgreements();
-      const pdfBuffer = await generateTablePdf("BisFly Agreements Export", agreements);
+      const pdfBuffer = await generateTablePdf("BisFly Limited Agreements Export", agreements);
       response.setHeader("Content-Disposition", 'attachment; filename="agreements-' + new Date().toISOString().split("T")[0] + '.pdf"');
       send(response, 200, pdfBuffer, "application/pdf");
       return;
@@ -1763,7 +2995,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
       const passports = readPassports();
-      const pdfBuffer = await generateTablePdf("BisFly Passport Requests Export", passports);
+      const pdfBuffer = await generateTablePdf("BisFly Limited Passport Requests Export", passports);
       response.setHeader("Content-Disposition", 'attachment; filename="passports-' + new Date().toISOString().split("T")[0] + '.pdf"');
       send(response, 200, pdfBuffer, "application/pdf");
       return;
@@ -1777,7 +3009,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
       const partnerships = readPartnerships();
-      const pdfBuffer = await generateTablePdf("BisFly Partnerships Export", partnerships);
+      const pdfBuffer = await generateTablePdf("BisFly Limited Partnerships Export", partnerships);
       response.setHeader("Content-Disposition", 'attachment; filename="partnerships-' + new Date().toISOString().split("T")[0] + '.pdf"');
       send(response, 200, pdfBuffer, "application/pdf");
       return;
@@ -1790,7 +3022,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
       const packages = readPackages();
-      const pdfBuffer = await generateTablePdf("BisFly Packages Export", packages);
+      const pdfBuffer = await generateTablePdf("BisFly Limited Packages Export", packages);
       response.setHeader("Content-Disposition", 'attachment; filename="packages-' + new Date().toISOString().split("T")[0] + '.pdf"');
       send(response, 200, pdfBuffer, "application/pdf");
       return;
@@ -1802,10 +3034,7 @@ const server = http.createServer(async (request, response) => {
     if (parsedUrl.pathname === "/api/analytics" && request.method === "GET") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
-      if (!session) {
-        send(response, 401, { ok: false, message: "Unauthorized" });
-        return;
-      }
+      if (!requireSuperAdmin(response, session)) return;
       
       const leads = readLeads();
       const insurance = readInsurance();
@@ -1856,10 +3085,7 @@ const server = http.createServer(async (request, response) => {
     if (parsedUrl.pathname === "/api/admin/activity-log" && request.method === "GET") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
-      if (!session) {
-        send(response, 401, { ok: false, message: "Unauthorized" });
-        return;
-      }
+      if (!requireSuperAdmin(response, session)) return;
       
       try {
         const limit = Number(parsedUrl.searchParams.get("limit")) || 100;
@@ -1878,10 +3104,7 @@ const server = http.createServer(async (request, response) => {
     if (parsedUrl.pathname === "/api/admin/change-password" && request.method === "POST") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
-      if (!session) {
-        send(response, 401, { ok: false, message: "Unauthorized" });
-        return;
-      }
+      if (!requireSuperAdmin(response, session)) return;
 
       const body = await readBody(request);
       const currentPassword = String(body.currentPassword || "");
@@ -1936,7 +3159,7 @@ if (!fs.existsSync(partnershipFile)) writePartnerships([]);
 if (!fs.existsSync(adminUsersFile)) writeAdminUsers([]);
 
 server.listen(port, host, () => {
-  console.log(`BisFly website running at http://${host}:${port}`);
+  console.log(`BisFly Limited website running at http://${host}:${port}`);
   console.log(`Admin portal available at http://${host}:${port}/admin`);
   console.log(`Admin dashboard available at http://${host}:${port}/admin-dashboard`);
   console.log(`Default Admin Username: admin | Default Password: BisFly@2026`);
