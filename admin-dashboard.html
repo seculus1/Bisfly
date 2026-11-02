@@ -32,13 +32,16 @@
     .admin-data-table {
       width: 100%;
       border-collapse: separate;
-      border-spacing: 0 0.55rem;
-      table-layout: fixed;
+      border-spacing: 0;
+      table-layout: auto;
       font-size: 0.8rem;
     }
+    .admin-data-table th,
+    .admin-data-table td { padding-left: 0.65rem; padding-right: 0.65rem; }
     .admin-data-table thead th {
       background: rgba(6, 21, 59, 0.85);
-      padding: 0.7rem 0.75rem;
+      padding-top: 0.6rem;
+      padding-bottom: 0.6rem;
       text-align: left;
       font-weight: 800;
       color: #f8b72b;
@@ -56,7 +59,8 @@
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
     }
     .admin-data-table tbody td {
-      padding: 0.8rem 0.75rem;
+      padding-top: 0.55rem;
+      padding-bottom: 0.55rem;
       border-top: 1px solid rgba(255,255,255,0.08);
       border-bottom: 1px solid rgba(255,255,255,0.08);
       vertical-align: top;
@@ -64,7 +68,7 @@
       word-break: break-word;
       overflow-wrap: anywhere;
       white-space: normal;
-      line-height: 1.4;
+      line-height: 1.3;
     }
     .admin-data-table tbody tr td:first-child {
       border-left: 1px solid rgba(255,255,255,0.08);
@@ -78,6 +82,8 @@
     }
     .admin-data-table tbody tr:hover { background: rgba(255,255,255,0.06); }
     .admin-data-table .status-pill { display: inline-block; padding: 0.35rem 0.6rem; border-radius: 9999px; font-size: 0.68rem; font-weight: 700; }
+    .admin-data-table th:last-child,
+    .admin-data-table td:last-child { white-space: nowrap; }
     .sort-header {
       display: inline-flex;
       align-items: center;
@@ -121,6 +127,9 @@
       </button>
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="expenses">
         <i data-lucide="receipt" class="w-5 h-5 inline mr-3"></i>Expenses
+      </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="receipts">
+        <i data-lucide="badge-dollar-sign" class="w-5 h-5 inline mr-3"></i>Payment Receipts
       </button>
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="insurance">
         <i data-lucide="shield" class="w-5 h-5 inline mr-3"></i>Insurance
@@ -271,6 +280,7 @@
               <th style="width: 17%;" data-sort-key="destination"><span class="sort-header">Destination <span class="sort-indicator"></span></span></th>
               <th style="width: 20%;" data-sort-key="service"><span class="sort-header">Service <span class="sort-indicator"></span></span></th>
               <th style="width: 15%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
+              <th>Record actions</th>
             </tr>
           </thead>
           <tbody id="leadsTable">
@@ -283,7 +293,7 @@
     <!-- Client Information Tab -->
     <div id="clients-tab" class="tab-content hidden">
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div><h1 class="text-3xl font-black text-gold">Client Information</h1><p class="mt-1 text-sm text-white/60">Create and track client records, payments, signed documents, and case progress.</p></div>
+        <div><h1 class="text-3xl font-black text-gold">Client Information</h1><p class="mt-1 text-sm text-white/60">Record full or installment initial-deposit payments. Installment receipts go to the Super Admin only after you confirm the deposit is complete.</p></div>
         <button id="exportClientsBtn" type="button" class="rounded-lg bg-gold px-4 py-2 font-bold text-navy hover:bg-white"><i data-lucide="download" class="mr-2 inline h-4 w-4"></i>Download client report</button>
       </div>
       <form id="clientForm" class="mb-6 grid gap-4 rounded-lg border border-white/10 bg-white/5 p-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -291,21 +301,46 @@
         <label class="grid gap-1 text-sm text-white/75">Gender<select required name="gender" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900"><option value="">Select gender</option><option>Female</option><option>Male</option><option>Prefer not to say</option></select></label>
         <label class="grid gap-1 text-sm text-white/75">Date of birth<input required name="dateOfBirth" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
         <label class="grid gap-1 text-sm text-white/75">Phone number<input required name="phone" type="tel" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Client email<input required name="email" type="email" maxlength="180" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
         <label class="grid gap-1 text-sm text-white/75">Package type<input required name="packageType" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
-        <label class="grid gap-1 text-sm text-white/75">Amount paid (NGN)<input required name="amountPaid" type="number" min="0" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
-        <label class="grid gap-1 text-sm text-white/75">Payment date<input required name="paymentDate" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/75">Initial payment method<select required name="paymentMethod" id="clientPaymentMethod" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900"><option value="full">Full initial payment</option><option value="installment">Installments (up to 3)</option></select></label>
+        <div id="fullInitialPaymentFields" class="grid gap-4 sm:grid-cols-2 sm:col-span-2 xl:col-span-2">
+          <label class="grid gap-1 text-sm text-white/75">Initial amount paid (NGN)<input required name="amountPaid" type="number" min="0.01" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Payment date<input required name="paymentDate" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        </div>
+        <div id="installmentPaymentFields" class="hidden grid gap-3 rounded border border-white/10 p-3 sm:col-span-2 xl:col-span-3">
+          <p class="text-sm font-bold text-gold">Initial-deposit installments</p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <label class="grid gap-1 text-sm text-white/75">Installment 1 amount (NGN)<input data-installment-amount type="number" min="0.01" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+            <label class="grid gap-1 text-sm text-white/75">Installment 1 date<input data-installment-date type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+            <span class="hidden sm:block"></span>
+            <label class="grid gap-1 text-sm text-white/75">Installment 2 amount (NGN)<input data-installment-amount type="number" min="0.01" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+            <label class="grid gap-1 text-sm text-white/75">Installment 2 date<input data-installment-date type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+            <span class="hidden sm:block"></span>
+            <label class="grid gap-1 text-sm text-white/75">Installment 3 amount (optional)<input data-installment-amount type="number" min="0.01" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+            <label class="grid gap-1 text-sm text-white/75">Installment 3 date<input data-installment-date type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+          </div>
+          <p class="text-sm text-white/75">Recorded initial deposit total: <strong id="installmentTotalPreview" class="text-gold">NGN 0</strong></p>
+          <label class="flex items-start gap-2 text-sm text-white/75"><input id="initialDepositComplete" type="checkbox" class="mt-1" />I confirm that the client’s full initial deposit has been received. Leave unchecked if the deposit is still being collected.</label>
+        </div>
         <label class="grid gap-1 text-sm text-white/75">Balance due after visa approval (NGN)<input required name="balanceAfterApproval" type="number" min="0" step="0.01" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
         <label class="grid gap-1 text-sm text-white/75">Progress status<select required name="status" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900"><option>ongoing</option><option selected>pending</option><option>submitted</option><option>refused</option><option>approved</option></select></label>
         <label class="grid gap-1 text-sm text-white/75 sm:col-span-2 xl:col-span-3">Address<input required name="address" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
         <label class="grid gap-1 text-sm text-white/75">Signed disclaimer (PDF/JPG/PNG)<input name="signedDisclaimer" type="file" accept=".pdf,.jpg,.jpeg,.png" class="rounded border border-white/15 bg-white/10 px-3 py-2 text-white" /></label>
         <label class="grid gap-1 text-sm text-white/75">Signed agreement (PDF/JPG/PNG)<input name="signedAgreement" type="file" accept=".pdf,.jpg,.jpeg,.png" class="rounded border border-white/15 bg-white/10 px-3 py-2 text-white" /></label>
+        <div id="submittedDocumentFields" class="hidden grid gap-3 rounded border border-amber-300/30 p-3 sm:col-span-2 xl:col-span-3">
+          <p class="text-sm font-bold text-gold">Required for Submitted status: one filled visa application and two supporting documents (PDF/JPG/PNG, up to 5 MB each).</p>
+          <label class="grid gap-1 text-sm text-white/75">Filled visa application form<input name="visaApplicationForm" type="file" accept=".pdf,.jpg,.jpeg,.png" class="rounded border border-white/15 bg-white/10 px-3 py-2 text-white" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Supporting document 1<input name="submittedSupportingDocument1" type="file" accept=".pdf,.jpg,.jpeg,.png" class="rounded border border-white/15 bg-white/10 px-3 py-2 text-white" /></label>
+          <label class="grid gap-1 text-sm text-white/75">Supporting document 2<input name="submittedSupportingDocument2" type="file" accept=".pdf,.jpg,.jpeg,.png" class="rounded border border-white/15 bg-white/10 px-3 py-2 text-white" /></label>
+        </div>
         <div class="flex items-end"><button class="w-full rounded bg-gold px-4 py-2 font-bold text-navy hover:bg-white" type="submit">Create client record</button></div>
         <p id="clientFormStatus" class="hidden rounded p-3 text-sm sm:col-span-2 xl:col-span-3" role="status" aria-live="polite"></p>
         <p class="text-xs text-white/55 sm:col-span-2 xl:col-span-3">Amounts paid can be changed only by a Manager or Super Admin. Other administrators may update client details and progress.</p>
       </form>
       <div class="glass overflow-x-auto rounded-lg border border-white/10">
-        <table class="admin-data-table"><thead><tr><th>Client</th><th>Phone</th><th>Package</th><th>Paid (NGN)</th><th>Payment date</th><th>Balance after approval</th><th>Progress / actions</th><th>Signed files</th></tr></thead>
-          <tbody id="clientsTable"><tr><td colspan="8" class="py-8 text-center text-white/60">Loading client records...</td></tr></tbody></table>
+        <table class="admin-data-table"><thead><tr><th>Client</th><th>Phone</th><th>Package</th><th>Paid (NGN)</th><th>Payment dates</th><th>Balance after approval</th><th>Progress / actions</th><th>Client files</th><th>Record actions</th></tr></thead>
+          <tbody id="clientsTable"><tr><td colspan="9" class="py-8 text-center text-white/60">Loading client records...</td></tr></tbody></table>
       </div>
     </div>
 
@@ -325,7 +360,7 @@
         <div class="flex flex-wrap items-end gap-3"><button id="downloadDisclaimerTemplateBtn" type="button" class="rounded border border-white/20 px-4 py-2 font-bold hover:bg-white/10">Download signature-ready disclaimer</button><button type="submit" class="rounded bg-gold px-4 py-2 font-bold text-navy hover:bg-white">Save signed disclaimer</button></div>
         <p id="disclaimerStatus" class="hidden rounded p-3 text-sm sm:col-span-2" role="status" aria-live="polite"></p>
       </form>
-      <div class="glass overflow-x-auto rounded-lg border border-white/10"><table class="admin-data-table"><thead><tr><th>Client</th><th>Gender</th><th>Phone</th><th>Email</th><th>Second person</th><th>Signed file</th><th>Created</th><th>Action</th></tr></thead><tbody id="disclaimersTable"><tr><td colspan="8" class="py-8 text-center text-white/60">Loading disclaimers...</td></tr></tbody></table></div>
+      <div class="glass overflow-x-auto rounded-lg border border-white/10"><table class="admin-data-table"><thead><tr><th>Client</th><th>Gender</th><th>Phone</th><th>Email</th><th>Second person</th><th>Signed file</th><th>Created</th><th>Action</th><th>Record actions</th></tr></thead><tbody id="disclaimersTable"><tr><td colspan="9" class="py-8 text-center text-white/60">Loading disclaimers...</td></tr></tbody></table></div>
     </div>
 
     <!-- Cash Inflow Report Tab -->
@@ -353,7 +388,22 @@
         <p id="expenseStatus" class="hidden rounded p-3 text-sm sm:col-span-2 xl:col-span-4" role="status" aria-live="polite"></p>
       </form>
       <div class="mb-4 flex flex-wrap items-end gap-3"><label class="grid gap-1 text-sm text-white/70">From<input id="expenseFrom" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label><label class="grid gap-1 text-sm text-white/70">To<input id="expenseTo" type="date" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label><button id="downloadExpenseReportBtn" type="button" class="rounded bg-royal px-4 py-2 font-bold text-white">Download expense report</button></div>
-      <div class="glass overflow-x-auto rounded-lg border border-white/10"><table class="admin-data-table"><thead><tr><th>Date</th><th>Admin</th><th>Purpose</th><th>Amount (NGN)</th></tr></thead><tbody id="expensesTable"><tr><td colspan="4" class="py-8 text-center text-white/60">Loading expenses...</td></tr></tbody></table></div>
+      <div class="glass overflow-x-auto rounded-lg border border-white/10"><table class="admin-data-table"><thead><tr><th>Date</th><th>Admin</th><th>Purpose</th><th>Amount (NGN)</th><th>Record actions</th></tr></thead><tbody id="expensesTable"><tr><td colspan="5" class="py-8 text-center text-white/60">Loading expenses...</td></tr></tbody></table></div>
+    </div>
+
+    <!-- Payment Receipts Tab -->
+    <div id="receipts-tab" class="tab-content hidden">
+      <div class="mb-6">
+        <h1 class="text-3xl font-black text-gold">Payment Receipts</h1>
+        <p class="mt-1 text-sm text-white/60">Receipts are initialized automatically with client payments. A Super Admin must approve each receipt before it can be downloaded or emailed.</p>
+      </div>
+      <div class="mb-6 rounded-lg border border-gold/20 bg-gold/5 p-4 text-sm leading-6 text-white/75">
+        Payments must be made only to BisFly Limited’s Fidelity Bank corporate account: Account Name: Bisfly Limited | Account Number: 5601847112.
+      </div>
+      <div class="glass overflow-x-auto rounded-lg border border-white/10">
+        <table class="admin-data-table"><thead><tr><th>Date</th><th>Reference</th><th>Client</th><th>Package</th><th>Amount paid (NGN)</th><th>Balance (NGN)</th><th>Approval</th><th>Email status</th><th>Actions</th><th>Record actions</th></tr></thead>
+          <tbody id="receiptsTable"><tr><td colspan="10" class="py-8 text-center text-white/60">Loading receipts...</td></tr></tbody></table>
+      </div>
     </div>
 
     <!-- Documents Tab -->
@@ -391,8 +441,8 @@
       </div>
       <div class="glass overflow-x-auto rounded-lg border border-white/10">
         <table class="admin-data-table">
-          <thead><tr><th style="width: 21%;">File</th><th style="width: 11%;">Category</th><th style="width: 23%;">Description</th><th style="width: 17%;">Access</th><th style="width: 12%;">Uploaded by</th><th style="width: 11%;">Date</th><th style="width: 5%;">Action</th></tr></thead>
-          <tbody id="documentsTable"><tr><td colspan="7" class="py-8 text-center text-white/60">Loading documents...</td></tr></tbody>
+          <thead><tr><th style="width: 21%;">File</th><th style="width: 11%;">Category</th><th style="width: 23%;">Description</th><th style="width: 17%;">Access</th><th style="width: 12%;">Uploaded by</th><th style="width: 11%;">Date</th><th style="width: 5%;">Action</th><th>Record actions</th></tr></thead>
+          <tbody id="documentsTable"><tr><td colspan="8" class="py-8 text-center text-white/60">Loading documents...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -422,6 +472,7 @@
               <th style="width: 12%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
               <th style="width: 17%;" data-sort-key="documentFile"><span class="sort-header">Document <span class="sort-indicator"></span></span></th>
               <th style="width: 20%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
+              <th>Record actions</th>
             </tr>
           </thead>
           <tbody id="insuranceTable">
@@ -457,6 +508,7 @@
               <th style="width: 14%;" data-sort-key="amountPaid"><span class="sort-header">Amount <span class="sort-indicator"></span></span></th>
               <th style="width: 12%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
               <th style="width: 18%;" data-sort-key="createdAt"><span class="sort-header">Actions <span class="sort-indicator"></span></span></th>
+              <th>Record actions</th>
             </tr>
           </thead>
           <tbody id="agreementsTable">
@@ -526,6 +578,7 @@
               <th style="width: 18%;" data-sort-key="requestType"><span class="sort-header">Request Type <span class="sort-indicator"></span></span></th>
               <th style="width: 12%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
               <th style="width: 18%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
+              <th>Record actions</th>
             </tr>
           </thead>
           <tbody id="passportsTable">
@@ -555,6 +608,7 @@
               <th style="width: 18%;" data-sort-key="partnershipType"><span class="sort-header">Partnership Type <span class="sort-indicator"></span></span></th>
               <th style="width: 10%;" data-sort-key="status"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
               <th style="width: 10%;" data-sort-key="createdAt"><span class="sort-header">Date <span class="sort-indicator"></span></span></th>
+              <th>Record actions</th>
             </tr>
           </thead>
           <tbody id="partnershipsTable">
@@ -581,24 +635,25 @@
     <!-- Users Tab -->
     <div id="users-tab" class="tab-content hidden">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-black text-gold">Admin Users</h1>
+        <div><h1 class="text-3xl font-black text-gold">Admin Users</h1><p class="mt-1 text-sm text-white/60">Only Super Admins can grant or revoke dashboard access. User management stays Super Admin-only.</p></div>
         <button id="addUserBtn" class="px-6 py-2 rounded-lg bg-gold text-navy font-bold hover:bg-white transition flex items-center gap-2">
           <i data-lucide="plus" class="w-4 h-4"></i>Add User
         </button>
       </div>
       <div class="glass rounded-lg border border-white/10 overflow-x-auto">
-        <table class="admin-data-table">
+        <table class="admin-data-table min-w-[1100px]">
           <thead>
             <tr>
-              <th style="width: 20%;" data-sort-key="username"><span class="sort-header">Username <span class="sort-indicator"></span></span></th>
-              <th style="width: 18%;" data-sort-key="role"><span class="sort-header">Role <span class="sort-indicator"></span></span></th>
-              <th style="width: 14%;" data-sort-key="active"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
-              <th style="width: 18%;" data-sort-key="createdAt"><span class="sort-header">Created <span class="sort-indicator"></span></span></th>
-              <th style="width: 30%;">Actions</th>
+              <th style="width: 15%;" data-sort-key="username"><span class="sort-header">Username <span class="sort-indicator"></span></span></th>
+              <th style="width: 14%;" data-sort-key="role"><span class="sort-header">Role <span class="sort-indicator"></span></span></th>
+              <th style="width: 24%;">Dashboard access</th>
+              <th style="width: 12%;" data-sort-key="active"><span class="sort-header">Status <span class="sort-indicator"></span></span></th>
+              <th style="width: 12%;" data-sort-key="createdAt"><span class="sort-header">Created <span class="sort-indicator"></span></span></th>
+              <th style="width: 23%;">Actions</th>
             </tr>
           </thead>
           <tbody id="usersTable">
-            <tr><td colspan="5" class="text-center py-8 text-white/60">Loading...</td></tr>
+            <tr><td colspan="6" class="text-center py-8 text-white/60">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -713,10 +768,26 @@
     </div>
   </div>
 
+  <div id="submittedRecordModal" class="hidden fixed inset-0 z-[60] overflow-y-auto bg-black/75 p-4">
+    <div class="mx-auto my-6 max-w-2xl rounded-lg border border-white/10 bg-navy p-6 shadow-2xl">
+      <div class="mb-5 flex items-center justify-between gap-4">
+        <div><h2 id="submittedRecordTitle" class="text-2xl font-black text-gold">Edit record</h2><p class="mt-1 text-sm text-white/60">System IDs, audit fields, and uploaded files are protected.</p></div>
+        <button id="closeSubmittedRecordModal" type="button" class="rounded border border-white/20 px-3 py-2 text-sm hover:bg-white/10">Close</button>
+      </div>
+      <form id="submittedRecordForm" class="space-y-4">
+        <div id="submittedRecordFields" class="grid gap-4 sm:grid-cols-2"></div>
+        <p id="submittedRecordStatus" class="hidden rounded p-3 text-sm" role="status" aria-live="polite"></p>
+        <div class="flex justify-end gap-3"><button id="cancelSubmittedRecordEdit" type="button" class="rounded border border-white/20 px-4 py-2 hover:bg-white/10">Cancel</button><button type="submit" class="rounded bg-gold px-5 py-2 font-bold text-navy hover:bg-white">Save record</button></div>
+      </form>
+    </div>
+  </div>
+
   <script>
     // State
     let token = localStorage.getItem('adminToken');
     let currentUser = JSON.parse(localStorage.getItem('adminUser')) || {};
+    const submittedRecordCache = new Map();
+    let activeSubmittedRecord = null;
 
     function formatCurrency(value) {
       if (value === null || value === undefined || value === '') return '₦ 0';
@@ -770,8 +841,116 @@
         '>': '&gt;',
         '"': '&quot;',
         "'": '&#39;'
-      })[character]);
+      }[character]));
     }
+
+    function submittedRecordActions(collection, record) {
+      if (!isSuperAdminRole()) return '<td class="text-white/30">Not available</td>';
+      const key = `${collection}:${record.id}`;
+      submittedRecordCache.set(key, record);
+      return `<td class="whitespace-nowrap"><button type="button" class="edit-submitted-record mr-2 rounded bg-white/10 px-2 py-1 text-xs font-bold hover:bg-white/20" data-record-key="${escapeHtml(key)}">Edit</button><button type="button" class="delete-submitted-record rounded bg-red/20 px-2 py-1 text-xs font-bold text-red hover:bg-red/30" data-collection="${collection}" data-id="${escapeHtml(record.id)}">Delete</button></td>`;
+    }
+
+    const recordTypeLabels = {
+      leads: 'lead',
+      insurance: 'insurance application',
+      agreements: 'agreement',
+      passports: 'passport request',
+      partnerships: 'partnership inquiry',
+      documents: 'document',
+      clients: 'client',
+      disclaimers: 'disclaimer',
+      expenses: 'expense',
+      receipts: 'payment receipt'
+    };
+
+    const recordRefreshers = {
+      leads: loadLeads,
+      insurance: loadInsurance,
+      agreements: loadAgreements,
+      passports: loadPassports,
+      partnerships: loadPartnerships,
+      documents: loadDocuments,
+      clients: loadClients,
+      disclaimers: loadDisclaimers,
+      expenses: loadExpenses
+    };
+
+    function closeSubmittedRecordModal() {
+      document.getElementById('submittedRecordModal').classList.add('hidden');
+      document.getElementById('submittedRecordStatus').className = 'hidden rounded p-3 text-sm';
+      activeSubmittedRecord = null;
+    }
+
+    document.getElementById('closeSubmittedRecordModal').addEventListener('click', closeSubmittedRecordModal);
+    document.getElementById('cancelSubmittedRecordEdit').addEventListener('click', closeSubmittedRecordModal);
+    document.addEventListener('click', async event => {
+      const editButton = event.target.closest('.edit-submitted-record');
+      if (editButton) {
+        const record = submittedRecordCache.get(editButton.dataset.recordKey);
+        if (!record) return;
+        const [collection] = editButton.dataset.recordKey.split(':');
+        activeSubmittedRecord = { collection, record };
+        document.getElementById('submittedRecordTitle').textContent = `Edit ${recordTypeLabels[collection]} record`;
+        const blockedFields = new Set(['id', 'createdAt', 'uploadedAt', 'createdBy', 'uploadedBy', 'uploadedById', 'generatedBy', 'updatedAt', 'updatedBy', 'documentFile', 'storedName', 'signedFile', 'signedDisclaimerFile', 'signedAgreementFile', 'imageFile', 'size', 'contentType', 'originalFileName', 'allowedUsers']);
+        document.getElementById('submittedRecordFields').innerHTML = Object.entries(record)
+          .filter(([field]) => !blockedFields.has(field))
+          .map(([field, value]) => {
+            const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, char => char.toUpperCase());
+            const isStructured = Array.isArray(value) || (value && typeof value === 'object');
+            const displayValue = isStructured ? JSON.stringify(value, null, 2) : value ?? '';
+            const input = isStructured
+              ? `<textarea data-field="${escapeHtml(field)}" data-kind="json" rows="3" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900">${escapeHtml(displayValue)}</textarea>`
+              : `<input data-field="${escapeHtml(field)}" data-kind="${typeof value}" value="${escapeHtml(displayValue)}" class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" />`;
+            return `<label class="grid gap-1 text-sm text-white/75">${escapeHtml(label)}${input}</label>`;
+          }).join('');
+        document.getElementById('submittedRecordModal').classList.remove('hidden');
+        return;
+      }
+
+      const deleteButton = event.target.closest('.delete-submitted-record');
+      if (!deleteButton) return;
+      const collection = deleteButton.dataset.collection;
+      if (!confirm(`Permanently delete this ${recordTypeLabels[collection]} record? Uploaded files associated only with this record will also be removed.`)) return;
+      const result = await apiCall(`/api/admin/records/${collection}/${encodeURIComponent(deleteButton.dataset.id)}`, { method: 'DELETE' });
+      if (!result?.ok) {
+        alert(result?.message || 'Unable to delete this record.');
+        return;
+      }
+      submittedRecordCache.delete(`${collection}:${deleteButton.dataset.id}`);
+      await recordRefreshers[collection]?.();
+    });
+
+    document.getElementById('submittedRecordForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!activeSubmittedRecord) return;
+      const { collection, record } = activeSubmittedRecord;
+      const values = {};
+      for (const field of document.querySelectorAll('#submittedRecordFields [data-field]')) {
+        const key = field.dataset.field;
+        const value = field.value;
+        try {
+          values[key] = field.dataset.kind === 'json' ? JSON.parse(value) : field.dataset.kind === 'number' && value !== '' ? Number(value) : field.dataset.kind === 'boolean' ? value === 'true' : value;
+        } catch {
+          const status = document.getElementById('submittedRecordStatus');
+          status.className = 'rounded bg-red-500/15 p-3 text-sm text-red-300';
+          status.textContent = `Enter valid JSON for ${key}.`;
+          return;
+        }
+      }
+      const endpoint = collection === 'clients'
+        ? `/api/admin/clients/${encodeURIComponent(record.id)}`
+        : `/api/admin/records/${collection}/${encodeURIComponent(record.id)}`;
+      const result = await apiCall(endpoint, { method: 'PATCH', body: JSON.stringify(collection === 'clients' ? values : { values }) });
+      if (!result?.ok) {
+        const status = document.getElementById('submittedRecordStatus');
+        status.className = 'rounded bg-red-500/15 p-3 text-sm text-red-300';
+        status.textContent = result?.message || 'Unable to update this record.';
+        return;
+      }
+      closeSubmittedRecordModal();
+      await recordRefreshers[collection]?.();
+    });
 
     function updateSortIndicators(tableId) {
       const activeState = tableSortState[tableId];
@@ -821,7 +1000,7 @@
           ...options,
           headers
         });
-        
+
         if (response.status === 401) {
           window.location.href = '/admin-login.html';
           return null;
@@ -830,6 +1009,10 @@
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           return await response.json();
+        }
+        if (!response.ok) {
+          const message = (await response.text()).trim();
+          return { ok: false, message: message || `Request failed (${response.status}).` };
         }
         return response;
       } catch (error) {
@@ -853,7 +1036,7 @@
       const filtered = documents.filter(document => `${document.originalName} ${document.category} ${document.description || ''} ${document.uploadedBy}`.toLowerCase().includes(query));
       const tbody = document.getElementById('documentsTable');
       if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-white/60">No documents found. Upload a file to get started.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-white/60">No documents found. Upload a file to get started.</td></tr>';
         return;
       }
       tbody.innerHTML = filtered.map(document => `
@@ -865,8 +1048,10 @@
           <td>${escapeHtml(document.uploadedBy)}</td>
           <td>${escapeHtml(new Date(document.uploadedAt).toLocaleString())}</td>
           <td><button type="button" class="download-admin-document rounded bg-white/10 px-3 py-1 text-xs font-bold hover:bg-white/20" data-file="${escapeHtml(document.storedName)}" data-name="${escapeHtml(document.originalName)}">Download</button></td>
+          ${submittedRecordActions('documents', document)}
         </tr>
       `).join('');
+
       tbody.querySelectorAll('.download-admin-document').forEach(button => {
         button.addEventListener('click', async () => {
           try {
@@ -971,40 +1156,123 @@
       if (!records) return;
       const tbody = document.getElementById('clientsTable');
       if (!records.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-white/60">No client records yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center text-white/60">No client records yet.</td></tr>';
         return;
       }
       const canEditPaid = isManagerOrSuperAdmin();
       tbody.innerHTML = records.map(client => `
-        <tr data-client-row="${escapeHtml(client.id)}">
-          <td><strong>${escapeHtml(client.fullName)}</strong><br><span class="text-xs text-white/50">${escapeHtml(client.gender)} · DOB ${escapeHtml(client.dateOfBirth)}</span><br><span class="text-xs text-white/50">${escapeHtml(client.address)}</span></td>
+        <tr data-client-row="${escapeHtml(client.id)}" data-current-status="${escapeHtml(client.status)}" data-submitted-documents-complete="${[client.visaApplicationFile, client.submittedSupportingDocument1File, client.submittedSupportingDocument2File].every(Boolean)}">
+          <td><strong>${escapeHtml(client.fullName)}</strong><br><span class="text-xs text-white/50">${escapeHtml(client.email || 'No email')}</span><br><span class="text-xs text-white/50">${escapeHtml(client.gender)} · DOB ${escapeHtml(client.dateOfBirth)}</span><br><span class="text-xs text-white/50">${escapeHtml(client.address)}</span></td>
           <td>${escapeHtml(client.phone)}</td>
           <td>${escapeHtml(client.packageType)}</td>
-          <td><input class="client-paid-input w-28 rounded border border-white/15 bg-white px-2 py-1 text-slate-900" type="number" min="0" step="0.01" value="${Number(client.amountPaid || 0)}" ${canEditPaid ? '' : 'disabled aria-label="Only a Manager or Super Admin may edit the amount paid"'} /></td>
-          <td>${escapeHtml(client.paymentDate)}</td>
+          <td><input class="client-paid-input w-28 rounded border border-white/15 bg-white px-2 py-1 text-slate-900" type="number" min="0" step="0.01" value="${Number(client.amountPaid || 0)}" ${(canEditPaid && client.paymentMethod !== 'installment') ? '' : 'disabled aria-label="Payment schedule is fixed for installments; only a Manager or Super Admin may edit full-payment records"'} /><br><span class="text-xs text-white/45">${client.paymentMethod === 'installment' ? 'Installments' : 'Full initial payment'}</span>${client.paymentMethod === 'installment' && !client.initialDepositComplete ? '<label class="mt-2 flex items-center gap-1 text-xs text-amber-200"><input class="client-deposit-complete" type="checkbox" /> Deposit complete</label>' : ''}</td>
+          <td>${(client.paymentSchedule || []).map(payment => `<span class="block text-xs">${escapeHtml(payment.paymentDate)} · NGN ${Number(payment.amount || 0).toLocaleString('en-NG')}</span>`).join('') || escapeHtml(client.paymentDate)}</td>
           <td>NGN ${Number(client.balanceAfterApproval || 0).toLocaleString('en-NG')}</td>
-          <td><select class="client-status-select rounded border border-white/15 bg-navy/70 px-2 py-1 text-white">${['ongoing', 'pending', 'submitted', 'refused', 'approved'].map(status => `<option ${client.status === status ? 'selected' : ''}>${status}</option>`).join('')}</select><button type="button" class="save-client-row mt-2 block rounded bg-white/10 px-2 py-1 text-xs font-bold hover:bg-white/20" data-id="${escapeHtml(client.id)}">Save changes</button></td>
-          <td class="space-y-2">${client.signedDisclaimerFile ? `<button type="button" class="download-client-file block text-gold underline" data-file="${escapeHtml(client.signedDisclaimerFile)}" data-name="signed-disclaimer-${escapeHtml(client.fullName)}">Disclaimer</button>` : '<span class="block text-white/45">No disclaimer</span>'}${client.signedAgreementFile ? `<button type="button" class="download-client-file block text-gold underline" data-file="${escapeHtml(client.signedAgreementFile)}" data-name="signed-agreement-${escapeHtml(client.fullName)}">Agreement</button>` : '<span class="block text-white/45">No agreement</span>'}</td>
+          <td><select class="client-status-select rounded border border-white/15 bg-navy/70 px-2 py-1 text-white">${['ongoing', 'pending', 'submitted', 'refused', 'approved'].map(status => `<option ${client.status === status ? 'selected' : ''}>${status}</option>`).join('')}</select><button type="button" class="save-client-row mt-2 block rounded bg-white/10 px-2 py-1 text-xs font-bold hover:bg-white/20" data-id="${escapeHtml(client.id)}">Save changes</button><div class="submitted-documents-upload ${client.status === 'submitted' && ![client.visaApplicationFile, client.submittedSupportingDocument1File, client.submittedSupportingDocument2File].every(Boolean) ? '' : 'hidden'} mt-3 min-w-64 space-y-2 rounded border border-amber-300/30 p-2"><p class="text-xs text-gold">Upload all three documents (PDF/JPG/PNG, up to 5 MB each).</p><label class="block text-xs">Visa application<input class="client-visa-form mt-1 block w-full text-xs" type="file" accept=".pdf,.jpg,.jpeg,.png" /></label><label class="block text-xs">Supporting document 1<input class="client-supporting-file-1 mt-1 block w-full text-xs" type="file" accept=".pdf,.jpg,.jpeg,.png" /></label><label class="block text-xs">Supporting document 2<input class="client-supporting-file-2 mt-1 block w-full text-xs" type="file" accept=".pdf,.jpg,.jpeg,.png" /></label></div></td>
+          <td class="space-y-2">${client.signedDisclaimerFile ? `<button type="button" class="download-client-file block text-gold underline" data-file="${escapeHtml(client.signedDisclaimerFile)}" data-name="signed-disclaimer-${escapeHtml(client.fullName)}">Disclaimer</button>` : '<span class="block text-white/45">No disclaimer</span>'}${client.signedAgreementFile ? `<button type="button" class="download-client-file block text-gold underline" data-file="${escapeHtml(client.signedAgreementFile)}" data-name="signed-agreement-${escapeHtml(client.fullName)}">Agreement</button>` : '<span class="block text-white/45">No agreement</span>'}${client.visaApplicationFile ? `<button type="button" class="download-client-file block text-gold underline" data-file="${escapeHtml(client.visaApplicationFile)}" data-name="visa-application-${escapeHtml(client.fullName)}">Visa application</button>` : ''}${client.submittedSupportingDocument1File ? `<button type="button" class="download-client-file block text-gold underline" data-file="${escapeHtml(client.submittedSupportingDocument1File)}" data-name="supporting-document-1-${escapeHtml(client.fullName)}">Supporting document 1</button>` : ''}${client.submittedSupportingDocument2File ? `<button type="button" class="download-client-file block text-gold underline" data-file="${escapeHtml(client.submittedSupportingDocument2File)}" data-name="supporting-document-2-${escapeHtml(client.fullName)}">Supporting document 2</button>` : ''}</td>
+          ${submittedRecordActions('clients', client)}
         </tr>
       `).join('');
+      tbody.querySelectorAll('.client-status-select').forEach(select => select.addEventListener('change', () => {
+        const row = select.closest('tr');
+        row.querySelector('.submitted-documents-upload').classList.toggle('hidden', select.value !== 'submitted');
+      }));
       tbody.querySelectorAll('.save-client-row').forEach(button => button.addEventListener('click', async () => {
         const row = button.closest('tr');
+        const status = row.querySelector('.client-status-select').value;
+        const depositComplete = row.querySelector('.client-deposit-complete');
+        if (status === 'submitted' &&
+            (row.dataset.currentStatus !== 'submitted' || row.dataset.submittedDocumentsComplete !== 'true')) {
+          const files = [
+            row.querySelector('.client-visa-form').files[0],
+            row.querySelector('.client-supporting-file-1').files[0],
+            row.querySelector('.client-supporting-file-2').files[0]
+          ];
+          if (files.some(file => !file)) {
+            setFormMessage('clientFormStatus', 'Select one filled visa application and both supporting documents before saving Submitted status.', true);
+            row.querySelector('.submitted-documents-upload').classList.remove('hidden');
+            return;
+          }
+          const formData = new FormData();
+          ['visaApplicationForm', 'submittedSupportingDocument1', 'submittedSupportingDocument2'].forEach((field, index) => formData.append(field, files[index]));
+          const result = await apiCall(`/api/admin/clients/${encodeURIComponent(button.dataset.id)}/submitted-documents`, { method: 'POST', body: formData });
+          if (!result?.ok) {
+            setFormMessage('clientFormStatus', result?.message || 'Unable to save submitted client documents.', true);
+            return;
+          }
+          if (depositComplete?.checked) {
+            const completion = await apiCall(`/api/admin/clients/${encodeURIComponent(button.dataset.id)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ initialDepositComplete: true })
+            });
+            if (!completion?.ok) {
+              setFormMessage('clientFormStatus', completion?.message || 'Documents were saved, but initial-deposit completion could not be confirmed.', true);
+              await loadClients();
+              return;
+            }
+            await loadReceipts();
+          }
+          setFormMessage('clientFormStatus', `Submitted documents saved for ${result.client.fullName}.`);
+          await loadClients();
+          return;
+        }
         const body = { status: row.querySelector('.client-status-select').value };
-        if (canEditPaid) body.amountPaid = Number(row.querySelector('.client-paid-input').value);
+        if (depositComplete?.checked) body.initialDepositComplete = true;
+        if (canEditPaid && !row.querySelector('.client-paid-input').disabled) body.amountPaid = Number(row.querySelector('.client-paid-input').value);
         const result = await apiCall(`/api/admin/clients/${encodeURIComponent(button.dataset.id)}`, { method: 'PATCH', body: JSON.stringify(body) });
         if (!result?.ok) {
           setFormMessage('clientFormStatus', result?.message || 'Unable to update this client record.', true);
           return;
         }
+        if (body.initialDepositComplete) {
+          setFormMessage('clientFormStatus', `Initial deposit confirmed for ${result.client.fullName}. Its receipt is now awaiting Super Admin approval.`);
+          await loadReceipts();
+        }
         await loadClients();
       }));
       tbody.querySelectorAll('.download-client-file').forEach(button => button.addEventListener('click', async () => {
         try {
-          await downloadAuthenticatedFile(`/uploads/${encodeURIComponent(button.dataset.file)}`, `${button.dataset.name}.pdf`);
+          const extension = button.dataset.file.split('.').pop();
+          await downloadAuthenticatedFile(`/uploads/${encodeURIComponent(button.dataset.file)}`, `${button.dataset.name}.${extension}`);
         } catch (error) {
           setFormMessage('clientFormStatus', error.message, true);
         }
       }));
+    }
+
+    function updateClientPaymentFields() {
+      const form = document.getElementById('clientForm');
+      const installments = form.elements.paymentMethod.value === 'installment';
+      document.getElementById('fullInitialPaymentFields').classList.toggle('hidden', installments);
+      document.getElementById('installmentPaymentFields').classList.toggle('hidden', !installments);
+      const fullAmount = form.elements.amountPaid;
+      const fullDate = form.elements.paymentDate;
+      fullAmount.required = !installments;
+      fullAmount.disabled = installments;
+      fullDate.required = !installments;
+      fullDate.disabled = installments;
+      const amounts = [...form.querySelectorAll('[data-installment-amount]')];
+      const dates = [...form.querySelectorAll('[data-installment-date]')];
+      amounts.forEach((input, index) => {
+        input.required = installments && index < 2;
+        input.disabled = !installments;
+        dates[index].required = installments && index < 2;
+        dates[index].disabled = !installments;
+      });
+      const complete = document.getElementById('initialDepositComplete');
+      complete.required = false;
+      complete.disabled = !installments;
+      const submitted = form.elements.status.value === 'submitted';
+      document.getElementById('submittedDocumentFields').classList.toggle('hidden', !submitted);
+      ['visaApplicationForm', 'submittedSupportingDocument1', 'submittedSupportingDocument2'].forEach(field => {
+        form.elements[field].required = submitted;
+      });
+    }
+
+    function updateInstallmentTotal() {
+      const total = [...document.querySelectorAll('[data-installment-amount]')]
+        .reduce((sum, input) => sum + (Number(input.value) || 0), 0);
+      document.getElementById('installmentTotalPreview').textContent = `NGN ${total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
     async function loadDisclaimers() {
@@ -1012,7 +1280,7 @@
       if (!records) return;
       const tbody = document.getElementById('disclaimersTable');
       if (!records.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-white/60">No signed disclaimers have been saved.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center text-white/60">No signed disclaimers have been saved.</td></tr>';
         return;
       }
       tbody.innerHTML = records.map(record => `
@@ -1021,6 +1289,7 @@
           <td>${escapeHtml(record.secondPersonName ? `${record.secondPersonName} (${record.secondPersonRelationship})` : 'None')}</td>
           <td>${escapeHtml(record.originalFileName)}</td><td>${new Date(record.createdAt).toLocaleDateString()}</td>
           <td><button type="button" class="download-disclaimer-file rounded bg-white/10 px-3 py-1 text-xs font-bold hover:bg-white/20" data-file="${escapeHtml(record.signedFile)}" data-name="${escapeHtml(record.originalFileName)}">Download signed copy</button></td>
+          ${submittedRecordActions('disclaimers', record)}
         </tr>
       `).join('');
       tbody.querySelectorAll('.download-disclaimer-file').forEach(button => button.addEventListener('click', async () => {
@@ -1063,21 +1332,74 @@
       const to = document.getElementById('expenseTo').value;
       const filtered = records.filter(expense => (!from || expense.expenseDate >= from) && (!to || expense.expenseDate <= to));
       tbody.innerHTML = filtered.length ? filtered.map(expense => `
-        <tr><td>${escapeHtml(expense.expenseDate)}</td><td>${escapeHtml(expense.adminName)}</td><td>${escapeHtml(expense.purpose)}</td><td>NGN ${Number(expense.amount || 0).toLocaleString('en-NG')}</td></tr>
-      `).join('') : '<tr><td colspan="4" class="py-8 text-center text-white/60">No expenses found for this date range.</td></tr>';
+        <tr><td>${escapeHtml(expense.expenseDate)}</td><td>${escapeHtml(expense.adminName)}</td><td>${escapeHtml(expense.purpose)}</td><td>NGN ${Number(expense.amount || 0).toLocaleString('en-NG')}</td>${submittedRecordActions('expenses', expense)}</tr>
+      `).join('') : '<tr><td colspan="5" class="py-8 text-center text-white/60">No expenses found for this date range.</td></tr>';
+    }
+
+    async function loadReceipts() {
+      const records = await apiCall('/api/admin/receipts');
+      if (!records) return;
+      const tbody = document.getElementById('receiptsTable');
+      tbody.innerHTML = records.length ? records.map(receipt => `
+        <tr>
+          <td>${escapeHtml(receipt.receiptDate)}</td>
+          <td><span class="font-mono text-xs">${escapeHtml(receipt.referenceNumber)}</span></td>
+          <td><strong>${escapeHtml(receipt.clientName)}</strong><br><span class="text-xs text-white/50">${escapeHtml(receipt.clientEmail)}</span></td>
+          <td>${escapeHtml(receipt.packageType)}</td>
+          <td class="font-bold text-gold">NGN ${Number(receipt.amountPaid || 0).toLocaleString('en-NG')}<br><span class="font-normal text-xs text-white/50">${escapeHtml(receipt.paymentMethod === 'installment' ? `${(receipt.paymentSchedule || []).length} installments` : 'Full initial payment')}</span></td>
+          <td>NGN ${Number(receipt.balanceAfterApproval || 0).toLocaleString('en-NG')}</td>
+          <td><span class="${receipt.approvalStatus === 'approved' ? 'text-emerald-300' : 'text-amber-300'}">${receipt.approvalStatus === 'approved' ? 'Approved' : receipt.approvalStatus === 'pending_payment' ? 'Awaiting deposit completion' : 'Awaiting Super Admin'}</span>${receipt.approvedBy ? `<br><span class="text-xs text-white/50">by ${escapeHtml(receipt.approvedBy)}</span>` : ''}</td>
+          <td><span class="${receipt.emailStatus === 'sent' ? 'text-emerald-300' : receipt.approvalStatus === 'approved' ? 'text-red-300' : 'text-white/50'}">${receipt.emailStatus === 'sent' ? 'Sent' : receipt.approvalStatus === 'pending_payment' ? 'Not sent - deposit incomplete' : receipt.approvalStatus !== 'approved' ? 'Not sent - approval required' : 'Delivery failed'}</span>${receipt.emailError ? `<br><span class="text-xs text-red-300" title="${escapeHtml(receipt.emailError)}">${escapeHtml(receipt.emailError)}</span>` : ''}</td>
+          <td><div class="flex flex-wrap gap-2">${receipt.approvalStatus === 'approved' ? `<button type="button" class="download-receipt rounded bg-white/10 px-2 py-1 text-xs font-bold hover:bg-white/20" data-id="${escapeHtml(receipt.id)}">Download PDF</button>${receipt.emailStatus !== 'sent' ? `<button type="button" class="resend-receipt rounded bg-royal px-2 py-1 text-xs font-bold hover:bg-blue-500" data-id="${escapeHtml(receipt.id)}">Retry email</button>` : ''}` : receipt.approvalStatus === 'pending' && isSuperAdminRole() ? `<button type="button" class="approve-receipt rounded bg-gold px-2 py-1 text-xs font-bold text-navy hover:bg-white" data-id="${escapeHtml(receipt.id)}">Approve &amp; send</button>` : receipt.approvalStatus === 'pending_payment' ? '<span class="text-xs text-white/45">Deposit completion required</span>' : '<span class="text-xs text-white/45">Awaiting approval</span>'}</div></td>
+          ${submittedRecordActions('receipts', receipt)}
+        </tr>
+      `).join('') : '<tr><td colspan="10" class="py-8 text-center text-white/60">No client payments have initialized receipts yet.</td></tr>';
     }
 
     async function submitClient(event) {
       event.preventDefault();
       const form = event.currentTarget;
-      const result = await apiCall('/api/admin/clients', { method: 'POST', body: new FormData(form) });
+      const formData = new FormData(form);
+      const paymentMethod = form.elements.paymentMethod.value;
+      if (paymentMethod === 'installment') {
+        const amounts = [...form.querySelectorAll('[data-installment-amount]')];
+        const dates = [...form.querySelectorAll('[data-installment-date]')];
+        const partialInstallment = amounts.some((input, index) => Boolean(input.value) !== Boolean(dates[index].value));
+        if (partialInstallment) {
+          setFormMessage('clientFormStatus', 'Enter both an amount and a payment date for every installment you use.', true);
+          return;
+        }
+        const paymentSchedule = amounts.map((input, index) => ({ amount: Number(input.value), paymentDate: dates[index].value }))
+          .filter(payment => payment.amount > 0 && payment.paymentDate);
+        const total = paymentSchedule.reduce((sum, payment) => sum + payment.amount, 0);
+        if (paymentSchedule.length < 2) {
+          setFormMessage('clientFormStatus', 'Enter at least two dated installments before creating the client record.', true);
+          return;
+        }
+        formData.set('amountPaid', String(total));
+        formData.set('paymentDate', paymentSchedule.map(payment => payment.paymentDate).sort().slice(-1)[0]);
+        formData.set('paymentSchedule', JSON.stringify(paymentSchedule));
+        formData.set('initialDepositComplete', String(form.elements.initialDepositComplete.checked));
+      } else {
+        const amount = Number(form.elements.amountPaid.value);
+        formData.set('paymentSchedule', JSON.stringify([{ amount, paymentDate: form.elements.paymentDate.value }]));
+        formData.set('initialDepositComplete', 'true');
+      }
+      const result = await apiCall('/api/admin/clients', { method: 'POST', body: formData });
       if (!result?.ok) {
         setFormMessage('clientFormStatus', result?.message || 'Unable to save client information.', true);
         return;
       }
-      setFormMessage('clientFormStatus', `Client record created for ${result.client.fullName}.`);
+      setFormMessage('clientFormStatus', result.receipt
+        ? result.receipt.approvalStatus === 'pending_payment'
+          ? `Client record created for ${result.client.fullName}. Receipt ${result.receipt.referenceNumber} will remain on hold until an admin confirms the initial deposit is complete.`
+          : `Client record created for ${result.client.fullName}. Receipt ${result.receipt.referenceNumber} is awaiting Super Admin approval. It will be emailed and made available for download after approval.`
+        : `Client record created for ${result.client.fullName}.`);
       form.reset();
+      updateClientPaymentFields();
+      updateInstallmentTotal();
       await loadClients();
+      if (result.receipt) await loadReceipts();
     }
 
     async function submitDisclaimer(event) {
@@ -1130,11 +1452,16 @@
       document.getElementById('userDisplay').textContent = `${currentUser.username} (${currentUser.role})`;
       applyRoleAccess(currentUser.role);
 
-      const landingTab = isSuperAdminRole(currentUser) ? 'dashboard' : 'documents';
+      const visibleTabs = [...document.querySelectorAll('.sidebar-item[data-tab]')]
+        .filter(button => !button.classList.contains('hidden'))
+        .map(button => button.dataset.tab);
+      const landingTab = isSuperAdminRole(currentUser) ? 'dashboard' : (visibleTabs.includes('documents') ? 'documents' : visibleTabs[0]);
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-      document.getElementById(`${landingTab}-tab`).classList.remove('hidden');
       document.querySelectorAll('.sidebar-item').forEach(button => button.classList.remove('sidebar-active'));
-      document.querySelector(`[data-tab="${landingTab}"]`).classList.add('sidebar-active');
+      if (landingTab) {
+        document.getElementById(`${landingTab}-tab`).classList.remove('hidden');
+        document.querySelector(`[data-tab="${landingTab}"]`).classList.add('sidebar-active');
+      }
       
       // Set up event listeners
       setupEventListeners();
@@ -1142,10 +1469,10 @@
       // Load initial data independently so one failed panel does not disable controls.
       await Promise.allSettled([
         isSuperAdminRole(currentUser) ? loadAnalytics() : Promise.resolve(),
-        loadLeads(),
-        loadDocuments()
+        currentUser.dashboardFeatures?.includes('leads') ? loadLeads() : Promise.resolve(),
+        currentUser.dashboardFeatures?.includes('documents') ? loadDocuments() : Promise.resolve()
       ]);
-      await loadDocumentAccessUsers();
+      if (currentUser.dashboardFeatures?.includes('documents')) await loadDocumentAccessUsers();
     }
 
     function normalizedRole(user = currentUser) {
@@ -1158,37 +1485,54 @@
       return ['super-admin', 'master-admin'].includes(role) || (role === 'admin' && user?.username === 'admin');
     }
 
-    function applyRoleAccess(roleValue) {
-      const role = normalizedRole({ ...currentUser, role: roleValue });
-      const isSuperAdmin = isSuperAdminRole(currentUser);
-      const isManager = role === 'manager';
-      const isAdmin = role === 'admin';
-      const financeTabs = ['clients', 'disclaimers', 'cash-inflows', 'expenses'];
-      const allowedTabs = isSuperAdmin
-        ? ['dashboard', 'leads', 'documents', ...financeTabs, 'insurance', 'agreements', 'passports', 'partnerships', 'packages', 'users', 'activity']
-        : isManager
-          ? ['leads', 'documents', ...financeTabs, 'insurance', 'agreements', 'passports', 'partnerships', 'packages']
-          : isAdmin
-            ? ['leads', 'documents', ...financeTabs, 'insurance', 'agreements', 'passports', 'partnerships', 'packages']
-          : ['leads', 'documents', 'insurance', 'agreements', 'passports', 'partnerships', 'packages'];
+    const dashboardFeatureLabels = {
+      dashboard: 'Dashboard',
+      leads: 'Leads',
+      documents: 'Documents',
+      clients: 'Client Information',
+      disclaimers: 'Disclaimers',
+      'cash-inflows': 'Cash Inflow Report',
+      expenses: 'Expenses',
+      receipts: 'Payment Receipts',
+      insurance: 'Insurance',
+      agreements: 'Agreements',
+      passports: 'Passports',
+      partnerships: 'Partnerships',
+      packages: 'Packages',
+      users: 'Users',
+      activity: 'Activity Log'
+    };
+    const grantableDashboardFeatures = Object.keys(dashboardFeatureLabels)
+      .filter(feature => feature !== 'users');
 
+    function roleDashboardFeatures(user) {
+      if (isSuperAdminRole(user)) return Object.keys(dashboardFeatureLabels);
+      const role = normalizedRole(user);
+      if (role === 'admin' || role === 'manager') {
+        return ['leads', 'documents', 'clients', 'disclaimers', 'cash-inflows', 'expenses', 'receipts', 'insurance', 'agreements', 'passports', 'partnerships', 'packages'];
+      }
+      return ['leads', 'documents', 'insurance', 'agreements', 'passports', 'partnerships', 'packages'];
+    }
+
+    function applyRoleAccess(roleValue) {
+      const isSuperAdmin = isSuperAdminRole(currentUser);
+      const defaultFeatures = roleDashboardFeatures({ ...currentUser, role: roleValue });
+      const allowedTabs = isSuperAdmin
+        ? Object.keys(dashboardFeatureLabels)
+        : (Array.isArray(currentUser.dashboardFeatures) ? currentUser.dashboardFeatures : defaultFeatures)
+          .filter(feature => grantableDashboardFeatures.includes(feature));
       document.querySelectorAll('.sidebar-item[data-tab]').forEach(button => {
         button.classList.toggle('hidden', !allowedTabs.includes(button.dataset.tab));
       });
       if (!isSuperAdmin) {
-        document.getElementById('dashboard-tab').classList.add('hidden');
         document.getElementById('changePasswordBtn').classList.add('hidden');
         document.getElementById('openAgreementFormBtn').classList.add('hidden');
         document.querySelectorAll('.action-btn[data-action]').forEach(button => button.classList.add('hidden'));
         document.getElementById('addPackageBtn').classList.add('hidden');
         document.getElementById('dashboardAddPackageBtn').classList.add('hidden');
         document.getElementById('addUserBtn').classList.add('hidden');
-        document.getElementById('activity-tab').classList.add('hidden');
         document.getElementById('users-tab').classList.add('hidden');
         document.querySelectorAll('.approve-agreement').forEach(button => button.remove());
-      }
-      if (!isSuperAdmin && !isManager && !isAdmin) {
-        financeTabs.forEach(tab => document.querySelector(`[data-tab="${tab}"]`)?.classList.add('hidden'));
       }
       document.getElementById('expenseAdminName').value = currentUser.username || '';
       document.getElementById('expenseForm').elements.expenseDate.value = new Date().toISOString().slice(0, 10);
@@ -1230,7 +1574,7 @@
       const state = tableSortState.partnerships;
       const sorted = sortRecords(data, state.key, state.direction);
       if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/60">No partnership requests found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-white/60">No partnership requests found</td></tr>';
         return;
       }
 
@@ -1243,6 +1587,7 @@
           <td>${item.partnershipType || 'N/A'}</td>
           <td><span class="status-pill ${item.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${item.status || 'pending'}</span></td>
           <td>${new Date(item.createdAt).toLocaleDateString()}</td>
+          ${submittedRecordActions('partnerships', item)}
         </tr>
       `).join('');
       bindSortableTable('partnershipsTable', 'partnerships', loadPartnerships);
@@ -1257,7 +1602,7 @@
       const state = tableSortState.leads;
       const sorted = sortRecords(data, state.key, state.direction);
       if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No leads found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/60">No leads found</td></tr>';
         return;
       }
       
@@ -1269,6 +1614,7 @@
           <td>${lead.destination || 'N/A'}</td>
           <td>${lead.service || 'N/A'}</td>
           <td>${new Date(lead.createdAt).toLocaleDateString()}</td>
+          ${submittedRecordActions('leads', lead)}
         </tr>
       `).join('');
       bindSortableTable('leadsTable', 'leads', loadLeads);
@@ -1284,7 +1630,7 @@
       const state = tableSortState.insurance;
       const sorted = sortRecords(data, state.key, state.direction);
       if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No applications found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/60">No applications found</td></tr>';
         return;
       }
       
@@ -1296,6 +1642,7 @@
           <td><span class="status-pill ${app.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${app.status}</span></td>
           <td>${app.documentFile ? `<button type="button" class="download-upload text-gold hover:text-white" data-file="${escapeHtml(app.documentFile)}">Download document</button>` : '✗ Missing'}</td>
           <td>${new Date(app.createdAt).toLocaleDateString()}</td>
+          ${submittedRecordActions('insurance', app)}
         </tr>
       `).join('');
       tbody.querySelectorAll('.download-upload').forEach(button => {
@@ -1325,7 +1672,7 @@
       const state = tableSortState.agreements;
       const sorted = sortRecords(data, state.key, state.direction);
       if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No agreements found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/60">No agreements found</td></tr>';
         return;
       }
       
@@ -1339,6 +1686,7 @@
           <td>
             ${isSuperAdminRole() && ag.status === 'pending' ? `<button class="approve-agreement text-gold hover:text-white transition text-sm font-bold" data-id="${ag.id}">Approve</button>` : `<button type="button" class="download-agreement text-gold hover:text-white transition text-sm font-bold" data-id="${ag.id}">Download PDF</button>`}
           </td>
+          ${submittedRecordActions('agreements', ag)}
         </tr>
       `).join('');
       
@@ -1378,7 +1726,7 @@
       const state = tableSortState.passports;
       const sorted = sortRecords(data, state.key, state.direction);
       if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/60">No requests found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/60">No requests found</td></tr>';
         return;
       }
       
@@ -1390,6 +1738,7 @@
           <td>${pp.requestType || 'N/A'}</td>
           <td><span class="status-pill ${pp.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${pp.status}</span></td>
           <td>${new Date(pp.createdAt).toLocaleDateString()}</td>
+          ${submittedRecordActions('passports', pp)}
         </tr>
       `).join('');
       bindSortableTable('passportsTable', 'passports', loadPassports);
@@ -1472,13 +1821,34 @@
         <tr>
           <td>${user.username}</td>
           <td>${isSuperAdminRole() && user.username !== currentUser.username ? `<select class="user-role-select rounded border border-white/15 bg-navy/70 px-2 py-1 text-xs text-white" data-id="${user.id}"><option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option><option value="manager" ${user.role === 'manager' ? 'selected' : ''}>Manager</option><option value="support" ${['support', 'customer'].includes(user.role) ? 'selected' : ''}>Support / Customer</option><option value="super-admin" ${user.role === 'super-admin' ? 'selected' : ''}>Super Admin</option></select>` : escapeHtml(user.role)}</td>
+          <td>
+            ${isSuperAdminRole() && user.username !== currentUser.username && !isSuperAdminRole(user) ? `
+              <details class="min-w-52">
+                <summary class="cursor-pointer text-gold">${(user.dashboardFeatures || roleDashboardFeatures(user)).length} of ${grantableDashboardFeatures.length} dashboard features enabled</summary>
+                <div class="mt-2 flex gap-2">
+                  <button type="button" class="set-user-features rounded bg-white/10 px-2 py-1 text-[11px] hover:bg-white/20" data-id="${Number(user.id)}" data-mode="all">Enable all</button>
+                  <button type="button" class="set-user-features rounded bg-white/10 px-2 py-1 text-[11px] hover:bg-white/20" data-id="${Number(user.id)}" data-mode="none">Clear all</button>
+                </div>
+                <div class="mt-2 grid max-h-56 gap-2 overflow-y-auto rounded border border-white/15 bg-navy/90 p-3">
+                  ${grantableDashboardFeatures.map(feature => `<label class="flex cursor-pointer items-center gap-2 text-xs text-white/85"><input type="checkbox" class="user-feature-toggle accent-yellow-400" data-id="${Number(user.id)}" value="${feature}" ${(user.dashboardFeatures || roleDashboardFeatures(user)).includes(feature) ? 'checked' : ''} /><span>${dashboardFeatureLabels[feature]}</span></label>`).join('')}
+                </div>
+              </details>
+            ` : `<span class="text-xs text-white/60">${isSuperAdminRole(user) ? 'All features (Super Admin)' : `${(user.dashboardFeatures || roleDashboardFeatures(user)).length} features enabled`}</span>`}
+          </td>
           <td><span class="px-2 py-1 rounded-full text-xs font-bold ${user.active ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}">${user.active ? 'Active' : 'Inactive'}</span></td>
           <td>${new Date(user.createdAt).toLocaleDateString()}</td>
           <td class="flex flex-wrap gap-2">
-            ${isSuperAdminRole() && user.username !== currentUser.username ? `<button class="save-user-role bg-white/10 text-white hover:bg-white/20 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}">Save role</button><button class="reset-user bg-gold/20 text-gold hover:bg-gold/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}" data-username="${escapeHtml(user.username)}">Reset password</button><button class="delete-user bg-red/20 text-red hover:bg-red/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}">Delete</button>` : ''}
+            ${isSuperAdminRole() && user.username !== currentUser.username ? `${!isSuperAdminRole(user) ? `<button class="save-user-access bg-gold/20 text-gold hover:bg-gold/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}">Save access</button>` : ''}<button class="save-user-role bg-white/10 text-white hover:bg-white/20 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}">Save role</button><button class="reset-user bg-gold/20 text-gold hover:bg-gold/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}" data-username="${escapeHtml(user.username)}">Reset password</button><button class="delete-user bg-red/20 text-red hover:bg-red/30 px-2 py-1 rounded text-xs font-bold" data-id="${user.id}">Delete</button>` : ''}
           </td>
         </tr>
       `).join('');
+
+      document.querySelectorAll('.set-user-features').forEach(button => {
+        button.addEventListener('click', () => {
+          document.querySelectorAll(`.user-feature-toggle[data-id="${button.dataset.id}"]`)
+            .forEach(input => { input.checked = button.dataset.mode === 'all'; });
+        });
+      });
       
       document.querySelectorAll('.delete-user').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -1502,6 +1872,24 @@
           });
           if (result?.ok) await loadUsers();
           else alert(result?.message || 'Unable to change user role.');
+        });
+      });
+
+      document.querySelectorAll('.save-user-access').forEach(button => {
+        button.addEventListener('click', async () => {
+          const userId = button.dataset.id;
+          const featureAccess = [...document.querySelectorAll(`.user-feature-toggle[data-id="${userId}"]:checked`)]
+            .map(input => input.value);
+          const result = await apiCall(`/api/admin/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ featureAccess })
+          });
+          if (result?.ok) {
+            alert('Dashboard access updated.');
+            await loadUsers();
+          } else {
+            alert(result?.message || 'Unable to update dashboard access.');
+          }
         });
       });
 
@@ -1566,6 +1954,7 @@
           if (tabName === 'disclaimers') await loadDisclaimers();
           if (tabName === 'cash-inflows') await loadCashInflows();
           if (tabName === 'expenses') await loadExpenses();
+          if (tabName === 'receipts') await loadReceipts();
           if (tabName === 'insurance') await loadInsurance();
           if (tabName === 'agreements') await loadAgreements();
           if (tabName === 'passports') await loadPassports();
@@ -1574,6 +1963,43 @@
           if (tabName === 'users') await loadUsers();
           if (tabName === 'activity') await loadActivityLog();
         });
+      });
+      document.getElementById('receiptsTable').addEventListener('click', async event => {
+        const button = event.target.closest('button[data-id]');
+        if (!button) return;
+        const receiptId = encodeURIComponent(button.dataset.id);
+        if (button.classList.contains('download-receipt')) {
+          try {
+            await downloadAuthenticatedFile(`/api/admin/receipts/${receiptId}/pdf`, 'bisfly-payment-receipt.pdf');
+          } catch (error) {
+            setFormMessage('clientFormStatus', error.message || 'Unable to download the payment receipt.', true);
+          }
+          return;
+        }
+        if (button.classList.contains('approve-receipt')) {
+          if (!isSuperAdminRole()) return;
+          button.disabled = true;
+          const result = await apiCall(`/api/admin/receipts/${receiptId}/approve`, { method: 'POST', body: '{}' });
+          if (!result?.ok) {
+            setFormMessage('clientFormStatus', result?.message || 'Unable to approve this receipt.', true);
+          } else if (result.delivery?.sent) {
+            setFormMessage('clientFormStatus', `Receipt ${result.receipt.referenceNumber} approved and emailed to ${result.receipt.clientEmail}. It is now available for download.`);
+          } else {
+            setFormMessage('clientFormStatus', `Receipt ${result.receipt.referenceNumber} approved and available for download, but email delivery failed: ${result.delivery?.error || 'Unknown delivery error'}. Use Retry email after resolving the mail issue.`, true);
+          }
+          await loadReceipts();
+          return;
+        }
+        if (button.classList.contains('resend-receipt')) {
+          button.disabled = true;
+          const result = await apiCall(`/api/admin/receipts/${receiptId}/send`, { method: 'POST', body: '{}' });
+          if (!result?.ok || !result.delivery?.sent) {
+            setFormMessage('clientFormStatus', result?.delivery?.error || result?.message || 'Email delivery failed. The PDF remains available for download.', true);
+          } else {
+            setFormMessage('clientFormStatus', `Receipt emailed to ${result.receipt.clientEmail}.`);
+          }
+          await loadReceipts();
+        }
       });
       
       // Logout
@@ -1649,6 +2075,7 @@
             <td>${lead.destination || 'N/A'}</td>
             <td>${lead.service || 'N/A'}</td>
             <td>${new Date(lead.createdAt).toLocaleDateString()}</td>
+            ${submittedRecordActions('leads', lead)}
           </tr>
         `).join('');
       });
@@ -1674,6 +2101,7 @@
             <td>${item.partnershipType || 'N/A'}</td>
             <td><span class="status-pill ${item.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${item.status || 'pending'}</span></td>
             <td>${new Date(item.createdAt).toLocaleDateString()}</td>
+            ${submittedRecordActions('partnerships', item)}
           </tr>
         `).join('');
       });
@@ -1691,6 +2119,7 @@
               <td><span class="status-pill ${app.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${app.status}</span></td>
               <td>${app.documentFile ? '✓ Uploaded' : '✗ Missing'}</td>
               <td>${new Date(app.createdAt).toLocaleDateString()}</td>
+              ${submittedRecordActions('insurance', app)}
             </tr>
           `).join('');
         } else {
@@ -1711,6 +2140,7 @@
               <td>${formatCurrency(ag.amountPaid)}</td>
               <td><span class="status-pill ${ag.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${ag.status}</span></td>
               <td>${ag.status === 'pending' ? `<button class="approve-agreement text-gold hover:text-white transition text-sm font-bold" data-id="${ag.id}">Approve</button>` : ''}</td>
+              ${submittedRecordActions('agreements', ag)}
             </tr>
           `).join('');
         } else {
@@ -1730,6 +2160,7 @@
               <td>${pp.requestType || 'N/A'}</td>
               <td><span class="status-pill ${pp.status === 'approved' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}">${pp.status}</span></td>
               <td>${new Date(pp.createdAt).toLocaleDateString()}</td>
+              ${submittedRecordActions('passports', pp)}
             </tr>
           `).join('');
         } else {
@@ -1871,6 +2302,7 @@
           alert(result?.message || 'Failed to reset password');
         }
       });
+
       
       // Refresh buttons
       document.getElementById('refreshAnalyticsBtn').addEventListener('click', loadAnalytics);
@@ -1891,6 +2323,10 @@
       });
       document.getElementById('documentUploadForm').addEventListener('submit', uploadAdminDocument);
       document.getElementById('clientForm').addEventListener('submit', submitClient);
+      document.getElementById('clientPaymentMethod').addEventListener('change', updateClientPaymentFields);
+      document.getElementById('clientForm').elements.status.addEventListener('change', updateClientPaymentFields);
+      document.querySelectorAll('[data-installment-amount]').forEach(input => input.addEventListener('input', updateInstallmentTotal));
+      updateClientPaymentFields();
       document.getElementById('exportClientsBtn').addEventListener('click', async () => {
         try {
           await downloadAuthenticatedFile('/api/admin/clients/export', 'bisfly-client-report.pdf');

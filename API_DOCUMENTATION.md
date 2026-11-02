@@ -15,7 +15,8 @@ Complete REST API reference for the BisFly Limited server running on port 8082.
 6. [CRUD Operations](#crud)
 7. [User Management](#users)
 8. [Activity Logging](#activity)
-9. [Error Handling](#errors)
+9. [Payment Receipts](#receipts)
+10. [Error Handling](#errors)
 
 ---
 
@@ -513,7 +514,41 @@ Authorization: Bearer <token>
 
 ---
 
+### Super Admin submitted-record controls
+
+The existing dashboard record tables expose Edit and Delete actions to Super Admins only. These endpoints require a valid Super Admin session and are scoped to one record in an existing dashboard collection; they do not expose raw collection or database access.
+
+**Update a record:** `PATCH /api/admin/records/{collection}/{id}`
+
+The generic update endpoint supports `leads`, `insurance`, `agreements`, `passports`, `partnerships`, `documents`, `disclaimers`, and `expenses`.
+
+```json
+{
+  "values": {
+    "fullName": "Updated client name"
+  }
+}
+```
+
+Only fields already present on that record may be changed. Record IDs, audit fields, ownership fields, and uploaded-file metadata are protected. For documents, update `allowedUserIds` as an array of active user IDs; the server updates the access-list display names as well. Client records use the existing `PATCH /api/admin/clients/{id}` route so the existing Manager/Super Admin restriction on changing `amountPaid` remains enforced.
+
+**Delete a record:** `DELETE /api/admin/records/{collection}/{id}`
+
+Deletion supports all of the collections above plus `clients` and is limited to the specified record. Associated uploaded files are removed only when no remaining record or package references them. Successful edit and delete operations are written to the activity log.
+
 ## 👥 **USER MANAGEMENT** {#users}
+
+All dashboard feature grants and revocations are controlled by a Super Admin using the Users tab. Super Admins can grant any dashboard feature to a non-Super-Admin user regardless of their assigned staff role. The `users` feature is never grantable; user management remains Super Admin-only.
+
+**Update dashboard access:** `PUT /api/admin/users/{id}`
+
+```json
+{
+  "featureAccess": ["leads", "clients", "cash-inflows"]
+}
+```
+
+Send the complete set of features the user should retain. Use an empty array to revoke all dashboard features. Updated access is enforced by both dashboard navigation and the corresponding API endpoints. Granting access does not override separate restrictions such as changing a client's amount paid, which remains limited to Managers and Super Admins.
 
 ### Create Admin User
 **Endpoint:** `POST /api/admin/users`
@@ -654,8 +689,9 @@ All endpoints in this section require a valid admin bearer token and an Admin, M
 
 ### Client records
 - `GET /api/admin/clients` — List client records.
-- `POST /api/admin/clients` — Create a client using multipart form data. Fields: `fullName`, `gender`, `dateOfBirth`, `address`, `phone`, `packageType`, `amountPaid`, `paymentDate`, `balanceAfterApproval`, and `status` (`ongoing`, `pending`, `submitted`, `refused`, or `approved`). Optional files: `signedDisclaimer` and `signedAgreement` (PDF/JPG/PNG).
-- `PATCH /api/admin/clients/:id` — Update client details or progress. Only Managers and Super Admins can change `amountPaid`; other admins receive `403 Forbidden` if they attempt to change it.
+- `POST /api/admin/clients` — Create a client using multipart form data. Fields include `fullName`, `gender`, `dateOfBirth`, `address`, `phone`, `email`, `packageType`, `paymentMethod` (`full` or `installment`), `paymentSchedule` (JSON array of dated `{amount, paymentDate}` entries), `initialDepositComplete`, `balanceAfterApproval`, and `status` (`ongoing`, `pending`, `submitted`, `refused`, or `approved`). Full-payment records contain one payment entry; installment records require two or three. Optional signed files are `signedDisclaimer` and `signedAgreement` (PDF/JPG/PNG). When `status` is `submitted`, the request must also include `visaApplicationForm`, `submittedSupportingDocument1`, and `submittedSupportingDocument2` (PDF/JPG/PNG, each under 5 MB). Creation automatically initializes a receipt: incomplete installment deposits remain in `pending_payment`, while completed deposits enter `pending` Super Admin approval.
+- `PATCH /api/admin/clients/:id` — Update client details or progress. Only Managers and Super Admins can change `amountPaid` on full-payment records; installment totals are fixed to the saved schedule. Any admin may explicitly set `initialDepositComplete: true` on an installment record, which moves its linked pending receipt to Super Admin approval. A client cannot be set to `submitted` until all three submitted documents are attached.
+- `POST /api/admin/clients/:id/submitted-documents` — Upload one filled visa application plus two supporting documents (PDF/JPG/PNG, each under 5 MB). On success, the record progress changes to `submitted`. The files appear as authenticated download links in the client dashboard and are included in Super Admin record-deletion cleanup.
 - `GET /api/admin/clients/export` — Download the client information report PDF.
 
 ### Client disclaimers
@@ -674,6 +710,32 @@ All endpoints in this section require a valid admin bearer token and an Admin, M
 - `GET /api/admin/expenses/report?from=YYYY-MM-DD&to=YYYY-MM-DD` — Download the expense PDF report for the optional date range.
 
 The agreement PDF includes the BisFly logo, payment and visa-authority terms, official corporate payment details, and signature spaces.
+
+---
+
+## 🧾 **PAYMENT RECEIPTS** {#receipts}
+
+Receipt listing and downloads require an authenticated admin session with the **Payment Receipts** dashboard feature. Super Admins can grant or revoke the feature for staff accounts. A receipt is initialized automatically by `POST /api/admin/clients`; it cannot be created or emailed through a separate manual form.
+
+### List receipts
+**Endpoint:** `GET /api/admin/receipts`
+
+Returns saved receipts, including their email-delivery status.
+
+### Approve and send a receipt
+**Endpoint:** `POST /api/admin/receipts/{receiptId}/approve`
+
+**Super Admin only.** Approving changes the receipt to approved, sends the branded PDF to the client email captured on the client record, and makes the PDF downloadable. Installment receipts cannot be approved until an admin explicitly confirms that the full initial deposit is complete. The receipt includes each payment amount and date, the total received, and the remaining balance after visa approval. Email delivery errors are returned explicitly; an approved receipt remains downloadable if email delivery fails. Use the retry endpoint after resolving the email issue.
+
+### Download receipt PDF
+**Endpoint:** `GET /api/admin/receipts/{receiptId}/pdf`
+
+Returns a BisFly Limited PDF receipt with the client, package, each dated payment, total paid, remaining balance, reference, generated date, company address, payment account, logo, signature, stamp, and watermark. Returns `403 Forbidden` until the receipt is approved.
+
+### Retry email delivery
+**Endpoint:** `POST /api/admin/receipts/{receiptId}/send`
+
+Retries sending the PDF to the client email saved on an approved receipt. The response reports whether delivery succeeded; failed delivery does not remove or disable the downloadable PDF. Receipts awaiting approval cannot be emailed.
 
 ---
 

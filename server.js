@@ -23,6 +23,7 @@ const documentsFile = path.join(root, "admin-documents.json");
 const clientsFile = path.join(root, "clients.json");
 const disclaimersFile = path.join(root, "disclaimers.json");
 const expensesFile = path.join(root, "expenses.json");
+const receiptsFile = path.join(root, "receipts.json");
 
 function loadEnvFile() {
   const candidates = [path.join(root, ".env.local"), path.join(root, ".env")];
@@ -110,6 +111,72 @@ function validateDateOnly(dateStr) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00.000Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function validateClientDocument(file, label, maxBytes = 15_000_000) {
+  if (!file?.data?.length) return `${label} is required.`;
+  if (file.data.length > maxBytes) return `${label} must be smaller than ${Math.floor(maxBytes / 1_000_000)} MB.`;
+  const extension = path.extname(file.filename).toLowerCase();
+  const header = file.data.subarray(0, 8);
+  const validFile = extension === ".pdf" ? header.subarray(0, 5).toString("ascii") === "%PDF-"
+    : [".jpg", ".jpeg"].includes(extension) ? header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff
+      : extension === ".png" && header.equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  return validFile ? null : `${label} must be a valid PDF, JPG, or PNG file.`;
+}
+
+function parseClientPaymentSchedule(fields) {
+  const paymentMethod = String(fields.paymentMethod || "full");
+  if (!["full", "installment"].includes(paymentMethod)) {
+    return { error: "Select full initial payment or installments." };
+  }
+  let schedule;
+  try {
+    schedule = fields.paymentSchedule ? JSON.parse(fields.paymentSchedule) : [];
+  } catch {
+    return { error: "The payment schedule is invalid." };
+  }
+  if (!Array.isArray(schedule)) return { error: "The payment schedule is invalid." };
+  if (paymentMethod === "full") {
+    const amount = Number(fields.amountPaid);
+    const paymentDate = String(fields.paymentDate || "");
+    const amountCents = Math.round(amount * 100);
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(amountCents) ||
+        Math.abs(amount - amountCents / 100) > 1e-8 || !validateDateOnly(paymentDate)) {
+      return { error: "Enter a valid initial payment amount and date." };
+    }
+    return {
+      paymentMethod,
+      paymentSchedule: [{ amount: amountCents / 100, paymentDate }],
+      amountPaid: amountCents / 100,
+      paymentDate,
+      initialDepositComplete: true
+    };
+  }
+  if (schedule.length < 2 || schedule.length > 3) {
+    return { error: "Enter two or three installment payments." };
+  }
+  let totalCents = 0;
+  for (const payment of schedule) {
+    const amount = Number(payment?.amount);
+    const paymentDate = String(payment?.paymentDate || "");
+    const amountCents = Math.round(amount * 100);
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(amountCents) ||
+        Math.abs(amount - amountCents / 100) > 1e-8 || !validateDateOnly(paymentDate)) {
+      return { error: "Each installment needs a positive amount and a valid payment date." };
+    }
+    totalCents += amountCents;
+  }
+  if (!Number.isSafeInteger(totalCents)) {
+    return { error: "The installment total is too large." };
+  }
+  const paymentDate = schedule.map(payment => payment.paymentDate).sort().slice(-1)[0];
+  return {
+    paymentMethod,
+    paymentSchedule: schedule.map(payment => ({ amount: Math.round(Number(payment.amount) * 100) / 100, paymentDate: String(payment.paymentDate) })),
+    amountPaid: totalCents / 100,
+    paymentDate,
+    initialDepositComplete: String(fields.initialDepositComplete).toLowerCase() === "true"
+  };
 }
 
 function sanitizeInput(input) {
@@ -329,6 +396,35 @@ async function sendSimpleEmail(to, subject, html) {
   }
 }
 
+async function sendReceiptEmail(receipt) {
+  if (!emailTransporter) {
+    return { sent: false, error: "Email service is not configured. Configure SMTP to send receipts; the PDF remains available for download." };
+  }
+  try {
+    const escapeHtml = value => String(value || "").replace(/[&<>"']/g, character => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[character]);
+    const pdfBuffer = await generateReceiptPdf(receipt);
+    const info = await emailTransporter.sendMail({
+      from: getEmailFrom(),
+      to: receipt.clientEmail,
+      subject: `BisFly Limited Payment Receipt - ${receipt.referenceNumber}`,
+      html: `<p>Dear ${escapeHtml(receipt.clientName)},</p><p>Please find attached your BisFly Limited payment receipt, reference <strong>${escapeHtml(receipt.referenceNumber)}</strong>.</p><p>Thank you for choosing BisFly Limited.</p>`,
+      attachments: [{
+        filename: `bisfly-payment-receipt-${receipt.referenceNumber}.pdf`,
+        content: pdfBuffer,
+        contentType: "application/pdf"
+      }]
+    });
+    const previewUrl = nodemailer.getTestMessageUrl(info) || null;
+    if (previewUrl) console.log("Receipt email preview URL:", previewUrl);
+    return { sent: true, messageId: info.messageId, previewUrl };
+  } catch (error) {
+    console.error(`Failed to email receipt ${receipt.referenceNumber}:`, error.message || error);
+    return { sent: false, error: String(error.message || "Email delivery failed.").slice(0, 500) };
+  }
+}
+
 function notifySubmission(customerEmail, customerSubject, customerHtml, adminSubject, adminHtml) {
   const adminEmail = process.env.EMAIL_USER || process.env.RESEND_FROM_EMAIL;
   const messages = [];
@@ -481,6 +577,51 @@ function writeJsonArray(filePath, records) {
   const temporaryFile = `${filePath}.tmp`;
   fs.writeFileSync(temporaryFile, JSON.stringify(records, null, 2), "utf8");
   fs.renameSync(temporaryFile, filePath);
+}
+
+const submittedRecordCollections = {
+  leads: { read: readLeads, write: writeLeads },
+  insurance: { read: readInsurance, write: writeInsurance, files: ["documentFile"] },
+  agreements: { read: readAgreements, write: writeAgreements },
+  passports: { read: readPassports, write: writePassports },
+  partnerships: { read: readPartnerships, write: writePartnerships },
+  documents: { read: readAdminDocuments, write: writeAdminDocuments, files: ["storedName"] },
+  clients: { read: () => readJsonArray(clientsFile), write: records => writeJsonArray(clientsFile, records), files: ["signedDisclaimerFile", "signedAgreementFile", "visaApplicationFile", "submittedSupportingDocument1File", "submittedSupportingDocument2File"] },
+  disclaimers: { read: () => readJsonArray(disclaimersFile), write: records => writeJsonArray(disclaimersFile, records), files: ["signedFile"] },
+  expenses: { read: () => readJsonArray(expensesFile), write: records => writeJsonArray(expensesFile, records) },
+  receipts: { read: () => readJsonArray(receiptsFile), write: records => writeJsonArray(receiptsFile, records) }
+};
+
+const protectedSubmittedRecordFields = new Set([
+  "id", "createdAt", "uploadedAt", "createdBy", "uploadedBy", "uploadedById",
+  "generatedBy", "updatedAt", "updatedBy", "documentFile", "storedName",
+  "signedFile", "signedDisclaimerFile", "signedAgreementFile", "visaApplicationFile",
+  "submittedSupportingDocument1File", "submittedSupportingDocument2File", "paymentSchedule",
+  "paymentMethod", "initialDepositComplete", "imageFile",
+  "size", "contentType", "originalFileName", "approvalStatus", "approvedAt",
+  "approvedBy", "emailStatus", "emailError", "emailSentAt", "emailPreviewUrl"
+]);
+
+function removeUnusedRecordFiles(removedRecord) {
+  const referencedFiles = new Set();
+  for (const collection of Object.values(submittedRecordCollections)) {
+    for (const record of collection.read()) {
+      for (const field of collection.files || []) {
+        if (record[field]) referencedFiles.add(path.basename(record[field]));
+      }
+    }
+  }
+  for (const pkg of readPackages()) {
+    if (pkg.imageFile) referencedFiles.add(path.basename(pkg.imageFile));
+  }
+  for (const collection of Object.values(submittedRecordCollections)) {
+    for (const field of collection.files || []) {
+      const fileName = removedRecord[field];
+      if (!fileName || path.basename(fileName) !== fileName || referencedFiles.has(fileName)) continue;
+      const filePath = path.join(uploadsDir, fileName);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+  }
 }
 
 function parseCsv(text) {
@@ -923,6 +1064,144 @@ function generateTablePdf(title, rows = []) {
   });
 }
 
+function generateReceiptPdf(receipt) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    const buffers = [];
+    doc.on("data", chunk => buffers.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(buffers)));
+    doc.on("error", reject);
+
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const margin = 40;
+    doc.rect(0, 0, pageWidth, pageHeight).fill("#ffffff");
+
+    doc.save().opacity(0.07).fillColor("#2563eb").font("Helvetica-Bold").fontSize(13);
+    for (let y = 110; y < pageHeight - 40; y += 92) {
+      for (let x = -70; x < pageWidth; x += 205) {
+        doc.save().rotate(-24, { origin: [x + 80, y + 10] });
+        doc.text("BisFly Limited  BisFly Limited", x, y, { lineBreak: false });
+        doc.restore();
+      }
+    }
+    doc.restore();
+
+    const headerGradient = doc.linearGradient(margin, 36, pageWidth - margin, 36);
+    headerGradient.stop(0, "#123a8c").stop(1, "#1687d4");
+    doc.roundedRect(margin, 36, pageWidth - margin * 2, 112, 15).fill(headerGradient);
+
+    const logoPath = path.join(root, "bisfly-logo.jpeg");
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, margin + 18, 54, { width: 80, height: 72, fit: [80, 72], align: "center", valign: "center" });
+    }
+    doc.font("Helvetica-Bold").fontSize(20).fillColor("#ffffff").text("BisFly Limited", margin + 112, 54, { width: 260 });
+    doc.font("Helvetica").fontSize(8.5).fillColor("#eaf4ff").text(
+      "SW/8, 1A, Iyun Close, Ibadan, Oyo State, Nigeria",
+      margin + 112, 81, { width: 270 }
+    );
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#ffffff").text(
+      "PAYMENT RECEIPT",
+      pageWidth - margin - 151, 59, { width: 135, align: "right", characterSpacing: 0.6 }
+    );
+    doc.font("Helvetica").fontSize(8).fillColor("#eaf4ff").text(
+      `Reference: ${receipt.referenceNumber}`,
+      pageWidth - margin - 190, 82, { width: 174, align: "right" }
+    );
+    doc.font("Helvetica").fontSize(8).fillColor("#eaf4ff").text(
+      `Date: ${new Date(`${receipt.receiptDate}T00:00:00`).toLocaleDateString("en-NG", { year: "numeric", month: "long", day: "numeric" })}`,
+      pageWidth - margin - 190, 99, { width: 174, align: "right" }
+    );
+
+    doc.font("Helvetica-Bold").fontSize(16).fillColor("#123a8c").text("Payment received", margin, 180);
+    doc.font("Helvetica").fontSize(10).fillColor("#475569").text(
+      "This receipt confirms that BisFly Limited has received the payment below.",
+      margin, 204, { width: pageWidth - margin * 2 }
+    );
+
+    const cardX = margin;
+    const cardY = 250;
+    const cardWidth = pageWidth - margin * 2;
+    doc.roundedRect(cardX, cardY, cardWidth, 195, 10).lineWidth(1).strokeColor("#bfdbfe").stroke();
+    doc.font("Helvetica-Bold").fontSize(8).fillColor("#2563eb").text("RECEIVED FROM", cardX + 20, cardY + 18);
+    doc.font("Helvetica-Bold").fontSize(15).fillColor("#123a8c").text(receipt.clientName, cardX + 20, cardY + 35, { width: cardWidth - 40 });
+    doc.font("Helvetica").fontSize(9).fillColor("#475569").text(receipt.clientEmail, cardX + 20, cardY + 61, { width: cardWidth - 40 });
+    doc.moveTo(cardX + 20, cardY + 81).lineTo(cardX + cardWidth - 20, cardY + 81).strokeColor("#dbeafe").lineWidth(1).stroke();
+    doc.font("Helvetica-Bold").fontSize(8).fillColor("#2563eb").text("PACKAGE / SERVICE", cardX + 20, cardY + 92);
+    doc.font("Helvetica").fontSize(10).fillColor("#1e3a8a").text(receipt.packageType, cardX + 160, cardY + 90, { width: cardWidth - 180 });
+    doc.font("Helvetica-Bold").fontSize(8).fillColor("#2563eb").text(
+      receipt.paymentMethod === "installment" ? "PAYMENT METHOD" : "PAYMENT DATE",
+      cardX + 20, cardY + 119
+    );
+    doc.font("Helvetica").fontSize(9).fillColor("#334155").text(
+      receipt.paymentMethod === "installment" ? "Installments" : receipt.paymentDate || receipt.receiptDate,
+      cardX + 112, cardY + 117, { width: 130 }
+    );
+    doc.font("Helvetica-Bold").fontSize(8).fillColor("#2563eb").text("BALANCE AFTER APPROVAL", cardX + 260, cardY + 119);
+    doc.font("Helvetica").fontSize(9).fillColor("#334155").text(
+      `NGN ${Number(receipt.balanceAfterApproval || 0).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      cardX + 390, cardY + 117, { width: cardWidth - 410 }
+    );
+    doc.font("Helvetica-Bold").fontSize(8).fillColor("#2563eb").text("PAYMENT HISTORY", cardX + 20, cardY + 139);
+    const paymentSchedule = Array.isArray(receipt.paymentSchedule) && receipt.paymentSchedule.length
+      ? receipt.paymentSchedule
+      : [{ amount: receipt.amountPaid, paymentDate: receipt.paymentDate || receipt.receiptDate }];
+    paymentSchedule.slice(0, 3).forEach((payment, index) => {
+      const y = cardY + 153 + index * 12;
+      doc.font("Helvetica").fontSize(8).fillColor("#334155").text(
+        `${paymentSchedule.length > 1 ? `Installment ${index + 1}` : "Payment"} · ${payment.paymentDate}`,
+        cardX + 20, y, { width: cardWidth - 180 }
+      );
+      doc.font("Helvetica-Bold").fontSize(8).fillColor("#1e3a8a").text(
+        `NGN ${Number(payment.amount || 0).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        cardX + cardWidth - 160, y, { width: 140, align: "right" }
+      );
+    });
+
+    const amountGradient = doc.linearGradient(margin, 454, pageWidth - margin, 454);
+    amountGradient.stop(0, "#0b3b91").stop(1, "#1687d4");
+    doc.roundedRect(margin, 454, pageWidth - margin * 2, 78, 12).fill(amountGradient);
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#dbeafe").text("TOTAL AMOUNT RECEIVED", margin + 22, 468);
+    doc.font("Helvetica-Bold").fontSize(25).fillColor("#ffffff").text(
+      `NGN ${Number(receipt.amountPaid).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      margin + 22, 490, { width: pageWidth - margin * 2 - 44 }
+    );
+
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#123a8c").text("OFFICIAL PAYMENT ACCOUNT", margin, 544);
+    doc.font("Helvetica").fontSize(9).fillColor("#334155").text(
+      "Fidelity Bank  |  Account Name: Bisfly Limited  |  Account Number: 5601847112",
+      margin, 561, { width: pageWidth - margin * 2 }
+    );
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(
+      `Receipt prepared by ${receipt.createdBy || "BisFly Limited"}. Keep this receipt for your records.`,
+      margin, 582, { width: pageWidth - margin * 2 }
+    );
+
+    const stampPath = path.join(root, "bisfly-company-stamp.png");
+    if (fs.existsSync(stampPath)) {
+      doc.save().opacity(0.38).image(stampPath, margin + 56, 608, { width: 112, height: 82, fit: [112, 82], align: "center", valign: "center" }).restore();
+    }
+
+    const signaturePath = path.join(root, "bisfly-signature.png");
+    if (fs.existsSync(signaturePath)) {
+      doc.image(signaturePath, margin + 22, 622, { width: 132, height: 45, fit: [132, 45], align: "center", valign: "center" });
+    } else {
+      doc.font("Helvetica-Oblique").fontSize(15).fillColor("#123a8c").text("BisFly Limited", margin + 20, 635, { width: 140, align: "center" });
+    }
+    doc.moveTo(margin + 14, 670).lineTo(margin + 170, 670).strokeColor("#1e40af").lineWidth(0.8).stroke();
+    doc.font("Helvetica-Bold").fontSize(8).fillColor("#1e3a8a").text("Authorized signature", margin + 14, 677, { width: 156, align: "center" });
+
+    const footerGradient = doc.linearGradient(margin, pageHeight - 72, pageWidth - margin, pageHeight - 72);
+    footerGradient.stop(0, "#123a8c").stop(1, "#1687d4");
+    doc.roundedRect(margin, pageHeight - 73, pageWidth - margin * 2, 2, 1).fill(footerGradient);
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(
+      "Thank you for choosing BisFly Limited.",
+      margin, pageHeight - 61, { width: pageWidth - margin * 2, align: "center" }
+    );
+    doc.end();
+  });
+}
+
 function generateAgreementPdf(agreement) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50 });
@@ -1000,7 +1279,19 @@ function generateAgreementPdf(agreement) {
     const leftX = doc.page.margins.left;
     const rightX = doc.page.width / 2 + 12;
     const signatureY = doc.y + 38;
-    doc.font("Helvetica-Oblique").fontSize(17).fillColor("#073c9a").text("BisFly Limited", leftX, signatureY - 28, { width: 210, align: "center" });
+    const stampPath = path.join(root, "bisfly-company-stamp.png");
+    const stampX = leftX + 56;
+    if (fs.existsSync(stampPath)) {
+      doc.save().opacity(0.3).image(stampPath, stampX, signatureY - 38, { width: 100, height: 70, fit: [100, 70], align: "center", valign: "center" }).restore();
+    } else {
+      doc.save().opacity(0.12).font("Helvetica-Bold").fontSize(9).fillColor("#073c9a").text("BISFLY", stampX - 10, signatureY - 2, { width: 88, align: "center" }).restore();
+    }
+    const signaturePath = path.join(root, "bisfly-signature.png");
+    if (fs.existsSync(signaturePath)) {
+      doc.image(signaturePath, leftX + 48, signatureY - 48, { width: 116, height: 39, fit: [116, 39], align: "center", valign: "center" });
+    } else {
+      doc.font("Helvetica-Oblique").fontSize(17).fillColor("#073c9a").text("BisFly Limited", leftX, signatureY - 28, { width: 210, align: "center" });
+    }
     doc.moveTo(leftX + 8, signatureY).lineTo(leftX + 218, signatureY).strokeColor("#334155").lineWidth(0.8).stroke();
     doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text("For BisFly Limited", leftX + 8, signatureY + 7, { width: 210, align: "center" });
     doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(`Authorized representative - ${agreement.generatedBy || "Admin"}`, leftX + 8, signatureY + 21, { width: 210, align: "center" });
@@ -1008,13 +1299,6 @@ function generateAgreementPdf(agreement) {
     doc.moveTo(rightX, signatureY).lineTo(rightX + 210, signatureY).strokeColor("#334155").lineWidth(0.8).stroke();
     doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text(String(agreement.fullName || "Client"), rightX, signatureY + 7, { width: 210, align: "center" });
     doc.font("Helvetica").fontSize(8).fillColor("#64748b").text("Client signature", rightX, signatureY + 21, { width: 210, align: "center" });
-    const stampPath = path.join(root, "bisfly-company-stamp.png");
-    const stampX = doc.page.width / 2 - 48;
-    if (fs.existsSync(stampPath)) {
-      doc.save().opacity(0.3).image(stampPath, stampX, signatureY - 30, { width: 96, height: 67, fit: [96, 67], align: "center", valign: "center" }).restore();
-    } else {
-      doc.save().opacity(0.12).font("Helvetica-Bold").fontSize(9).fillColor("#073c9a").text("BISFLY", stampX - 10, signatureY - 2, { width: 88, align: "center" }).restore();
-    }
     doc.moveTo(rightX + 50, signatureY + 65).lineTo(rightX + 160, signatureY + 65).strokeColor("#64748b").lineWidth(0.6).stroke();
     doc.font("Helvetica").fontSize(8).fillColor("#64748b").text("Date", rightX, signatureY + 71, { width: 210, align: "center" });
 
@@ -1082,12 +1366,16 @@ function generateDisclaimerPdf(disclaimer) {
     const rightX = doc.page.width / 2 + 12;
     const stampPath = path.join(root, "bisfly-company-stamp.png");
     if (fs.existsSync(stampPath)) {
-      doc.save().opacity(0.78).image(stampPath, rightX + 58, signatureY - 70, { width: 94, height: 66, fit: [94, 66], align: "center", valign: "center" }).restore();
+      doc.save().opacity(0.3).image(stampPath, rightX + 56, signatureY - 38, { width: 100, height: 70, fit: [100, 70], align: "center", valign: "center" }).restore();
     }
     doc.moveTo(leftX, signatureY).lineTo(leftX + 210, signatureY).strokeColor("#334155").stroke();
     doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text("Client signature", leftX, signatureY + 6, { width: 210, align: "center" });
     doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(`Client: ${disclaimer.fullName}`, leftX, signatureY + 19, { width: 210, align: "center" });
     doc.moveTo(rightX, signatureY).lineTo(rightX + 210, signatureY).strokeColor("#334155").stroke();
+    const signaturePath = path.join(root, "bisfly-signature.png");
+    if (fs.existsSync(signaturePath)) {
+      doc.image(signaturePath, rightX + 48, signatureY - 49, { width: 116, height: 39, fit: [116, 39], align: "center", valign: "center" });
+    }
     doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text("For BisFly Limited", rightX, signatureY + 6, { width: 210, align: "center" });
     doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(`Authorized representative: ${disclaimer.generatedBy || "Admin"}`, rightX, signatureY + 19, { width: 210, align: "center" });
     doc.moveTo(leftX, signatureY + 55).lineTo(leftX + 210, signatureY + 55).strokeColor("#64748b").stroke();
@@ -1211,6 +1499,7 @@ function sanitizeUser(user) {
   const safeUser = { ...user };
   delete safeUser.passwordHash;
   delete safeUser.passwordSalt;
+  safeUser.dashboardFeatures = effectiveDashboardFeatures(user);
   return safeUser;
 }
 
@@ -1222,6 +1511,82 @@ function isMasterAdminSession(session) {
 function normalizeAdminRole(role) {
   const normalized = String(role || "").trim().toLowerCase();
   return normalized === "customer" ? "support" : normalized;
+}
+
+const DASHBOARD_FEATURES = [
+  "dashboard", "leads", "documents", "clients", "disclaimers", "cash-inflows",
+  "expenses", "receipts", "insurance", "agreements", "passports", "partnerships", "packages",
+  "users", "activity"
+];
+const ADMIN_DASHBOARD_FEATURES = [
+  "leads", "documents", "clients", "disclaimers", "cash-inflows", "expenses", "receipts",
+  "insurance", "agreements", "passports", "partnerships", "packages"
+];
+const SUPPORT_DASHBOARD_FEATURES = [
+  "leads", "documents", "insurance", "agreements", "passports", "partnerships", "packages"
+];
+const SUPER_ADMIN_ONLY_DASHBOARD_FEATURES = new Set(["users"]);
+const GRANTABLE_DASHBOARD_FEATURES = DASHBOARD_FEATURES.filter(
+  feature => !SUPER_ADMIN_ONLY_DASHBOARD_FEATURES.has(feature)
+);
+
+function dashboardFeaturesForRole(user) {
+  const role = normalizeAdminRole(user?.role);
+  if (isMasterAdminSession(user)) return DASHBOARD_FEATURES;
+  return ["admin", "manager"].includes(role) ? ADMIN_DASHBOARD_FEATURES : SUPPORT_DASHBOARD_FEATURES;
+}
+
+function effectiveDashboardFeatures(user) {
+  if (isMasterAdminSession(user)) return [...DASHBOARD_FEATURES];
+  if (!Array.isArray(user?.featureAccess)) return dashboardFeaturesForRole(user);
+  return user.featureAccess.filter(
+    feature => GRANTABLE_DASHBOARD_FEATURES.includes(feature)
+  );
+}
+
+function dashboardFeatureForRequest(pathname) {
+  const recordMatch = pathname.match(/^\/api\/admin\/records\/([^/]+)/);
+  if (recordMatch) {
+    const featureByCollection = {
+      leads: "leads",
+      insurance: "insurance",
+      agreements: "agreements",
+      passports: "passports",
+      partnerships: "partnerships",
+      documents: "documents",
+      clients: "clients",
+      disclaimers: "disclaimers",
+      expenses: "expenses",
+      receipts: "receipts"
+    };
+    return featureByCollection[recordMatch[1]] || null;
+  }
+  const routes = [
+    [/^\/api\/analytics(?:\/|$)/, "dashboard"],
+    [/^\/api\/(?:leads|admin\/leads)(?:\/|$)/, "leads"],
+    [/^\/api\/admin\/documents(?:\/|$)/, "documents"],
+    [/^\/api\/admin\/document-access-users(?:\/|$)/, "documents"],
+    [/^\/api\/admin\/clients(?:\/|$)/, "clients"],
+    [/^\/api\/admin\/disclaimers(?:\/|$)/, "disclaimers"],
+    [/^\/api\/admin\/cash-inflows(?:\/|$)/, "cash-inflows"],
+    [/^\/api\/(?:bank-inflows|admin\/bank-inflows)(?:\/|$)/, "cash-inflows"],
+    [/^\/api\/admin\/expenses(?:\/|$)/, "expenses"],
+    [/^\/api\/admin\/receipts(?:\/|$)/, "receipts"],
+    [/^\/api\/insurance(?:\/|$)/, "insurance"],
+    [/^\/api\/agreements(?:\/|$)/, "agreements"],
+    [/^\/api\/admin\/agreements(?:\/|$)/, "agreements"],
+    [/^\/api\/passports(?:\/|$)/, "passports"],
+    [/^\/api\/partnerships(?:\/|$)/, "partnerships"],
+    [/^\/api\/packages(?:\/|$)/, "packages"],
+    [/^\/api\/admin\/activity-log(?:\/|$)/, "activity"]
+  ];
+  return routes.find(([pattern]) => pattern.test(pathname))?.[1] || null;
+}
+
+function requireDashboardFeature(response, session, feature) {
+  if (!session || !feature || effectiveDashboardFeatures(session).includes(feature)) return true;
+  send(response, 403, { ok: false, message: "You do not have access to this dashboard feature." });
+  return false;
 }
 
 function isManagerSession(session) {
@@ -1244,14 +1609,16 @@ function requireSuperAdmin(response, session) {
   return true;
 }
 
-function requireAdminOperationsAccess(response, session) {
+function requireAdminOperationsAccess(response, session, pathname) {
   if (!session) {
     send(response, 401, { ok: false, message: "Unauthorized" });
     return false;
   }
   const role = normalizeAdminRole(session.role);
-  if (!isMasterAdminSession(session) && role !== "manager" && role !== "admin") {
-    send(response, 403, { ok: false, message: "Admin, Manager, or Super Admin access required." });
+  const feature = dashboardFeatureForRequest(pathname || "");
+  if (!isMasterAdminSession(session) && role !== "manager" && role !== "admin" &&
+      (!feature || !effectiveDashboardFeatures(session).includes(feature))) {
+    send(response, 403, { ok: false, message: "This action requires access to the relevant dashboard feature. Ask a Super Admin to grant access." });
     return false;
   }
   return true;
@@ -1291,6 +1658,7 @@ function validateSession(token) {
     }
     session.userId = Number(account.id);
     session.role = account.role || "support";
+    session.featureAccess = account.featureAccess;
     return session;
   } catch (error) {
     return null;
@@ -1450,7 +1818,7 @@ function serveStatic(request, response) {
 const server = http.createServer(async (request, response) => {
   const parsedUrl = new URL(request.url, `http://${request.headers.host}`);
   response.setHeader("Access-Control-Allow-Origin", "*");
-  response.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  response.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (request.method === "OPTIONS") {
@@ -1460,6 +1828,10 @@ const server = http.createServer(async (request, response) => {
   }
 
   try {
+    const requestSession = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+    const requiredDashboardFeature = dashboardFeatureForRequest(parsedUrl.pathname);
+    if (requestSession && requiredDashboardFeature &&
+        !requireDashboardFeature(response, requestSession, requiredDashboardFeature)) return;
 
     // Admin Authentication Endpoints
     if (parsedUrl.pathname === "/api/admin/login" && request.method === "POST") {
@@ -1608,11 +1980,25 @@ const server = http.createServer(async (request, response) => {
       }
 
       const existing = users[userIndex];
+      if (body.featureAccess !== undefined && String(existing.username).toLowerCase() === String(session.username).toLowerCase()) {
+        send(response, 400, { ok: false, message: "You cannot change your own dashboard feature access." });
+        return;
+      }
       const nextUsername = String(body.username || existing.username).trim();
       const nextRole = normalizeAdminRole(body.role || existing.role || "admin");
       if (!new Set(["admin", "manager", "support", "super-admin"]).has(nextRole)) {
         send(response, 400, { ok: false, message: "Role must be Admin, Manager, Support/Customer, or Super Admin." });
         return;
+      }
+      let nextFeatureAccess = existing.featureAccess;
+      if (body.featureAccess !== undefined) {
+        if (isMasterAdminSession({ username: nextUsername || existing.username, role: nextRole }) ||
+            !Array.isArray(body.featureAccess) ||
+            body.featureAccess.some(feature => typeof feature !== "string" || !GRANTABLE_DASHBOARD_FEATURES.includes(feature))) {
+          send(response, 400, { ok: false, message: "Choose valid dashboard features for a non-super-admin user. User management stays Super Admin-only." });
+          return;
+        }
+        nextFeatureAccess = [...new Set(body.featureAccess)];
       }
       if (nextUsername && nextUsername.toLowerCase() !== existing.username.toLowerCase()) {
         const conflict = users.some(item => item.id !== id && String(item.username).toLowerCase() === nextUsername.toLowerCase());
@@ -1642,6 +2028,7 @@ const server = http.createServer(async (request, response) => {
         active: body.active !== undefined ? body.active !== false : existing.active !== false,
         updatedAt: new Date().toISOString()
       };
+      if (body.featureAccess !== undefined) updated.featureAccess = nextFeatureAccess;
 
       if (body.password) {
         if (String(body.password).length < 8) {
@@ -1655,7 +2042,12 @@ const server = http.createServer(async (request, response) => {
 
       users[userIndex] = updated;
       writeAdminUsers(users);
-      logActivity("admin_user_updated", { username: session.username, target: updated.username, role: updated.role }, session.username);
+      logActivity("admin_user_updated", {
+        username: session.username,
+        target: updated.username,
+        role: updated.role,
+        dashboardFeatures: effectiveDashboardFeatures(updated)
+      }, session.username);
       send(response, 200, { ok: true, user: sanitizeUser(users[userIndex]) });
       return;
     }
@@ -1750,7 +2142,12 @@ const server = http.createServer(async (request, response) => {
     if (parsedUrl.pathname === "/api/admin/verify" && request.method === "GET") {
       const token = request.headers.authorization?.replace("Bearer ", "");
       const session = validateSession(token);
-      send(response, session ? 200 : 401, { authenticated: !!session, username: session?.username, role: session?.role || "admin" });
+      send(response, session ? 200 : 401, {
+        authenticated: !!session,
+        username: session?.username,
+        role: session?.role || "admin",
+        dashboardFeatures: session ? effectiveDashboardFeatures(session) : []
+      });
       return;
     }
 
@@ -2126,34 +2523,121 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    const submittedRecordRoute = parsedUrl.pathname.match(/^\/api\/admin\/records\/(leads|insurance|agreements|passports|partnerships|documents|clients|disclaimers|expenses|receipts)\/([^/]+)$/);
+    if (submittedRecordRoute && ["PATCH", "DELETE"].includes(request.method)) {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireSuperAdmin(response, session)) return;
+      const [, collectionName, recordId] = submittedRecordRoute;
+      const collection = submittedRecordCollections[collectionName];
+      const records = collection.read();
+      const index = records.findIndex(record => String(record.id) === decodeURIComponent(recordId));
+      if (index === -1) return send(response, 404, { ok: false, message: "Record not found." });
+
+      if (request.method === "DELETE") {
+        const [removed] = records.splice(index, 1);
+        collection.write(records);
+        removeUnusedRecordFiles(removed);
+        logActivity("submitted_record_deleted", { collection: collectionName, id: removed.id }, session.username);
+        return send(response, 200, { ok: true, message: "Record deleted." });
+      }
+
+      if (collectionName === "clients") {
+        return send(response, 400, { ok: false, message: "Update client details through the client record form." });
+      }
+      const body = await readBody(request);
+      const values = body.values;
+      if (!values || typeof values !== "object" || Array.isArray(values)) {
+        return send(response, 400, { ok: false, message: "Provide record fields to update." });
+      }
+      const record = records[index];
+      for (const [field, value] of Object.entries(values)) {
+        if (protectedSubmittedRecordFields.has(field) || field === "allowedUsers" || !Object.prototype.hasOwnProperty.call(record, field)) {
+          return send(response, 400, { ok: false, message: `The ${field} field cannot be edited.` });
+        }
+        if (typeof value === "string" && value.length > 10000) {
+          return send(response, 400, { ok: false, message: "Record fields must be 10,000 characters or fewer." });
+        }
+        if (field === "allowedUserIds" && collectionName === "documents") {
+          if (!Array.isArray(value) || value.some(id => !Number.isSafeInteger(Number(id)))) {
+            return send(response, 400, { ok: false, message: "Choose valid users for document access." });
+          }
+          const users = readAdminUsers().filter(user => user.active !== false);
+          const uniqueUserIds = [...new Set(value.map(Number))];
+          const selectedUsers = uniqueUserIds.map(id => users.find(user => Number(user.id) === id));
+          if (selectedUsers.some(user => !user)) {
+            return send(response, 400, { ok: false, message: "One or more selected users are unavailable." });
+          }
+          record.allowedUserIds = uniqueUserIds;
+          record.allowedUsers = selectedUsers.map(user => ({ id: user.id, username: user.username }));
+          continue;
+        }
+        const existingValue = record[field];
+        if (existingValue !== null && existingValue !== undefined &&
+            (Array.isArray(existingValue) !== Array.isArray(value) ||
+             (Array.isArray(existingValue) && !Array.isArray(value)) ||
+             (!Array.isArray(existingValue) && typeof existingValue !== typeof value))) {
+          return send(response, 400, { ok: false, message: `Enter a value with the same format as ${field}.` });
+        }
+        if (typeof value === "object" && value !== null && JSON.stringify(value).length > 10000) {
+          return send(response, 400, { ok: false, message: "Record fields must be 10,000 characters or fewer." });
+        }
+        record[field] = value;
+      }
+      record.updatedAt = new Date().toISOString();
+      record.updatedBy = session.username;
+      collection.write(records);
+      logActivity("submitted_record_updated", { collection: collectionName, id: record.id }, session.username);
+      return send(response, 200, { ok: true, record });
+    }
+
     if (parsedUrl.pathname === "/api/admin/clients" && request.method === "GET") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       return send(response, 200, readJsonArray(clientsFile));
     }
 
     if (parsedUrl.pathname === "/api/admin/clients" && request.method === "POST") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const parsed = await readBody(request);
       const fields = parsed.fields || {};
       const files = parsed.files || {};
-      const required = ["fullName", "gender", "dateOfBirth", "address", "phone", "packageType", "amountPaid", "paymentDate", "balanceAfterApproval"];
+      const required = ["fullName", "gender", "dateOfBirth", "address", "phone", "email", "packageType", "balanceAfterApproval", "paymentMethod"];
       for (const field of required) {
         if (!String(fields[field] ?? "").trim()) return send(response, 400, { ok: false, message: `${field} is required.` });
       }
-      if (!validateDateOnly(fields.dateOfBirth) || !validateDateOnly(fields.paymentDate)) {
-        return send(response, 400, { ok: false, message: "Enter valid dates of birth and payment." });
-      }
+      if (!validateDateOnly(fields.dateOfBirth)) return send(response, 400, { ok: false, message: "Enter a valid date of birth." });
       if (!validatePhone(fields.phone)) return send(response, 400, { ok: false, message: "Enter a valid phone number." });
-      const amountPaid = Number(fields.amountPaid);
+      if (!validateEmail(fields.email) || String(fields.email).length > 180) {
+        return send(response, 400, { ok: false, message: "Enter a valid client email address (maximum 180 characters)." });
+      }
+      const payment = parseClientPaymentSchedule(fields);
+      if (payment.error) return send(response, 400, { ok: false, message: payment.error });
       const balanceAfterApproval = Number(fields.balanceAfterApproval);
-      if (!Number.isFinite(amountPaid) || amountPaid < 0 || !Number.isFinite(balanceAfterApproval) || balanceAfterApproval < 0) {
-        return send(response, 400, { ok: false, message: "Amounts must be valid non-negative numbers." });
+      if (!Number.isFinite(balanceAfterApproval) || balanceAfterApproval < 0 || balanceAfterApproval > Number.MAX_SAFE_INTEGER) {
+        return send(response, 400, { ok: false, message: "Enter a valid non-negative balance." });
       }
       const status = String(fields.status || "pending");
       if (!["ongoing", "pending", "submitted", "refused", "approved"].includes(status)) {
         return send(response, 400, { ok: false, message: "Select a valid client progress status." });
+      }
+      const signedAttachments = [["signedDisclaimer", "signed disclaimer"], ["signedAgreement", "signed agreement"]]
+        .map(([field, label]) => ({ field, label, file: files[field] }))
+        .filter(attachment => attachment.file?.data?.length);
+      for (const { label, file } of signedAttachments) {
+        const validationError = validateClientDocument(file, label);
+        if (validationError) return send(response, file.data.length > 15_000_000 ? 413 : 400, { ok: false, message: validationError });
+      }
+      const submittedAttachments = [
+        ["visaApplicationForm", "filled visa application form", "visaApplicationFile"],
+        ["submittedSupportingDocument1", "first supporting document", "submittedSupportingDocument1File"],
+        ["submittedSupportingDocument2", "second supporting document", "submittedSupportingDocument2File"]
+      ].map(([field, label, recordField]) => ({ field, label, recordField, file: files[field] }));
+      if (status === "submitted") {
+        for (const { label, file } of submittedAttachments) {
+          const validationError = validateClientDocument(file, label, 5_000_000);
+          if (validationError) return send(response, file?.data?.length > 5_000_000 ? 413 : 400, { ok: false, message: validationError });
+        }
       }
       const record = {
         id: crypto.randomBytes(12).toString("hex"),
@@ -2162,54 +2646,155 @@ const server = http.createServer(async (request, response) => {
         dateOfBirth: String(fields.dateOfBirth),
         address: String(fields.address).trim().slice(0, 500),
         phone: String(fields.phone).trim().slice(0, 40),
+        email: String(fields.email).trim().slice(0, 180),
         packageType: String(fields.packageType).trim().slice(0, 120),
-        amountPaid,
-        paymentDate: String(fields.paymentDate),
+        paymentMethod: payment.paymentMethod,
+        paymentSchedule: payment.paymentSchedule,
+        initialDepositComplete: payment.initialDepositComplete,
+        amountPaid: payment.amountPaid,
+        paymentDate: payment.paymentDate,
         balanceAfterApproval,
         status,
         createdBy: session.username,
         createdAt: new Date().toISOString()
       };
-      const signedAttachments = [["signedDisclaimer", "disclaimer"], ["signedAgreement", "agreement"]]
-        .map(([field, label]) => ({ field, label, file: files[field] }))
-        .filter(attachment => attachment.file?.data?.length);
-      for (const { label, file } of signedAttachments) {
-        if (file.data.length > 15_000_000) return send(response, 413, { ok: false, message: `The signed ${label} must be smaller than 15 MB.` });
-        const extension = path.extname(file.filename).toLowerCase();
-        const header = file.data.subarray(0, 8);
-        const validFile = extension === ".pdf" ? header.subarray(0, 5).toString("ascii") === "%PDF-"
-          : [".jpg", ".jpeg"].includes(extension) ? header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff
-            : extension === ".png" && header.equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-        if (!validFile) return send(response, 400, { ok: false, message: "Signed documents must be valid PDF, JPG, or PNG files." });
-      }
+      const createdFiles = [];
       for (const { field, file } of signedAttachments) {
         const extension = path.extname(file.filename).toLowerCase();
         const storedName = `client-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${extension}`;
         fs.writeFileSync(path.join(uploadsDir, storedName), file.data, { flag: "wx" });
+        createdFiles.push(storedName);
         record[field === "signedDisclaimer" ? "signedDisclaimerFile" : "signedAgreementFile"] = storedName;
+      }
+      if (status === "submitted") {
+        for (const { field, file, recordField } of submittedAttachments) {
+          const extension = path.extname(file.filename).toLowerCase();
+          const storedName = `client-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${extension}`;
+          fs.writeFileSync(path.join(uploadsDir, storedName), file.data, { flag: "wx" });
+          createdFiles.push(storedName);
+          record[recordField] = storedName;
+        }
       }
       const records = readJsonArray(clientsFile);
       records.unshift(record);
-      writeJsonArray(clientsFile, records);
-      logActivity("client_created", { id: record.id, client: record.fullName }, session.username);
-      return send(response, 201, { ok: true, client: record });
+      const previousReceipts = readJsonArray(receiptsFile);
+      let referenceNumber;
+      do {
+        referenceNumber = `BFL-${new Date().toISOString().slice(2, 10).replace(/-/g, "")}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+      } while (previousReceipts.some(item => item.referenceNumber === referenceNumber));
+      const receipt = {
+        id: crypto.randomBytes(12).toString("hex"),
+        clientId: record.id,
+        referenceNumber,
+        receiptDate: new Date().toISOString().slice(0, 10),
+        paymentDate: record.paymentDate,
+        clientName: record.fullName,
+        clientEmail: record.email,
+        packageType: record.packageType,
+        amountPaid: record.amountPaid,
+        paymentMethod: record.paymentMethod,
+        paymentSchedule: record.paymentSchedule,
+        initialDepositComplete: record.initialDepositComplete,
+        balanceAfterApproval: record.balanceAfterApproval,
+        createdBy: session.username,
+        createdAt: new Date().toISOString(),
+        approvalStatus: record.initialDepositComplete ? "pending" : "pending_payment",
+        approvedBy: null,
+        approvedAt: null,
+        emailStatus: record.initialDepositComplete ? "awaiting_approval" : "awaiting_payment_completion",
+        emailError: null,
+        emailSentAt: null
+      };
+      const receipts = [receipt, ...previousReceipts];
+      try {
+        writeJsonArray(receiptsFile, receipts);
+        writeJsonArray(clientsFile, records);
+      } catch (error) {
+        writeJsonArray(receiptsFile, previousReceipts);
+        for (const storedName of createdFiles) {
+          const storedPath = path.join(uploadsDir, storedName);
+          if (fs.existsSync(storedPath)) fs.unlinkSync(storedPath);
+        }
+        throw error;
+      }
+      logActivity("client_created", { id: record.id, client: record.fullName, receiptId: receipt.id, referenceNumber }, session.username);
+      return send(response, 201, { ok: true, client: record, receipt });
+    }
+
+    const submittedDocumentsRouteMatch = parsedUrl.pathname.match(/^\/api\/admin\/clients\/([^/]+)\/submitted-documents$/);
+    if (submittedDocumentsRouteMatch && request.method === "POST") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
+      const clientId = submittedDocumentsRouteMatch[1];
+      const records = readJsonArray(clientsFile);
+      const client = records.find(item => item.id === clientId);
+      if (!client) return send(response, 404, { ok: false, message: "Client record not found." });
+      const parsed = await readBody(request);
+      const files = parsed.files || {};
+      const attachments = [
+        ["visaApplicationForm", "filled visa application form", "visaApplicationFile"],
+        ["submittedSupportingDocument1", "first supporting document", "submittedSupportingDocument1File"],
+        ["submittedSupportingDocument2", "second supporting document", "submittedSupportingDocument2File"]
+      ].map(([field, label, recordField]) => ({ field, label, recordField, file: files[field] }));
+      for (const { label, file } of attachments) {
+        const validationError = validateClientDocument(file, label, 5_000_000);
+        if (validationError) return send(response, file?.data?.length > 5_000_000 ? 413 : 400, { ok: false, message: validationError });
+      }
+      const previousFiles = attachments.map(({ recordField }) => client[recordField]).filter(Boolean);
+      const storedFiles = [];
+      try {
+        for (const { file, recordField } of attachments) {
+          const extension = path.extname(file.filename).toLowerCase();
+          const storedName = `client-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${extension}`;
+          fs.writeFileSync(path.join(uploadsDir, storedName), file.data, { flag: "wx" });
+          storedFiles.push(storedName);
+          client[recordField] = storedName;
+        }
+        client.status = "submitted";
+        client.updatedAt = new Date().toISOString();
+        client.updatedBy = session.username;
+        writeJsonArray(clientsFile, records);
+      } catch (error) {
+        for (const storedName of storedFiles) {
+          const storedPath = path.join(uploadsDir, storedName);
+          if (fs.existsSync(storedPath)) fs.unlinkSync(storedPath);
+        }
+        throw error;
+      }
+      for (const oldFile of previousFiles) {
+        const oldPath = path.join(uploadsDir, path.basename(oldFile));
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      logActivity("client_submitted_documents_uploaded", { id: client.id, client: client.fullName }, session.username);
+      return send(response, 200, { ok: true, client });
     }
 
     if (parsedUrl.pathname.match(/^\/api\/admin\/clients\/[^/]+$/) && request.method === "PATCH") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const clientId = parsedUrl.pathname.split("/").pop();
       const records = readJsonArray(clientsFile);
       const client = records.find(item => item.id === clientId);
       if (!client) return send(response, 404, { ok: false, message: "Client record not found." });
       const body = await readBody(request);
       const isPrivileged = isMasterAdminSession(session) || isManagerSession(session);
+      if (body.paymentDate !== undefined && client.paymentMethod === "installment" &&
+          String(body.paymentDate) !== String(client.paymentDate)) {
+        return send(response, 409, { ok: false, message: "Installment dates are part of the recorded payment schedule and cannot be changed here." });
+      }
+      if (body.initialDepositComplete !== undefined &&
+          (body.initialDepositComplete !== true || client.paymentMethod !== "installment")) {
+        return send(response, 400, { ok: false, message: "Only an installment deposit can be explicitly marked complete." });
+      }
       if (body.amountPaid !== undefined && !isPrivileged && Number(body.amountPaid) !== Number(client.amountPaid)) {
         return send(response, 403, { ok: false, message: "Only a Manager or Super Admin may change the amount paid." });
       }
-      const allowedFields = ["fullName", "gender", "dateOfBirth", "address", "phone", "packageType", "paymentDate", "balanceAfterApproval", "status"];
+      const allowedFields = ["fullName", "gender", "dateOfBirth", "address", "phone", "email", "packageType", "paymentDate", "balanceAfterApproval", "status"];
       for (const field of allowedFields) {
         if (body[field] !== undefined) client[field] = String(body[field]).trim();
+      }
+      if (body.email !== undefined && (!validateEmail(client.email) || client.email.length > 180)) {
+        return send(response, 400, { ok: false, message: "Enter a valid client email address (maximum 180 characters)." });
       }
       for (const field of ["dateOfBirth", "paymentDate"]) {
         if (body[field] !== undefined && !validateDateOnly(client[field])) {
@@ -2217,23 +2802,73 @@ const server = http.createServer(async (request, response) => {
         }
       }
       if (body.amountPaid !== undefined && isPrivileged) {
+        if (client.paymentMethod === "installment" && Number(body.amountPaid) !== Number(client.amountPaid)) {
+          return send(response, 409, { ok: false, message: "Installment totals are calculated from the recorded payment schedule and cannot be changed here." });
+        }
         const amountPaid = Number(body.amountPaid);
-        if (!Number.isFinite(amountPaid) || amountPaid < 0) return send(response, 400, { ok: false, message: "Amount paid must be a non-negative number." });
+        if (!Number.isFinite(amountPaid) || amountPaid <= 0 || amountPaid > Number.MAX_SAFE_INTEGER) return send(response, 400, { ok: false, message: "Amount paid must be a positive number." });
         client.amountPaid = amountPaid;
+      }
+      if (body.balanceAfterApproval !== undefined) {
+        const balance = Number(client.balanceAfterApproval);
+        if (!Number.isFinite(balance) || balance < 0 || balance > Number.MAX_SAFE_INTEGER) {
+          return send(response, 400, { ok: false, message: "Balance after approval must be a valid non-negative amount." });
+        }
+        client.balanceAfterApproval = balance;
       }
       if (body.status !== undefined && !["ongoing", "pending", "submitted", "refused", "approved"].includes(client.status)) {
         return send(response, 400, { ok: false, message: "Select a valid client progress status." });
       }
+      if (client.status === "submitted" && ![
+        client.visaApplicationFile, client.submittedSupportingDocument1File, client.submittedSupportingDocument2File
+      ].every(Boolean)) {
+        return send(response, 409, { ok: false, message: "Upload the filled visa application and both supporting documents before setting this client to Submitted." });
+      }
+      if (body.initialDepositComplete === true) client.initialDepositComplete = true;
+      if (client.paymentMethod !== "installment" && (body.amountPaid !== undefined || body.paymentDate !== undefined)) {
+        client.paymentSchedule = [{ amount: Number(client.amountPaid), paymentDate: client.paymentDate }];
+      }
       client.updatedAt = new Date().toISOString();
       client.updatedBy = session.username;
-      writeJsonArray(clientsFile, records);
-      logActivity("client_updated", { id: client.id, amountPaidChanged: body.amountPaid !== undefined }, session.username);
+      const previousReceipts = readJsonArray(receiptsFile);
+      const initialDepositComplete = client.paymentMethod === "installment" ? client.initialDepositComplete === true : true;
+      const receipts = previousReceipts.map(receipt => {
+        if (receipt.clientId !== client.id || !["pending", "pending_payment"].includes(receipt.approvalStatus)) return receipt;
+        const approvalStatus = initialDepositComplete ? "pending" : "pending_payment";
+        return {
+          ...receipt,
+          approvalStatus,
+          emailStatus: initialDepositComplete ? "awaiting_approval" : "awaiting_payment_completion",
+          clientName: client.fullName,
+          clientEmail: client.email,
+          packageType: client.packageType,
+          amountPaid: client.amountPaid,
+          balanceAfterApproval: client.balanceAfterApproval,
+          paymentDate: client.paymentDate,
+          paymentMethod: client.paymentMethod || receipt.paymentMethod,
+          paymentSchedule: client.paymentSchedule || receipt.paymentSchedule,
+          initialDepositComplete
+        };
+      });
+      const hasUpdatedPendingReceipt = receipts.some((receipt, index) => receipt !== previousReceipts[index]);
+      if (hasUpdatedPendingReceipt) writeJsonArray(receiptsFile, receipts);
+      try {
+        writeJsonArray(clientsFile, records);
+      } catch (error) {
+        if (hasUpdatedPendingReceipt) writeJsonArray(receiptsFile, previousReceipts);
+        throw error;
+      }
+      logActivity("client_updated", {
+        id: client.id,
+        amountPaidChanged: body.amountPaid !== undefined,
+        initialDepositComplete: body.initialDepositComplete === true
+      }, session.username);
       return send(response, 200, { ok: true, client });
     }
 
     if (parsedUrl.pathname === "/api/admin/clients/export" && request.method === "GET") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const records = readJsonArray(clientsFile);
       const from = parsedUrl.searchParams.get("from") || "";
       const to = parsedUrl.searchParams.get("to") || "";
@@ -2246,14 +2881,19 @@ const server = http.createServer(async (request, response) => {
         "Phone": record.phone,
         "Package": record.packageType,
         "Amount paid": `NGN ${Number(record.amountPaid || 0).toLocaleString("en-NG")}`,
-        "Payment date": record.paymentDate,
+        "Payment history": `${record.paymentMethod === "installment" ? `${(record.paymentSchedule || []).length} installments` : "Full initial payment"}; last date ${record.paymentDate}`,
         "Balance after approval": `NGN ${Number(record.balanceAfterApproval || 0).toLocaleString("en-NG")}`,
         "Progress": record.status,
-        "Signed disclaimer": record.signedDisclaimerFile ? "Uploaded" : "Not uploaded",
-        "Signed agreement": record.signedAgreementFile ? "Uploaded" : "Not uploaded"
+        "Client documents": [
+          record.signedDisclaimerFile ? "Disclaimer" : "",
+          record.signedAgreementFile ? "Agreement" : "",
+          record.visaApplicationFile ? "Visa" : "",
+          record.submittedSupportingDocument1File ? "Support 1" : "",
+          record.submittedSupportingDocument2File ? "Support 2" : ""
+        ].filter(Boolean).join(", ") || "None"
       }));
       const pdf = await generateTablePdf("BisFly Limited - Client Information Report", rows.length ? rows : [{
-        "Client name": "", "Gender": "", "Date of birth": "", "Address": "", "Phone": "", "Package": "", "Amount paid": "", "Payment date": "", "Balance after approval": "", "Progress": "", "Signed disclaimer": "", "Signed agreement": ""
+        "Client name": "", "Gender": "", "Date of birth": "", "Address": "", "Phone": "", "Package": "", "Amount paid": "", "Payment history": "", "Balance after approval": "", "Progress": "", "Client documents": ""
       }]);
       response.setHeader("Content-Disposition", `attachment; filename="bisfly-client-report-${new Date().toISOString().slice(0, 10)}.pdf"`);
       return send(response, 200, pdf, "application/pdf");
@@ -2261,7 +2901,7 @@ const server = http.createServer(async (request, response) => {
 
     if (parsedUrl.pathname === "/api/admin/disclaimers/template" && request.method === "POST") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const body = await readBody(request);
       const required = ["fullName", "gender", "phone", "address", "email"];
       for (const field of required) {
@@ -2293,13 +2933,13 @@ const server = http.createServer(async (request, response) => {
 
     if (parsedUrl.pathname === "/api/admin/disclaimers" && request.method === "GET") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       return send(response, 200, readJsonArray(disclaimersFile));
     }
 
     if (parsedUrl.pathname === "/api/admin/disclaimers" && request.method === "POST") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const parsed = await readBody(request);
       const fields = parsed.fields || {};
       const signedFile = parsed.files?.signedDisclaimer;
@@ -2349,7 +2989,7 @@ const server = http.createServer(async (request, response) => {
     const disclaimerTemplateMatch = parsedUrl.pathname.match(/^\/api\/admin\/disclaimers\/([^/]+)\/template$/);
     if (disclaimerTemplateMatch && request.method === "GET") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const disclaimer = readJsonArray(disclaimersFile).find(item => item.id === disclaimerTemplateMatch[1]);
       if (!disclaimer) return send(response, 404, { ok: false, message: "Disclaimer record not found." });
       const pdf = await generateDisclaimerPdf(disclaimer);
@@ -2359,7 +2999,7 @@ const server = http.createServer(async (request, response) => {
 
     if (parsedUrl.pathname === "/api/admin/cash-inflows" && request.method === "GET") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const from = parsedUrl.searchParams.get("from") || "";
       const to = parsedUrl.searchParams.get("to") || "";
       if (from && !validateDateOnly(from) || to && !validateDateOnly(to) || from && to && from > to) {
@@ -2372,7 +3012,7 @@ const server = http.createServer(async (request, response) => {
 
     if (parsedUrl.pathname === "/api/admin/cash-inflows/report" && request.method === "GET") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const from = parsedUrl.searchParams.get("from") || "";
       const to = parsedUrl.searchParams.get("to") || "";
       if (from && !validateDateOnly(from) || to && !validateDateOnly(to) || from && to && from > to) {
@@ -2395,13 +3035,13 @@ const server = http.createServer(async (request, response) => {
 
     if (parsedUrl.pathname === "/api/admin/expenses" && request.method === "GET") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       return send(response, 200, readJsonArray(expensesFile));
     }
 
     if (parsedUrl.pathname === "/api/admin/expenses" && request.method === "POST") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const body = await readBody(request);
       const purpose = String(body.purpose || "").trim();
       const amount = Number(body.amount);
@@ -2419,7 +3059,7 @@ const server = http.createServer(async (request, response) => {
 
     if (parsedUrl.pathname === "/api/admin/expenses/report" && request.method === "GET") {
       const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
-      if (!requireAdminOperationsAccess(response, session)) return;
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
       const from = parsedUrl.searchParams.get("from") || "";
       const to = parsedUrl.searchParams.get("to") || "";
       if (from && !validateDateOnly(from) || to && !validateDateOnly(to) || from && to && from > to) {
@@ -2436,6 +3076,87 @@ const server = http.createServer(async (request, response) => {
       const pdf = await generateReportPdf("BisFly Limited - Expense Report", `Expense date range: ${from || "All dates"} to ${to || "Present"} | ${records.length} expense(s)`, Object.keys(rows[0] || { "Date": "", "Admin": "", "Purpose": "", "Amount": "" }), rows, "TOTAL EXPENSES", `NGN ${total.toLocaleString("en-NG")}`);
       response.setHeader("Content-Disposition", `attachment; filename="bisfly-expense-report-${from || "all"}-${to || "present"}.pdf"`);
       return send(response, 200, pdf, "application/pdf");
+    }
+
+    if (parsedUrl.pathname === "/api/admin/receipts" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
+      return send(response, 200, readJsonArray(receiptsFile));
+    }
+
+    if (parsedUrl.pathname === "/api/admin/receipts" && request.method === "POST") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
+      return send(response, 405, { ok: false, message: "Receipts are initialized automatically when a client payment is recorded." });
+    }
+
+    const receiptRouteMatch = parsedUrl.pathname.match(/^\/api\/admin\/receipts\/([^/]+)\/(approve|pdf|send)$/);
+    if (receiptRouteMatch && receiptRouteMatch[2] === "approve" && request.method === "POST") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireSuperAdmin(response, session)) return;
+      const receipts = readJsonArray(receiptsFile);
+      const receipt = receipts.find(item => item.id === receiptRouteMatch[1]);
+      if (!receipt) return send(response, 404, { ok: false, message: "Payment receipt not found." });
+      if (receipt.paymentMethod === "installment" &&
+          (receipt.initialDepositComplete !== true ||
+           !readJsonArray(clientsFile).some(client => client.id === receipt.clientId && client.initialDepositComplete === true))) {
+        return send(response, 409, { ok: false, message: "The client’s full initial deposit must be explicitly confirmed before this receipt can be approved." });
+      }
+      if (receipt.approvalStatus === "approved") {
+        return send(response, 409, { ok: false, message: "This receipt has already been approved. Use Retry email if delivery failed." });
+      }
+      if (receipt.approvalStatus !== "pending") {
+        return send(response, 409, { ok: false, message: "This receipt is not awaiting approval." });
+      }
+      receipt.approvalStatus = "approved";
+      receipt.approvedBy = session.username;
+      receipt.approvedAt = new Date().toISOString();
+      receipt.emailStatus = "pending";
+      receipt.emailError = null;
+      writeJsonArray(receiptsFile, receipts);
+      const delivery = await sendReceiptEmail(receipt);
+      receipt.emailStatus = delivery.sent ? "sent" : "failed";
+      receipt.emailError = delivery.sent ? null : delivery.error;
+      receipt.emailSentAt = delivery.sent ? new Date().toISOString() : null;
+      receipt.emailPreviewUrl = delivery.previewUrl || null;
+      writeJsonArray(receiptsFile, receipts);
+      logActivity("payment_receipt_approved", { id: receipt.id, referenceNumber: receipt.referenceNumber, sent: delivery.sent }, session.username);
+      return send(response, 200, { ok: true, receipt, delivery });
+    }
+
+    if (receiptRouteMatch && receiptRouteMatch[2] === "pdf" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
+      const receipt = readJsonArray(receiptsFile).find(item => item.id === receiptRouteMatch[1]);
+      if (!receipt) return send(response, 404, { ok: false, message: "Payment receipt not found." });
+      if (receipt.approvalStatus !== "approved") {
+        return send(response, 403, { ok: false, message: "This receipt is not available until a Super Admin approves it." });
+      }
+      const pdf = await generateReceiptPdf(receipt);
+      response.setHeader("Content-Disposition", `attachment; filename="bisfly-payment-receipt-${receipt.referenceNumber}.pdf"`);
+      return send(response, 200, pdf, "application/pdf");
+    }
+
+    if (receiptRouteMatch && receiptRouteMatch[2] === "send" && request.method === "POST") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
+      const receipts = readJsonArray(receiptsFile);
+      const receipt = receipts.find(item => item.id === receiptRouteMatch[1]);
+      if (!receipt) return send(response, 404, { ok: false, message: "Payment receipt not found." });
+      if (receipt.approvalStatus !== "approved") {
+        return send(response, 403, { ok: false, message: "This receipt cannot be emailed until a Super Admin approves it." });
+      }
+      receipt.emailStatus = "pending";
+      receipt.emailError = null;
+      writeJsonArray(receiptsFile, receipts);
+      const delivery = await sendReceiptEmail(receipt);
+      receipt.emailStatus = delivery.sent ? "sent" : "failed";
+      receipt.emailError = delivery.sent ? null : delivery.error;
+      receipt.emailSentAt = delivery.sent ? new Date().toISOString() : null;
+      receipt.emailPreviewUrl = delivery.previewUrl || null;
+      writeJsonArray(receiptsFile, receipts);
+      logActivity("payment_receipt_email_attempted", { id: receipt.id, referenceNumber: receipt.referenceNumber, sent: delivery.sent }, session.username);
+      return send(response, 200, { ok: true, receipt, delivery });
     }
 
     if (parsedUrl.pathname.match(/^\/api\/agreements\/[^\/]+\/approve$/) && request.method === "POST") {
