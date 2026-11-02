@@ -932,7 +932,7 @@ function generateAgreementPdf(agreement) {
     doc.on("end", () => resolve(Buffer.concat(buffers)));
     doc.on("error", reject);
 
-    const logoPath = path.join(root, "bisfly-logo.png");
+    const logoPath = path.join(root, "bisfly-logo.jpeg");
     if (fs.existsSync(logoPath)) {
       doc.image(logoPath, doc.page.width / 2 - 38, 35, { width: 76, height: 56, fit: [76, 56], align: "center", valign: "center" });
       doc.y = 101;
@@ -1008,11 +1008,12 @@ function generateAgreementPdf(agreement) {
     doc.moveTo(rightX, signatureY).lineTo(rightX + 210, signatureY).strokeColor("#334155").lineWidth(0.8).stroke();
     doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text(String(agreement.fullName || "Client"), rightX, signatureY + 7, { width: 210, align: "center" });
     doc.font("Helvetica").fontSize(8).fillColor("#64748b").text("Client signature", rightX, signatureY + 21, { width: 210, align: "center" });
-    const watermarkX = doc.page.width / 2 - 34;
-    if (fs.existsSync(logoPath)) {
-      doc.save().opacity(0.12).image(logoPath, watermarkX, signatureY - 22, { width: 68, height: 54, fit: [68, 54], align: "center", valign: "center" }).restore();
+    const stampPath = path.join(root, "bisfly-company-stamp.png");
+    const stampX = doc.page.width / 2 - 48;
+    if (fs.existsSync(stampPath)) {
+      doc.save().opacity(0.3).image(stampPath, stampX, signatureY - 30, { width: 96, height: 67, fit: [96, 67], align: "center", valign: "center" }).restore();
     } else {
-      doc.save().opacity(0.12).font("Helvetica-Bold").fontSize(9).fillColor("#073c9a").text("BISFLY", watermarkX - 10, signatureY - 2, { width: 88, align: "center" }).restore();
+      doc.save().opacity(0.12).font("Helvetica-Bold").fontSize(9).fillColor("#073c9a").text("BISFLY", stampX - 10, signatureY - 2, { width: 88, align: "center" }).restore();
     }
     doc.moveTo(rightX + 50, signatureY + 65).lineTo(rightX + 160, signatureY + 65).strokeColor("#64748b").lineWidth(0.6).stroke();
     doc.font("Helvetica").fontSize(8).fillColor("#64748b").text("Date", rightX, signatureY + 71, { width: 210, align: "center" });
@@ -1033,7 +1034,7 @@ function generateDisclaimerPdf(disclaimer) {
     doc.on("end", () => resolve(Buffer.concat(buffers)));
     doc.on("error", reject);
 
-    const logoPath = path.join(root, "bisfly-logo.png");
+    const logoPath = path.join(root, "bisfly-logo.jpeg");
     if (fs.existsSync(logoPath)) {
       doc.image(logoPath, doc.page.width / 2 - 38, 38, { width: 76, height: 56, fit: [76, 56], align: "center", valign: "center" });
       doc.y = 107;
@@ -1074,11 +1075,15 @@ function generateDisclaimerPdf(disclaimer) {
     doc.font("Helvetica-Bold").fontSize(10).fillColor("#10264a").text("OFFICIAL CORPORATE ACCOUNT");
     doc.moveDown(0.3);
     doc.font("Helvetica").fontSize(9).fillColor("#0f172a").text("Fidelity Bank | Bisfly Limited | Account Number: 5601847112");
-    doc.moveDown(1.7);
-    if (doc.y > doc.page.height - 150) doc.addPage();
+    doc.moveDown(5);
+    if (doc.y > doc.page.height - 185) doc.addPage();
     const signatureY = doc.y;
     const leftX = doc.page.margins.left;
     const rightX = doc.page.width / 2 + 12;
+    const stampPath = path.join(root, "bisfly-company-stamp.png");
+    if (fs.existsSync(stampPath)) {
+      doc.save().opacity(0.78).image(stampPath, rightX + 58, signatureY - 70, { width: 94, height: 66, fit: [94, 66], align: "center", valign: "center" }).restore();
+    }
     doc.moveTo(leftX, signatureY).lineTo(leftX + 210, signatureY).strokeColor("#334155").stroke();
     doc.font("Helvetica-Bold").fontSize(9).fillColor("#334155").text("Client signature", leftX, signatureY + 6, { width: 210, align: "center" });
     doc.font("Helvetica").fontSize(8).fillColor("#64748b").text(`Client: ${disclaimer.fullName}`, leftX, signatureY + 19, { width: 210, align: "center" });
@@ -1102,7 +1107,7 @@ function generateReportPdf(title, subtitle, headers, rows, totalLabel = "", tota
     doc.on("data", chunk => buffers.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(buffers)));
     doc.on("error", reject);
-    const logoPath = path.join(root, "bisfly-logo.png");
+    const logoPath = path.join(root, "bisfly-logo.jpeg");
     if (fs.existsSync(logoPath)) doc.image(logoPath, 36, 24, { width: 55, height: 42, fit: [55, 42] });
     doc.font("Helvetica-Bold").fontSize(17).fillColor("#10264a").text(title, 102, 29);
     doc.font("Helvetica").fontSize(9).fillColor("#64748b").text(subtitle, 102, 53);

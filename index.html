@@ -80,7 +80,7 @@
       </div>
       <div class="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
         <span class="hidden items-center gap-2 md:inline-flex"><i data-lucide="clock" class="h-4 w-4 text-gold"></i> Mon - Fri: 9:00 AM - 6:00 PM</span>
-        <button type="button" data-open-login class="rounded-md border border-gold/50 px-3 py-1.5 font-black text-gold transition hover:bg-gold hover:text-navy">Staff Login</button>
+        <button type="button" data-open-login class="rounded-md border border-gold/50 px-3 py-1.5 font-black text-gold transition hover:bg-gold hover:text-navy">Login</button>
         <a aria-label="Facebook" href="https://www.facebook.com/profile.php?id=61587200745381" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-facebook-f"></i></a>
         <a aria-label="Instagram" href="https://www.instagram.com/bisfly_travels?igsh=cm5tdTVuanFqNGM0" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-instagram"></i></a>
         <a aria-label="Twitter" href="https://twitter.com/bisflytravels" target="_blank" rel="noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full text-base hover:text-gold"><i aria-hidden="true" class="fa-brands fa-x-twitter"></i></a>
@@ -95,7 +95,7 @@
   <header class="sticky top-0 z-40 border-b border-white/10 bg-navy/95 backdrop-blur-xl">
     <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
       <a href="#home" class="flex items-center gap-3">
-        <span class="text-xl font-black text-white sm:text-2xl">BisFly Limited</span>
+        <img src="/bisfly-logo.jpeg" alt="BisFly Limited, RC 9918583" class="h-12 w-auto max-w-[190px] rounded bg-white object-contain p-1 sm:h-14" />
       </a>
       <div class="hidden items-center gap-8 text-sm font-bold lg:flex">
         <a class="text-gold" href="#home">Home</a>
@@ -116,7 +116,7 @@
         <a class="rounded-xl border border-white/10 bg-white/5 px-3 py-3" href="/service.html?service=passport">International Passport</a>
         <a class="rounded-xl border border-white/10 bg-white/5 px-3 py-3" href="/partnership.html">Partnership</a>
         <a class="rounded-xl border border-red/40 bg-red/10 px-3 py-3 text-gold" href="#visa-check">Apply for Visa</a>
-        <button type="button" data-open-login class="rounded-xl border border-gold/40 bg-gold/10 px-3 py-3 text-left font-black text-gold">Staff Login</button>
+        <button type="button" data-open-login class="rounded-xl border border-gold/40 bg-gold/10 px-3 py-3 text-left font-black text-gold">Login</button>
       </div>
     </div>
   </header>
@@ -124,7 +124,7 @@
   <div id="homeLoginModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="homeLoginTitle">
     <div class="w-full max-w-md rounded-2xl border border-white/15 bg-navy p-6 shadow-blue sm:p-8">
       <div class="mb-6 flex items-start justify-between gap-4">
-        <div><h2 id="homeLoginTitle" class="text-2xl font-black text-gold">BisFly Limited Staff Login</h2><p class="mt-1 text-sm text-white/65">Sign in to the administration portal.</p></div>
+        <div><h2 id="homeLoginTitle" class="text-2xl font-black text-gold">BisFly Limited Login</h2><p class="mt-1 text-sm text-white/65">Sign in to the administration portal.</p></div>
         <button id="closeHomeLogin" type="button" class="rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/10" aria-label="Close login">Close</button>
       </div>
       <form id="homeLoginForm" class="grid gap-4">
@@ -288,8 +288,10 @@
           <h2 class="mt-2 text-3xl font-black text-navy">Professional travel support</h2>
         </div>
         <div class="space-y-4 text-lg leading-8 text-slate-600 text-justify">
-          <p>BisFly Limited provides professional travel support, guiding clients from their first itinerary plans through visa-application assistance, international passport processing, travel insurance, flight reservations, hotel bookings, and tour arrangements. Our team helps clients prepare documentation, complete application forms, and navigate the relevant appointment processes with clear communication and practical guidance.</p>
-          <p>BisFly Limited is duly registered in Nigeria under RC No. 9918583 and complies with applicable tax regulations.</p>
+          <p>BisFly Limited is a Nigeria-based travel support company helping individuals, families, students, and organizations plan travel with greater clarity and confidence. We provide guidance across visa application preparation, international passport processing, flight reservations, hotel bookings, travel insurance, tours, and related travel services.</p>
+          <p>We work with each client to understand their destination, timeline, and travel needs, then provide practical information about service options, document requirements, and next steps. Our team aims to make the process organized and understandable through attentive communication and support tailored to the request.</p>
+          <p>For visa-related services, we assist with application preparation and supporting documentation. Visa decisions and authorization remain solely with the relevant government and consular authorities; BisFly Limited does not guarantee visa approval.</p>
+          <p>BisFly Limited is duly registered in Nigeria under RC No. 9918583 and complies with applicable tax regulations. We are committed to providing professional service, clear communication, and responsible handling of each client engagement.</p>
         </div>
       </div>
     </section>
@@ -348,6 +350,7 @@
   <footer class="border-t border-white/10 bg-black px-4 py-8 text-sm font-semibold text-white/75">
     <div class="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_.8fr_.8fr] lg:px-8">
       <div>
+        <img src="/bisfly-logo.jpeg" alt="BisFly Limited, RC 9918583" class="mb-3 h-14 w-auto max-w-[190px] rounded bg-white object-contain p-1" />
         <h3 class="text-lg font-black text-white">BisFly Limited</h3>
         <p class="mt-3 max-w-md">Ibadan, Oyo State, Nigeria.</p>
         <p class="mt-2">info@bisflytravel.com</p>
