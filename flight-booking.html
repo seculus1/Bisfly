@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Flight Search & Booking | BisFly Limited</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { navy: "#06153b", royal: "#073c9a", gold: "#f8b72b" } } } };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-950 text-white antialiased">
+  <header class="border-b border-white/10 bg-navy">
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
+      <a href="/" class="flex items-center gap-3">
+        <img src="/bisfly-logo.jpeg" alt="BisFly Limited" class="h-12 w-auto max-w-44 rounded bg-white object-contain p-1" />
+        <span class="hidden text-sm font-bold text-white/70 sm:inline">Flights</span>
+      </a>
+      <a href="/" class="rounded-lg border border-white/20 px-4 py-2 text-sm font-bold hover:border-gold hover:text-gold">Back to home</a>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-10">
+    <section class="mb-8">
+      <p class="mb-2 text-xs font-black uppercase tracking-[.2em] text-gold">BisFly Limited · Flight services</p>
+      <h1 class="text-3xl font-black sm:text-4xl">Search flights. Request a real booking.</h1>
+      <p class="mt-3 max-w-3xl leading-7 text-white/65">Compare live fares from our flight supplier and submit passenger details securely. A BisFly administrator will verify payment and place the order. Your airline PNR and downloadable itinerary become available only after the supplier confirms the booking.</p>
+    </section>
+
+    <div id="providerNotice" class="mb-6 hidden rounded-xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100" role="status"></div>
+    <form id="flightSearchForm" class="grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 sm:grid-cols-2 lg:grid-cols-4">
+      <label class="grid gap-1 text-sm text-white/75">From (airport IATA code)
+        <input name="origin" required maxlength="3" minlength="3" pattern="[A-Za-z]{3}" placeholder="LOS" autocomplete="off" class="rounded-lg border border-white/15 bg-white px-3 py-3 uppercase text-slate-900" />
+      </label>
+      <label class="grid gap-1 text-sm text-white/75">To (airport IATA code)
+        <input name="destination" required maxlength="3" minlength="3" pattern="[A-Za-z]{3}" placeholder="LHR" autocomplete="off" class="rounded-lg border border-white/15 bg-white px-3 py-3 uppercase text-slate-900" />
+      </label>
+      <label class="grid gap-1 text-sm text-white/75">Trip type
+        <select id="tripType" class="rounded-lg border border-white/15 bg-white px-3 py-3 text-slate-900"><option value="oneway">One way</option><option value="roundtrip">Round trip</option></select>
+      </label>
+      <label class="grid gap-1 text-sm text-white/75">Adults
+        <select name="passengerCount" class="rounded-lg border border-white/15 bg-white px-3 py-3 text-slate-900"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select>
+      </label>
+      <label class="grid gap-1 text-sm text-white/75">Children (ages 2–11)
+        <select name="childCount" class="rounded-lg border border-white/15 bg-white px-3 py-3 text-slate-900"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select>
+      </label>
+      <div id="childAgeFields" class="hidden grid gap-3 sm:col-span-2 lg:col-span-4 sm:grid-cols-2"></div>
+      <label class="grid gap-1 text-sm text-white/75">Departure date
+        <input name="departureDate" type="date" required class="rounded-lg border border-white/15 bg-white px-3 py-3 text-slate-900" />
+      </label>
+      <label id="returnDateField" class="hidden gap-1 text-sm text-white/75">Return date
+        <input name="returnDate" type="date" class="rounded-lg border border-white/15 bg-white px-3 py-3 text-slate-900" />
+      </label>
+      <label class="grid gap-1 text-sm text-white/75">Cabin
+        <select name="cabinClass" class="rounded-lg border border-white/15 bg-white px-3 py-3 text-slate-900"><option value="economy">Economy</option><option value="premium_economy">Premium economy</option><option value="business">Business</option><option value="first">First</option></select>
+      </label>
+      <div class="flex items-end"><button id="searchFlightsButton" type="submit" class="w-full rounded-lg bg-gold px-5 py-3 font-black text-navy hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">Search flights</button></div>
+      <p class="sm:col-span-2 lg:col-span-4 text-xs leading-5 text-white/50">Use the three-letter IATA airport code, for example LOS (Lagos), ABV (Abuja), or LHR (London Heathrow). Children must be ages 2–11 on the departure date; enter their date of birth after selecting a fare. Up to 9 passengers total. Search results are live offers and may expire or change before booking.</p>
+    </form>
+
+    <div id="flightSearchStatus" class="mt-5 hidden rounded-lg p-4 text-sm" role="status" aria-live="polite"></div>
+    <section id="flightOffersSection" class="mt-8 hidden">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div><h2 class="text-2xl font-black text-gold">Available flights</h2><p class="mt-1 text-sm text-white/55">Select an offer to enter passenger details and send a booking request.</p></div>
+        <p id="offerCount" class="text-sm text-white/60"></p>
+      </div>
+      <div id="flightOffers" class="grid gap-4"></div>
+    </section>
+
+    <section id="travelerSection" class="mt-8 hidden rounded-2xl border border-gold/25 bg-white/5 p-5">
+      <h2 class="text-2xl font-black text-gold">Passenger details</h2>
+      <div id="selectedFlightSummary" class="mt-3 rounded-lg bg-navy/70 p-4 text-sm text-white/80"></div>
+      <p class="mt-3 text-sm leading-6 text-white/60">Enter each passenger's details exactly as shown on their travel document. Adult passengers must be 12 or older on departure. A child's date of birth must match the age selected for the flight search. Child contact details can be left blank; the first adult's contact details will be used.</p>
+      <form id="travelerForm" class="mt-5 space-y-5">
+        <div id="passengerFields" class="grid gap-4 lg:grid-cols-2"></div>
+        <label class="flex items-start gap-3 rounded-lg border border-white/10 p-3 text-sm leading-6 text-white/70"><input name="acknowledgement" type="checkbox" required class="mt-1 accent-yellow-400" />I understand this submits a booking request only. An administrator must verify payment and place the order. Prices and seats are subject to supplier confirmation, and this page does not create a ticket or PNR by itself.</label>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="submitFlightRequestButton" type="submit" class="rounded-lg bg-gold px-5 py-3 font-black text-navy hover:bg-white">Submit booking request</button>
+          <button id="cancelFlightSelection" type="button" class="rounded-lg border border-white/20 px-5 py-3 font-bold hover:bg-white/10">Choose another flight</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="flightStatusSection" class="mt-8 hidden rounded-2xl border border-emerald-300/25 bg-emerald-300/5 p-5">
+      <h2 class="text-2xl font-black text-emerald-200">Your flight request</h2>
+      <div id="flightStatusContent" class="mt-3 text-sm leading-7 text-white/75"></div>
+      <p class="mt-3 text-xs leading-5 text-white/50">Keep this secure page link. It gives access to your booking status and, after provider confirmation, the itinerary PDF.</p>
+      <button id="downloadFlightPdfButton" type="button" class="mt-4 hidden rounded-lg bg-gold px-5 py-3 font-black text-navy hover:bg-white">Download flight PDF</button>
+    </section>
+
+    <section class="mt-10 rounded-xl border border-white/10 bg-white/[.03] p-5 text-sm leading-6 text-white/60">
+      <h2 class="font-black text-white">Important</h2>
+      <p class="mt-2">A PNR is returned by the airline booking provider only after a real order is accepted. An e-ticket number is shown only when the airline or provider issues one. A booking PDF is an itinerary/confirmation document and is not a substitute for an e-ticket when ticket numbers have not yet been issued.</p>
+    </section>
+  </main>
+
+  <script>
+    const searchForm = document.getElementById('flightSearchForm');
+    const searchButton = document.getElementById('searchFlightsButton');
+    const searchStatus = document.getElementById('flightSearchStatus');
+    const offersSection = document.getElementById('flightOffersSection');
+    const offersContainer = document.getElementById('flightOffers');
+    const travelerSection = document.getElementById('travelerSection');
+    const statusSection = document.getElementById('flightStatusSection');
+    let activeSearchId = '';
+    let activeOffer = null;
+    let activeSearchCriteria = null;
+    let statusToken = '';
+    let statusTimer = null;
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[character]);
+    }
+
+    function showSearchStatus(message, isError = false) {
+      searchStatus.className = `mt-5 rounded-lg p-4 text-sm ${isError ? 'border border-red-300/30 bg-red-300/10 text-red-100' : 'border border-white/10 bg-white/5 text-white/75'}`;
+      searchStatus.textContent = message;
+    }
+
+    function formatDate(value) {
+      if (!value) return 'Time shown by airline';
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? value : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function formatMoney(offer) {
+      const amount = Number(offer.totalAmount);
+      try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: offer.totalCurrency }).format(amount);
+      } catch {
+        return `${offer.totalCurrency} ${offer.totalAmount}`;
+      }
+    }
+
+    function renderOffer(offer) {
+      const slices = (offer.slices || []).map((slice, index) => `
+        <div class="rounded-lg bg-slate-950/60 p-3">
+          <p class="text-xs font-black uppercase tracking-wide text-gold">${index === 0 ? 'Outbound' : 'Return'} · ${escapeHtml(slice.duration || '')}</p>
+          <p class="mt-1 font-bold">${escapeHtml(slice.origin?.city || slice.origin?.code)} (${escapeHtml(slice.origin?.code)}) → ${escapeHtml(slice.destination?.city || slice.destination?.code)} (${escapeHtml(slice.destination?.code)})</p>
+          <p class="mt-1 text-xs text-white/60">${escapeHtml(formatDate(slice.departingAt))} — ${escapeHtml(formatDate(slice.arrivingAt))}</p>
+          <p class="mt-1 text-xs text-white/55">${(slice.segments || []).map(segment => `${escapeHtml(segment.airline)} ${escapeHtml(segment.flightNumber)} · ${escapeHtml(segment.origin)}-${escapeHtml(segment.destination)}`).join(' · ')}</p>
+        </div>`).join('');
+      return `<article class="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div><p class="font-black text-white">${escapeHtml(offer.ownerName)} ${offer.ownerCode ? `<span class="text-xs text-white/45">(${escapeHtml(offer.ownerCode)})</span>` : ''}</p><p class="mt-1 text-xs text-white/55">${escapeHtml(offer.cabinClass || 'Cabin shown by airline')}</p></div>
+          <p class="text-xl font-black text-gold">${escapeHtml(formatMoney(offer))}</p>
+        </div>
+        <div class="mt-4 grid gap-3">${slices}</div>
+        <button type="button" class="select-flight-offer mt-4 rounded-lg bg-gold px-4 py-2 font-bold text-navy hover:bg-white" data-offer-id="${escapeHtml(offer.id)}">Select this flight</button>
+      </article>`;
+    }
+
+    function renderChildAgeFields() {
+      const container = document.getElementById('childAgeFields');
+      const count = Number(searchForm.elements.childCount.value);
+      const selectedAges = [...container.querySelectorAll('[name="childAges"]')].map(select => select.value);
+      container.innerHTML = Array.from({ length: count }, (_, index) => `
+        <label class="grid gap-1 text-sm text-white/75">Child ${index + 1} age on departure
+          <select name="childAges" required class="rounded-lg border border-white/15 bg-white px-3 py-3 text-slate-900">
+            <option value="">Select age</option>${Array.from({ length: 10 }, (_, ageIndex) => `<option value="${ageIndex + 2}">${ageIndex + 2} years</option>`).join('')}
+          </select>
+        </label>`).join('');
+      container.classList.toggle('hidden', count === 0);
+      [...container.querySelectorAll('[name="childAges"]')].forEach((select, index) => {
+        if (selectedAges[index]) select.value = selectedAges[index];
+      });
+    }
+
+    function updateChildCountLimit() {
+      const childCount = searchForm.elements.childCount;
+      const maxChildren = 9 - Number(searchForm.elements.passengerCount.value);
+      [...childCount.options].forEach(option => {
+        option.disabled = Number(option.value) > maxChildren;
+      });
+      if (Number(childCount.value) > maxChildren) {
+        childCount.value = String(maxChildren);
+        renderChildAgeFields();
+        showSearchStatus(`There can be no more than 9 passengers. The child count was adjusted to ${maxChildren}.`);
+      }
+    }
+
+    function renderPassengerFields(adultCount, childAges) {
+      const manifest = [
+        ...Array.from({ length: adultCount }, () => ({ type: 'adult' })),
+        ...childAges.map(age => ({ type: 'child', age }))
+      ];
+      document.getElementById('passengerFields').innerHTML = manifest.map((passenger, index) => {
+        const isChild = passenger.type === 'child';
+        const label = isChild ? `Child passenger ${index - adultCount + 1}` : `Adult passenger ${index + 1}`;
+        return `
+        <fieldset class="grid gap-3 rounded-xl border border-white/10 p-4 sm:grid-cols-2">
+          <legend class="px-2 font-black text-gold">${label}</legend>
+          <input type="hidden" data-passenger="type" value="${passenger.type}" />
+          ${isChild ? `<label class="grid gap-1 text-xs text-white/65">Age on departure<select data-passenger="age" required class="rounded-lg bg-white px-3 py-2 text-slate-900"><option value="${passenger.age}" selected>${passenger.age} years</option></select></label>` : ''}
+          <label class="grid gap-1 text-xs text-white/65">Title<select data-passenger="title" required class="rounded-lg bg-white px-3 py-2 text-slate-900"><option value="">Select</option><option value="mr">Mr</option><option value="ms">Ms</option><option value="mrs">Mrs</option><option value="miss">Miss</option><option value="dr">Dr</option></select></label>
+          <label class="grid gap-1 text-xs text-white/65">Gender<select data-passenger="gender" required class="rounded-lg bg-white px-3 py-2 text-slate-900"><option value="">Select</option><option value="m">Male</option><option value="f">Female</option></select></label>
+          <label class="grid gap-1 text-xs text-white/65">Given name(s)<input data-passenger="givenName" required maxlength="100" autocomplete="given-name" class="rounded-lg bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-xs text-white/65">Family name<input data-passenger="familyName" required maxlength="100" autocomplete="family-name" class="rounded-lg bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-xs text-white/65">Date of birth<input data-passenger="bornOn" type="date" required class="rounded-lg bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-xs text-white/65">Email address<input data-passenger="email" type="email" ${isChild ? '' : 'required'} maxlength="180" autocomplete="email" class="rounded-lg bg-white px-3 py-2 text-slate-900" /></label>
+          <label class="grid gap-1 text-xs text-white/65 sm:col-span-2">Phone number<input data-passenger="phoneNumber" type="tel" ${isChild ? '' : 'required'} maxlength="40" autocomplete="tel" class="rounded-lg bg-white px-3 py-2 text-slate-900" /></label>
+        </fieldset>`;
+      }).join('');
+    }
+
+    async function readJson(response) {
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 404) {
+        throw new Error('The flight-service API is unavailable on this server (404). Restart or update the BisFly server, then try again.');
+      }
+      if (!response.ok) throw new Error(result.message || `Request failed (${response.status}).`);
+      return result;
+    }
+
+    async function loadBookingStatus() {
+      if (!statusToken) return;
+      try {
+        const result = await readJson(await fetch(`/api/flights/bookings/${encodeURIComponent(statusToken)}`));
+        const booking = result.booking;
+        const messages = {
+          awaiting_payment: 'Your request has been received. The BisFly team will confirm the fare and payment instructions before processing it.',
+          payment_confirmed: 'Payment has been verified. Your flight order is being processed.',
+          booking_in_progress: 'The provider is processing your flight order.',
+          booking_attention: 'The flight team is checking the provider response. Please contact BisFly before submitting another request.',
+          offer_expired: 'The selected fare expired before booking. Please contact BisFly for a current offer.',
+          booked: 'Your airline booking has been confirmed. The PNR below was returned by the flight provider.'
+        };
+        document.getElementById('flightStatusContent').innerHTML = `
+          <p><strong>Request reference:</strong> ${escapeHtml(booking.reference)}</p>
+          <p><strong>Status:</strong> ${escapeHtml(booking.status.replaceAll('_', ' '))}</p>
+          <p>${escapeHtml(messages[booking.status] || 'Your request is being reviewed by BisFly.')}</p>
+          ${booking.bookingReference ? `<p class="mt-2 text-lg font-black text-emerald-200"><strong>Airline PNR:</strong> ${escapeHtml(booking.bookingReference)}</p>` : ''}
+          ${booking.ticketNumbers?.length ? `<p><strong>E-ticket number(s):</strong> ${booking.ticketNumbers.map(escapeHtml).join(', ')}</p>` : ''}`;
+        document.getElementById('downloadFlightPdfButton').classList.toggle('hidden', !booking.pdfAvailable);
+        statusSection.classList.remove('hidden');
+        if (['booked', 'booking_attention', 'offer_expired'].includes(booking.status)) {
+          clearInterval(statusTimer);
+          statusTimer = null;
+        }
+      } catch (error) {
+        showSearchStatus(error.message, true);
+      }
+    }
+
+    async function loadTokenFromLink() {
+      const match = location.hash.match(/^#flight=([a-f0-9]{64})$/);
+      if (!match) return;
+      statusToken = match[1];
+      await loadBookingStatus();
+      if (!statusTimer) statusTimer = setInterval(loadBookingStatus, 15000);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      searchForm.elements.departureDate.min = today;
+      searchForm.elements.returnDate.min = today;
+      try {
+        const config = await readJson(await fetch('/api/flights/config'));
+        if (!config.enabled) {
+          const notice = document.getElementById('providerNotice');
+          notice.textContent = config.message || 'Live flight search is temporarily unavailable.';
+          notice.classList.remove('hidden');
+        }
+      } catch (error) {
+        const notice = document.getElementById('providerNotice');
+        notice.textContent = error.message || 'Unable to check flight-search availability.';
+        notice.classList.remove('hidden');
+      }
+      await loadTokenFromLink();
+    });
+
+    searchForm.elements.passengerCount.addEventListener('change', updateChildCountLimit);
+    searchForm.elements.childCount.addEventListener('change', renderChildAgeFields);
+
+    document.getElementById('tripType').addEventListener('change', event => {
+      const returnField = document.getElementById('returnDateField');
+      const input = searchForm.elements.returnDate;
+      const roundTrip = event.currentTarget.value === 'roundtrip';
+      returnField.classList.toggle('hidden', !roundTrip);
+      returnField.classList.toggle('grid', roundTrip);
+      input.required = roundTrip;
+      if (!roundTrip) input.value = '';
+    });
+    searchForm.elements.departureDate.addEventListener('change', () => {
+      const departure = new Date(`${searchForm.elements.departureDate.value}T00:00:00Z`);
+      if (!Number.isNaN(departure.getTime())) {
+        departure.setUTCDate(departure.getUTCDate() + 1);
+        searchForm.elements.returnDate.min = departure.toISOString().slice(0, 10);
+      }
+    });
+
+    searchForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      searchButton.disabled = true;
+      showSearchStatus('Searching live flight availability…');
+      offersSection.classList.add('hidden');
+      travelerSection.classList.add('hidden');
+      activeOffer = null;
+      activeSearchId = '';
+      activeSearchCriteria = null;
+      try {
+        const formData = new FormData(searchForm);
+        const childAges = [...document.querySelectorAll('#childAgeFields [name="childAges"]')].map(input => Number(input.value));
+        const searchCriteria = {
+          ...Object.fromEntries(formData),
+          childAges
+        };
+        const result = await readJson(await fetch('/api/flights/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(searchCriteria)
+        }));
+        activeSearchId = result.searchId;
+        activeSearchCriteria = {
+          adultCount: Number(searchCriteria.passengerCount),
+          childAges
+        };
+        if (!result.offers?.length) {
+          showSearchStatus('No flight offers were returned for those dates and airports. Try different dates or search details.');
+          return;
+        }
+        offersContainer.innerHTML = result.offers.map(renderOffer).join('');
+        document.getElementById('offerCount').textContent = `${result.offers.length} offer(s)`;
+        offersSection.classList.remove('hidden');
+        searchStatus.classList.add('hidden');
+        document.querySelectorAll('.select-flight-offer').forEach(button => button.addEventListener('click', () => {
+          activeOffer = result.offers.find(offer => offer.id === button.dataset.offerId);
+          if (!activeOffer) return;
+          renderPassengerFields(activeSearchCriteria.adultCount, activeSearchCriteria.childAges);
+          document.getElementById('selectedFlightSummary').innerHTML = `<strong>${escapeHtml(activeOffer.ownerName)}</strong> · ${escapeHtml(formatMoney(activeOffer))}<br>${activeOffer.slices.map(slice => `${escapeHtml(slice.origin.code)} → ${escapeHtml(slice.destination.code)} · ${escapeHtml(formatDate(slice.departingAt))}`).join('<br>')}`;
+          travelerSection.classList.remove('hidden');
+          travelerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }));
+      } catch (error) {
+        showSearchStatus(error.message, true);
+      } finally {
+        searchButton.disabled = false;
+      }
+    });
+
+    document.getElementById('cancelFlightSelection').addEventListener('click', () => {
+      activeOffer = null;
+      travelerSection.classList.add('hidden');
+      offersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    document.getElementById('travelerForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!activeOffer || !activeSearchId) return;
+      const button = document.getElementById('submitFlightRequestButton');
+      button.disabled = true;
+      button.textContent = 'Submitting…';
+      const passengerElements = [...document.querySelectorAll('#passengerFields fieldset')];
+      const passengers = passengerElements.map(fieldset => Object.fromEntries(
+        [...fieldset.querySelectorAll('[data-passenger]')].map(input => [input.dataset.passenger, input.value.trim()])
+      ));
+      try {
+        const result = await readJson(await fetch('/api/flights/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ searchId: activeSearchId, offerId: activeOffer.id, passengers })
+        }));
+        statusToken = result.accessToken;
+        location.hash = `flight=${statusToken}`;
+        travelerSection.classList.add('hidden');
+        offersSection.classList.add('hidden');
+        searchStatus.classList.add('hidden');
+        await loadBookingStatus();
+        if (!statusTimer) statusTimer = setInterval(loadBookingStatus, 15000);
+      } catch (error) {
+        showSearchStatus(error.message, true);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Submit booking request';
+      }
+    });
+
+    document.getElementById('downloadFlightPdfButton').addEventListener('click', async () => {
+      try {
+        const response = await fetch(`/api/flights/bookings/${encodeURIComponent(statusToken)}/pdf`);
+        if (!response.ok) throw new Error((await response.json()).message || 'Unable to download flight PDF.');
+        const blob = await response.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'bisfly-flight-itinerary.pdf';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      } catch (error) {
+        showSearchStatus(error.message, true);
+      }
+    });
+  </script>
+</body>
+</html>

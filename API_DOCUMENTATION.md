@@ -694,6 +694,20 @@ All endpoints in this section require a valid admin bearer token and an Admin, M
 - `POST /api/admin/clients/:id/submitted-documents` — Upload one filled visa application plus two supporting documents (PDF/JPG/PNG, each under 5 MB). On success, the record progress changes to `submitted`. The files appear as authenticated download links in the client dashboard and are included in Super Admin record-deletion cleanup.
 - `GET /api/admin/clients/export` — Download the client information report PDF.
 
+### Live flight search and PNR bookings
+Flight search and customer request endpoints are public. Duffel requests are made only from the server; set `DUFFEL_ACCESS_TOKEN` in the server environment and optionally `DUFFEL_API_VERSION` (`v2`). Never put a Duffel token in browser code or a committed environment file. Flight searches support 1–9 adults and children ages 2–11 on the departure date, with at most 9 passengers total. The selected age is sent to Duffel and must match the child's date of birth when the customer submits passenger details. Infants under 2 are not supported by this workflow.
+
+- `GET /api/flights/config` — Report whether the server has a Duffel token configured. No credential is returned.
+- `POST /api/flights/search` — Search live offers. JSON fields: `origin`, `destination` (three-letter IATA airport codes), `departureDate`, optional `returnDate`, adult `passengerCount` (1–9), optional `childAges` array (each age 2–11 at departure), and `cabinClass` (`economy`, `premium_economy`, `business`, or `first`). Adults and children combined cannot exceed 9. Returns provider offers and a short-lived `searchId`; customers can search up to 20 times per minute per connection.
+- `POST /api/flights/requests` — Save a selected offer and passenger details. JSON fields: `searchId`, `offerId`, and a `passengers` array in search order with `type` (`adult` or `child`), child `age`, `title`, `givenName`, `familyName`, `bornOn`, `gender` (`m` or `f`), `email`, and `phoneNumber`. A child's age must match the selected age on the departure date; child contact details may be omitted and will use the first adult's contact details. Returns a customer `accessToken` used to retrieve the request status and later download its PDF. Submitting a request does not book a flight or create a PNR.
+- `GET /api/flights/bookings/{accessToken}` — Public status lookup using the unguessable token returned when the request was submitted. A provider-issued PNR and e-ticket numbers are shown only when returned by Duffel/the airline.
+- `GET /api/flights/bookings/{accessToken}/pdf` — Download the itinerary after a provider-confirmed booking reference exists. Returns `409` until then. The PDF distinguishes a confirmed booking from an issued electronic ticket.
+- `GET /api/admin/flights` — List requests for admins with the Flight Bookings dashboard feature.
+- `POST /api/admin/flights/{id}/payment-confirmation` — Admin-only manual confirmation after independently verifying payment. JSON fields: `confirmed: true` and optional `paymentReference`.
+- `POST /api/admin/flights/{id}/book` — Admin-only order placement. Requires payment confirmation, rechecks offer price and expiry, then places an `instant` order using Duffel’s `balance` payment method. This can spend the funded Duffel balance. The response records only the PNR and ticket numbers returned by the provider. Ambiguous provider failures are held for manual reconciliation to avoid duplicate charges.
+- `POST /api/admin/flights/{id}/refresh` — Retrieve an existing Duffel order to update its actual booking reference and ticket numbers.
+- `GET /api/admin/flights/{id}/pdf` — Download the provider-confirmed flight itinerary PDF as an authorized admin.
+
 ### Client disclaimers
 - `POST /api/admin/disclaimers/template` — Generate a signature-ready PDF from JSON fields `fullName`, `gender`, `phone`, `address`, `email`, and optional `secondPersonRelationship` / `secondPersonName`.
 - `GET /api/admin/disclaimers` — List saved signed disclaimers.

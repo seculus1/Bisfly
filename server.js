@@ -24,6 +24,9 @@ const clientsFile = path.join(root, "clients.json");
 const disclaimersFile = path.join(root, "disclaimers.json");
 const expensesFile = path.join(root, "expenses.json");
 const receiptsFile = path.join(root, "receipts.json");
+const flightBookingsFile = path.join(root, "flight-bookings.json");
+const flightSearchesFile = path.join(root, "flight-searches.json");
+const flightSearchRateLimits = new Map();
 
 function loadEnvFile() {
   const candidates = [path.join(root, ".env.local"), path.join(root, ".env")];
@@ -177,6 +180,152 @@ function parseClientPaymentSchedule(fields) {
     paymentDate,
     initialDepositComplete: String(fields.initialDepositComplete).toLowerCase() === "true"
   };
+}
+
+function getDuffelAccessToken() {
+  const token = String(process.env.DUFFEL_ACCESS_TOKEN || "").trim();
+  if (!token) {
+    const error = new Error("Flight booking is not configured yet. Set DUFFEL_ACCESS_TOKEN in the server environment after creating a Duffel account.");
+    error.statusCode = 503;
+    throw error;
+  }
+  return token;
+}
+
+async function duffelRequest(endpoint, { method = "GET", body, idempotencyKey } = {}) {
+  const baseUrl = String(process.env.DUFFEL_API_BASE || "https://api.duffel.com").replace(/\/+$/, "");
+  const headers = {
+    Authorization: `Bearer ${getDuffelAccessToken()}`,
+    "Duffel-Version": process.env.DUFFEL_API_VERSION || "v2",
+    Accept: "application/json"
+  };
+  if (body) headers["Content-Type"] = "application/json";
+  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+
+  let response;
+  try {
+    response = await fetch(`${baseUrl}${endpoint}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(25_000)
+    });
+  } catch (error) {
+    const failure = new Error(`Unable to reach the flight booking provider: ${error.message || "network request failed"}`);
+    failure.statusCode = 502;
+    throw failure;
+  }
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    const failure = new Error("The flight booking provider returned an invalid response.");
+    failure.statusCode = 502;
+    throw failure;
+  }
+  if (!response.ok) {
+    const providerMessage = Array.isArray(payload?.errors)
+      ? payload.errors.map(item => item.message).filter(Boolean).join("; ")
+      : "";
+    const failure = new Error(providerMessage || `Flight provider request failed (${response.status}).`);
+    failure.statusCode = response.status >= 400 && response.status < 500 ? response.status : 502;
+    throw failure;
+  }
+  return payload.data;
+}
+
+function validateFlightSearch(body) {
+  const origin = String(body.origin || "").trim().toUpperCase();
+  const destination = String(body.destination || "").trim().toUpperCase();
+  const departureDate = String(body.departureDate || "");
+  const returnDate = String(body.returnDate || "");
+  const cabinClass = String(body.cabinClass || "economy");
+  const passengerCount = Number(body.passengerCount);
+  const childAges = body.childAges === undefined
+    ? []
+    : Array.isArray(body.childAges) ? body.childAges.map(Number) : null;
+  const today = new Date().toISOString().slice(0, 10);
+  if (!/^[A-Z]{3}$/.test(origin) || !/^[A-Z]{3}$/.test(destination) || origin === destination) {
+    return { error: "Enter different three-letter IATA airport codes for origin and destination." };
+  }
+  if (!validateDateOnly(departureDate) || departureDate < today ||
+      (returnDate && (!validateDateOnly(returnDate) || returnDate <= departureDate))) {
+    return { error: "Enter a valid future departure date and, if selected, a return date after departure." };
+  }
+  if (!Number.isInteger(passengerCount) || passengerCount < 1 || passengerCount > 9) {
+    return { error: "Search for 1 to 9 adult passengers." };
+  }
+  if (!childAges || childAges.length > 8 ||
+      childAges.some(age => !Number.isInteger(age) || age < 2 || age > 11) ||
+      passengerCount + childAges.length > 9) {
+    return { error: "Select an age from 2 to 11 for each child. Search for no more than 9 passengers in total." };
+  }
+  if (!["economy", "premium_economy", "business", "first"].includes(cabinClass)) {
+    return { error: "Select a valid cabin class." };
+  }
+  return { origin, destination, departureDate, returnDate, cabinClass, passengerCount, childAges };
+}
+
+function ageOnDate(bornOn, travelDate) {
+  const birth = new Date(`${bornOn}T00:00:00Z`);
+  const travel = new Date(`${travelDate}T00:00:00Z`);
+  let age = travel.getUTCFullYear() - birth.getUTCFullYear();
+  if (travel.getUTCMonth() < birth.getUTCMonth() ||
+      (travel.getUTCMonth() === birth.getUTCMonth() && travel.getUTCDate() < birth.getUTCDate())) age--;
+  return age;
+}
+
+function summarizeFlightOffer(offer) {
+  return {
+    id: offer.id,
+    totalAmount: String(offer.total_amount || ""),
+    totalCurrency: String(offer.total_currency || ""),
+    expiresAt: offer.expires_at || null,
+    ownerName: offer.owner?.name || "Airline",
+    ownerCode: offer.owner?.iata_code || "",
+    cabinClass: offer.slices?.[0]?.segments?.[0]?.passengers?.[0]?.cabin_class || "",
+    slices: (offer.slices || []).map(slice => ({
+      origin: {
+        code: slice.origin?.iata_code || "",
+        name: slice.origin?.name || "",
+        city: slice.origin?.city_name || ""
+      },
+      destination: {
+        code: slice.destination?.iata_code || "",
+        name: slice.destination?.name || "",
+        city: slice.destination?.city_name || ""
+      },
+      departingAt: slice.departing_at || "",
+      arrivingAt: slice.arriving_at || "",
+      duration: slice.duration || "",
+      segments: (slice.segments || []).map(segment => ({
+        airline: segment.marketing_carrier?.name || segment.operating_carrier?.name || "Airline",
+        flightNumber: segment.marketing_carrier_flight_number || segment.operating_carrier_flight_number || "",
+        origin: segment.origin?.iata_code || "",
+        destination: segment.destination?.iata_code || "",
+        departingAt: segment.departing_at || "",
+        arrivingAt: segment.arriving_at || ""
+      }))
+    }))
+  };
+}
+
+function publicFlightBooking(booking) {
+  return {
+    reference: booking.reference,
+    status: booking.status,
+    createdAt: booking.createdAt,
+    paymentConfirmedAt: booking.paymentConfirmedAt || null,
+    bookingReference: booking.bookingReference || null,
+    ticketNumbers: booking.ticketNumbers || [],
+    pdfAvailable: Boolean(booking.bookingReference)
+  };
+}
+
+function adminFlightBooking(booking) {
+  const { publicToken, offerPassengerIds, ...safeBooking } = booking;
+  return safeBooking;
 }
 
 function sanitizeInput(input) {
@@ -1112,6 +1261,73 @@ function generateTablePdf(title, rows = []) {
   });
 }
 
+function generateFlightBookingPdf(booking) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: "A4", margin: 42 });
+    const buffers = [];
+    doc.on("data", chunk => buffers.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(buffers)));
+    doc.on("error", reject);
+
+    const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const logoPath = path.join(root, "bisfly-logo.jpeg");
+    if (fs.existsSync(logoPath)) doc.image(logoPath, doc.page.margins.left, 30, { width: 82, height: 56, fit: [82, 56] });
+    doc.font("Helvetica-Bold").fontSize(18).fillColor("#10264a").text("FLIGHT BOOKING CONFIRMATION", 136, 38, { width: width - 94 });
+    doc.font("Helvetica").fontSize(9).fillColor("#64748b").text("BisFly Limited · Ibadan, Oyo State, Nigeria", 136, 64);
+    doc.moveTo(doc.page.margins.left, 100).lineTo(doc.page.width - doc.page.margins.right, 100).strokeColor("#bfdbfe").stroke();
+    doc.moveDown(2);
+    doc.font("Helvetica-Bold").fontSize(10).fillColor("#123a8c").text(`Booking reference: ${booking.reference}`);
+    doc.moveDown(0.35);
+    doc.font("Helvetica").fontSize(9).fillColor("#334155").text(`Generated: ${new Date().toLocaleString("en-NG")}`);
+    doc.moveDown(0.5);
+    doc.font("Helvetica-Bold").fontSize(11).fillColor("#123a8c").text(`Airline booking reference (PNR): ${booking.bookingReference}`);
+    doc.moveDown(0.35);
+    doc.font("Helvetica").fontSize(9).fillColor("#334155").text(`Airline: ${booking.offer?.ownerName || "Airline"}${booking.offer?.ownerCode ? ` (${booking.offer.ownerCode})` : ""}`);
+    doc.text(`Status: ${booking.bookingStatus || "Provider confirmed"}`);
+    doc.text(`Fare: ${booking.offer?.totalCurrency || ""} ${booking.offer?.totalAmount || ""}`);
+    doc.moveDown(0.7);
+
+    doc.font("Helvetica-Bold").fontSize(11).fillColor("#123a8c").text("Passengers");
+    doc.moveDown(0.25);
+    (booking.passengers || []).forEach((passenger, index) => {
+      doc.font("Helvetica-Bold").fontSize(9).fillColor("#1e293b")
+        .text(`${index + 1}. ${passenger.title} ${passenger.givenName} ${passenger.familyName}`);
+      doc.font("Helvetica").fontSize(8).fillColor("#475569")
+        .text(`${passenger.type === "child" ? `Child · age ${passenger.age} at departure` : "Adult"} · Date of birth: ${passenger.bornOn} · Contact: ${passenger.email}`);
+      doc.moveDown(0.25);
+    });
+
+    doc.moveDown(0.5);
+    doc.font("Helvetica-Bold").fontSize(11).fillColor("#123a8c").text("Itinerary");
+    doc.moveDown(0.25);
+    (booking.offer?.slices || []).forEach((slice, sliceIndex) => {
+      doc.font("Helvetica-Bold").fontSize(9).fillColor("#1e293b")
+        .text(`${sliceIndex === 0 ? "Outbound" : "Return"}: ${slice.origin?.city || slice.origin?.code} (${slice.origin?.code}) to ${slice.destination?.city || slice.destination?.code} (${slice.destination?.code})`);
+      doc.font("Helvetica").fontSize(8).fillColor("#475569")
+        .text(`Departure: ${slice.departingAt || "See airline itinerary"}    Arrival: ${slice.arrivingAt || "See airline itinerary"}`);
+      (slice.segments || []).forEach(segment => {
+        doc.text(`${segment.airline} ${segment.flightNumber} · ${segment.origin} → ${segment.destination} · ${segment.departingAt} – ${segment.arrivingAt}`);
+      });
+      doc.moveDown(0.35);
+    });
+
+    const ticketNumbers = booking.ticketNumbers || [];
+    doc.moveDown(0.35);
+    doc.font("Helvetica-Bold").fontSize(10).fillColor("#123a8c").text("E-ticket number(s)");
+    doc.font("Helvetica").fontSize(9).fillColor("#334155").text(
+      ticketNumbers.length ? ticketNumbers.join(", ") : "No e-ticket number was returned by the airline/provider at the time this confirmation was generated."
+    );
+    doc.moveDown(0.8);
+    doc.save().fillColor(ticketNumbers.length ? "#ecfdf5" : "#fffbeb").roundedRect(doc.page.margins.left, doc.y, width, 54, 7).fill().restore();
+    const noteY = doc.y + 10;
+    doc.font("Helvetica-Bold").fontSize(8).fillColor(ticketNumbers.length ? "#047857" : "#92400e")
+      .text(ticketNumbers.length ? "ELECTRONIC TICKET DETAILS PROVIDED" : "BOOKING CONFIRMATION — NOT AN E-TICKET", doc.page.margins.left + 12, noteY, { width: width - 24 });
+    doc.font("Helvetica").fontSize(7.5).fillColor("#475569")
+      .text("Verify your booking reference and ticket status with the operating airline before travel. Schedule changes and carrier conditions are controlled by the airline.", doc.page.margins.left + 12, noteY + 15, { width: width - 24 });
+    doc.end();
+  });
+}
+
 function generateReceiptPdf(receipt) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 40 });
@@ -1562,12 +1778,12 @@ function normalizeAdminRole(role) {
 }
 
 const DASHBOARD_FEATURES = [
-  "dashboard", "leads", "documents", "clients", "disclaimers", "cash-inflows",
+  "dashboard", "leads", "documents", "clients", "disclaimers", "flights", "cash-inflows",
   "expenses", "receipts", "insurance", "agreements", "passports", "partnerships", "packages",
   "users", "activity"
 ];
 const ADMIN_DASHBOARD_FEATURES = [
-  "leads", "documents", "clients", "disclaimers", "cash-inflows", "expenses", "receipts",
+  "leads", "documents", "clients", "disclaimers", "flights", "cash-inflows", "expenses", "receipts",
   "insurance", "agreements", "passports", "partnerships", "packages"
 ];
 const SUPPORT_DASHBOARD_FEATURES = [
@@ -1616,6 +1832,7 @@ function dashboardFeatureForRequest(pathname) {
     [/^\/api\/admin\/document-access-users(?:\/|$)/, "documents"],
     [/^\/api\/admin\/clients(?:\/|$)/, "clients"],
     [/^\/api\/admin\/disclaimers(?:\/|$)/, "disclaimers"],
+    [/^\/api\/admin\/flights(?:\/|$)/, "flights"],
     [/^\/api\/admin\/cash-inflows(?:\/|$)/, "cash-inflows"],
     [/^\/api\/(?:bank-inflows|admin\/bank-inflows)(?:\/|$)/, "cash-inflows"],
     [/^\/api\/admin\/expenses(?:\/|$)/, "expenses"],
@@ -1880,6 +2097,316 @@ const server = http.createServer(async (request, response) => {
     const requiredDashboardFeature = dashboardFeatureForRequest(parsedUrl.pathname);
     if (requestSession && requiredDashboardFeature &&
         !requireDashboardFeature(response, requestSession, requiredDashboardFeature)) return;
+
+    if (parsedUrl.pathname === "/api/flights/config" && request.method === "GET") {
+      return send(response, 200, {
+        enabled: Boolean(process.env.DUFFEL_ACCESS_TOKEN),
+        message: process.env.DUFFEL_ACCESS_TOKEN
+          ? null
+          : "Live flight search is not configured. BisFly Limited will enable it after its Duffel account is set up."
+      });
+    }
+
+    if (parsedUrl.pathname === "/api/flights/search" && request.method === "POST") {
+      const clientIp = request.socket.remoteAddress || "unknown";
+      const searchWindowStart = Date.now() - 60_000;
+      const recentSearches = (flightSearchRateLimits.get(clientIp) || []).filter(timestamp => timestamp > searchWindowStart);
+      if (recentSearches.length >= 20) {
+        response.setHeader("Retry-After", "60");
+        return send(response, 429, { ok: false, message: "Too many flight searches from this connection. Wait a minute and try again." });
+      }
+      recentSearches.push(Date.now());
+      flightSearchRateLimits.set(clientIp, recentSearches);
+      const body = await readBody(request);
+      const search = validateFlightSearch(body);
+      if (search.error) return send(response, 400, { ok: false, message: search.error });
+      try {
+        const slices = [{
+          origin: search.origin,
+          destination: search.destination,
+          departure_date: search.departureDate
+        }];
+        if (search.returnDate) slices.push({
+          origin: search.destination,
+          destination: search.origin,
+          departure_date: search.returnDate
+        });
+        const offerRequest = await duffelRequest("/air/offer_requests?return_offers=true", {
+          method: "POST",
+          body: {
+            data: {
+              slices,
+              passengers: [
+                ...Array.from({ length: search.passengerCount }, () => ({ type: "adult" })),
+                ...search.childAges.map(age => ({ type: "child", age }))
+              ],
+              cabin_class: search.cabinClass
+            }
+          }
+        });
+        const offers = Array.isArray(offerRequest?.offers) ? offerRequest.offers : [];
+        if (!offers.length) return send(response, 200, { ok: true, searchId: offerRequest.id, offers: [] });
+        const searchId = crypto.randomBytes(18).toString("hex");
+        const createdAt = new Date().toISOString();
+        const cachedSearches = readJsonArray(flightSearchesFile)
+          .filter(item => new Date(item.expiresAt).getTime() > Date.now())
+          .slice(0, 100);
+        cachedSearches.unshift({
+          id: searchId,
+          createdAt,
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          passengerCount: search.passengerCount,
+          childAges: search.childAges,
+          departureDate: search.departureDate,
+          offers: offers.slice(0, 30)
+        });
+        writeJsonArray(flightSearchesFile, cachedSearches);
+        return send(response, 200, {
+          ok: true,
+          searchId,
+          offers: offers.slice(0, 30).map(summarizeFlightOffer)
+        });
+      } catch (error) {
+        console.error("Duffel flight search failed:", error.message);
+        return send(response, error.statusCode || 502, { ok: false, message: error.message || "Flight search failed." });
+      }
+    }
+
+    if (parsedUrl.pathname === "/api/flights/requests" && request.method === "POST") {
+      const body = await readBody(request);
+      const searches = readJsonArray(flightSearchesFile);
+      const search = searches.find(item => item.id === body.searchId && new Date(item.expiresAt).getTime() > Date.now());
+      if (!search) return send(response, 410, { ok: false, message: "These flight offers have expired. Search again to see current availability and prices." });
+      const offer = search.offers.find(item => item.id === body.offerId);
+      if (!offer) return send(response, 400, { ok: false, message: "Select a valid flight offer from the latest search results." });
+      if (offer.expires_at && new Date(offer.expires_at).getTime() <= Date.now()) {
+        return send(response, 410, { ok: false, message: "This fare has expired. Search again to see current availability and prices." });
+      }
+      const expectedPassengerCount = search.passengerCount + (search.childAges || []).length;
+      if (!Array.isArray(body.passengers) || body.passengers.length !== expectedPassengerCount) {
+        return send(response, 400, { ok: false, message: `Enter details for all ${expectedPassengerCount} passenger(s).` });
+      }
+      const passengers = [];
+      for (const [index, passenger] of body.passengers.entries()) {
+        const type = index < search.passengerCount ? "adult" : "child";
+        const submittedType = String(passenger.type || type).trim().toLowerCase();
+        const childIndex = index - search.passengerCount;
+        const expectedAge = type === "child" ? search.childAges[childIndex] : null;
+        const selectedAge = type === "child" ? Number(passenger.age) : null;
+        const title = String(passenger.title || "").trim().toLowerCase();
+        const givenName = String(passenger.givenName || "").trim();
+        const familyName = String(passenger.familyName || "").trim();
+        const bornOn = String(passenger.bornOn || "");
+        const gender = String(passenger.gender || "").trim().toLowerCase();
+        const email = String(passenger.email || passengers[0]?.email || "").trim();
+        const phoneNumber = String(passenger.phoneNumber || passengers[0]?.phoneNumber || "").trim();
+        if (submittedType !== type || !["mr", "ms", "mrs", "miss", "dr"].includes(title) ||
+            !givenName || givenName.length > 100 || !familyName || familyName.length > 100 ||
+            !validateDateOnly(bornOn) || bornOn >= new Date().toISOString().slice(0, 10) ||
+            !["m", "f"].includes(gender) || !validateEmail(email) || email.length > 180 ||
+            !validatePhone(phoneNumber) || phoneNumber.length > 40 ||
+            (type === "adult" && ageOnDate(bornOn, search.departureDate) < 12) ||
+            (type === "child" && (selectedAge !== expectedAge || ageOnDate(bornOn, search.departureDate) !== expectedAge))) {
+          const ageRequirement = type === "adult"
+            ? " Adult passengers must be 12 or older on the departure date."
+            : ` Enter the selected age (${expectedAge}) and a date of birth that makes the child that age on departure.`;
+          return send(response, 400, { ok: false, message: `Enter valid title, name, date of birth, gender, email, and phone number for passenger ${index + 1}.${ageRequirement}` });
+        }
+        passengers.push({ type, age: type === "child" ? expectedAge : null, title, givenName, familyName, bornOn, gender, email, phoneNumber });
+      }
+      const reference = `BFLF-${new Date().toISOString().slice(2, 10).replace(/-/g, "")}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+      const booking = {
+        id: crypto.randomBytes(12).toString("hex"),
+        reference,
+        publicToken: crypto.randomBytes(32).toString("hex"),
+        status: "awaiting_payment",
+        passengers,
+        adultCount: search.passengerCount,
+        childAges: search.childAges || [],
+        offerId: offer.id,
+        offer: summarizeFlightOffer(offer),
+        offerPassengerIds: (offer.passengers || []).map(passenger => passenger.id),
+        offerExpiresAt: offer.expires_at || null,
+        paymentConfirmed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      const bookings = readJsonArray(flightBookingsFile);
+      bookings.unshift(booking);
+      writeJsonArray(flightBookingsFile, bookings);
+      logActivity("flight_booking_request_created", {
+        id: booking.id,
+        reference: booking.reference,
+        origin: booking.offer.slices[0]?.origin?.code,
+        destination: booking.offer.slices[0]?.destination?.code
+      }, passengers[0].email);
+      return send(response, 201, { ok: true, booking: publicFlightBooking(booking), accessToken: booking.publicToken });
+    }
+
+    const publicFlightBookingMatch = parsedUrl.pathname.match(/^\/api\/flights\/bookings\/([a-f0-9]{64})(?:\/(pdf))?$/);
+    if (publicFlightBookingMatch) {
+      if (request.method !== "GET") return send(response, 405, { ok: false, message: "Method not allowed." });
+      const booking = readJsonArray(flightBookingsFile).find(item => item.publicToken === publicFlightBookingMatch[1]);
+      if (!booking) return send(response, 404, { ok: false, message: "Flight booking request not found." });
+      if (publicFlightBookingMatch[2] === "pdf") {
+        if (!booking.bookingReference) return send(response, 409, { ok: false, message: "Your flight request is not yet a provider-confirmed booking. The itinerary PDF will be available after an admin completes booking." });
+        const pdf = await generateFlightBookingPdf(booking);
+        response.setHeader("Content-Disposition", `attachment; filename="bisfly-flight-${booking.reference}.pdf"`);
+        return send(response, 200, pdf, "application/pdf");
+      }
+      return send(response, 200, { ok: true, booking: publicFlightBooking(booking) });
+    }
+
+    if (parsedUrl.pathname === "/api/admin/flights" && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
+      return send(response, 200, readJsonArray(flightBookingsFile).map(adminFlightBooking));
+    }
+
+    const adminFlightRoute = parsedUrl.pathname.match(/^\/api\/admin\/flights\/([^/]+)\/(payment-confirmation|book|refresh|pdf)$/);
+    if (adminFlightRoute) {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireAdminOperationsAccess(response, session, parsedUrl.pathname)) return;
+      const [, bookingId, action] = adminFlightRoute;
+      const bookings = readJsonArray(flightBookingsFile);
+      const booking = bookings.find(item => item.id === bookingId);
+      if (!booking) return send(response, 404, { ok: false, message: "Flight booking request not found." });
+
+      if (action === "payment-confirmation" && request.method === "POST") {
+        const body = await readBody(request);
+        if (body.confirmed !== true) return send(response, 400, { ok: false, message: "Explicitly confirm that payment has been received and verified before proceeding." });
+        if (booking.status !== "awaiting_payment") return send(response, 409, { ok: false, message: "Payment can only be confirmed for a request awaiting payment." });
+        booking.paymentConfirmed = true;
+        booking.paymentConfirmedAt = new Date().toISOString();
+        booking.paymentConfirmedBy = session.username;
+        booking.paymentReference = String(body.paymentReference || "").trim().slice(0, 120) || null;
+        booking.status = "payment_confirmed";
+        booking.updatedAt = new Date().toISOString();
+        writeJsonArray(flightBookingsFile, bookings);
+        logActivity("flight_booking_payment_confirmed", { id: booking.id, reference: booking.reference, paymentReference: booking.paymentReference }, session.username);
+        return send(response, 200, { ok: true, booking: adminFlightBooking(booking) });
+      }
+
+      if (action === "book" && request.method === "POST") {
+        if (!booking.paymentConfirmed || booking.status !== "payment_confirmed") {
+          return send(response, 409, { ok: false, message: "Verify and confirm customer payment before placing an order against BisFly’s Duffel balance." });
+        }
+        if (booking.duffelOrderId || ["booking_in_progress", "booking_attention", "booked"].includes(booking.status)) {
+          return send(response, 409, { ok: false, message: "This request already has a booking attempt. Refresh its provider status before taking further action to avoid a duplicate charge." });
+        }
+        if (booking.offerExpiresAt && new Date(booking.offerExpiresAt).getTime() <= Date.now()) {
+          booking.status = "offer_expired";
+          booking.updatedAt = new Date().toISOString();
+          writeJsonArray(flightBookingsFile, bookings);
+          return send(response, 409, { ok: false, message: "The selected fare has expired. Ask the customer to submit a new flight request at the current price." });
+        }
+        booking.status = "booking_in_progress";
+        booking.bookingAttemptedAt = new Date().toISOString();
+        booking.bookingAttemptedBy = session.username;
+        booking.updatedAt = new Date().toISOString();
+        writeJsonArray(flightBookingsFile, bookings);
+        let order;
+        try {
+          const currentOffer = await duffelRequest(`/air/offers/${encodeURIComponent(booking.offerId)}`);
+          const currentAmount = Number(currentOffer.total_amount);
+          const approvedAmount = Number(booking.offer.totalAmount);
+          if (!Number.isFinite(currentAmount) || currentOffer.total_currency !== booking.offer.totalCurrency ||
+              Math.abs(currentAmount - approvedAmount) > 0.000001 ||
+              currentOffer.expires_at && new Date(currentOffer.expires_at).getTime() <= Date.now()) {
+            booking.status = "offer_expired";
+            booking.offer = summarizeFlightOffer(currentOffer);
+            booking.offerExpiresAt = currentOffer.expires_at || null;
+            booking.updatedAt = new Date().toISOString();
+            writeJsonArray(flightBookingsFile, bookings);
+            return send(response, 409, { ok: false, message: "The provider fare or availability changed. Do not book against the previous payment; confirm the new fare with the customer and request a new offer." });
+          }
+          const providerPassengers = booking.passengers.map((passenger, index) => {
+            const passengerId = booking.offerPassengerIds[index];
+            if (!passengerId) throw new Error("The selected flight offer did not include a passenger identifier. Submit a new flight request.");
+            return {
+              id: passengerId,
+              title: passenger.title,
+              given_name: passenger.givenName,
+              family_name: passenger.familyName,
+              born_on: passenger.bornOn,
+              gender: passenger.gender,
+              email: passenger.email,
+              phone_number: passenger.phoneNumber
+            };
+          });
+          order = await duffelRequest("/air/orders", {
+            method: "POST",
+            idempotencyKey: `bisfly-${booking.id}`,
+            body: {
+              data: {
+                type: "instant",
+                selected_offers: [booking.offerId],
+                passengers: providerPassengers,
+                payments: [{
+                  type: "balance",
+                  currency: currentOffer.total_currency,
+                  amount: currentOffer.total_amount
+                }]
+              }
+            }
+          });
+        } catch (error) {
+          booking.status = "booking_attention";
+          booking.bookingError = `${error.message || "Provider booking failed."} Check the Duffel dashboard before retrying; the order may have been created if the provider timed out.`;
+          booking.updatedAt = new Date().toISOString();
+          writeJsonArray(flightBookingsFile, bookings);
+          logActivity("flight_booking_provider_error", { id: booking.id, reference: booking.reference, message: error.message }, session.username);
+          return send(response, error.statusCode || 502, { ok: false, message: booking.bookingError, booking: adminFlightBooking(booking) });
+        }
+        booking.duffelOrderId = order.id || null;
+        booking.bookingReference = order.booking_reference || null;
+        booking.bookingStatus = order.booking_status || order.status || null;
+        booking.ticketNumbers = (order.documents || [])
+          .filter(document => /electronic[_ -]?ticket/i.test(String(document.type || "")) && document.unique_identifier)
+          .map(document => String(document.unique_identifier));
+        booking.status = booking.bookingReference ? "booked" : "booking_attention";
+        booking.bookingError = booking.bookingReference
+          ? null
+          : "Duffel accepted the order but did not return an airline booking reference yet. Refresh the provider order before sharing a confirmation.";
+        booking.bookedAt = new Date().toISOString();
+        booking.bookedBy = session.username;
+        booking.updatedAt = new Date().toISOString();
+        writeJsonArray(flightBookingsFile, bookings);
+        logActivity("flight_booking_order_created", {
+          id: booking.id,
+          reference: booking.reference,
+          duffelOrderId: booking.duffelOrderId,
+          bookingReference: booking.bookingReference
+        }, session.username);
+        return send(response, 200, { ok: true, booking: adminFlightBooking(booking) });
+      }
+
+      if (action === "refresh" && request.method === "POST") {
+        if (!booking.duffelOrderId) return send(response, 409, { ok: false, message: "There is no Duffel order to refresh for this request." });
+        try {
+          const order = await duffelRequest(`/air/orders/${encodeURIComponent(booking.duffelOrderId)}`);
+          booking.bookingReference = order.booking_reference || booking.bookingReference || null;
+          booking.bookingStatus = order.booking_status || order.status || booking.bookingStatus || null;
+          booking.ticketNumbers = (order.documents || [])
+            .filter(document => /electronic[_ -]?ticket/i.test(String(document.type || "")) && document.unique_identifier)
+            .map(document => String(document.unique_identifier));
+          booking.status = booking.bookingReference ? "booked" : "booking_attention";
+          booking.bookingError = booking.bookingReference ? null : "The provider order still has no airline booking reference.";
+          booking.updatedAt = new Date().toISOString();
+          writeJsonArray(flightBookingsFile, bookings);
+          return send(response, 200, { ok: true, booking: adminFlightBooking(booking) });
+        } catch (error) {
+          return send(response, error.statusCode || 502, { ok: false, message: error.message || "Unable to refresh provider order." });
+        }
+      }
+
+      if (action === "pdf" && request.method === "GET") {
+        if (!booking.bookingReference) return send(response, 409, { ok: false, message: "A provider-confirmed airline booking reference is not available yet." });
+        const pdf = await generateFlightBookingPdf(booking);
+        response.setHeader("Content-Disposition", `attachment; filename="bisfly-flight-${booking.reference}.pdf"`);
+        return send(response, 200, pdf, "application/pdf");
+      }
+    }
 
     // Admin Authentication Endpoints
     if (parsedUrl.pathname === "/api/admin/login" && request.method === "POST") {

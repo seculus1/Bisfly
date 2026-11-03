@@ -122,6 +122,9 @@
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="disclaimers">
         <i data-lucide="file-signature" class="w-5 h-5 inline mr-3"></i>Disclaimers
       </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="flights">
+        <i data-lucide="plane" class="w-5 h-5 inline mr-3"></i>Flight Bookings
+      </button>
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="cash-inflows">
         <i data-lucide="trending-up" class="w-5 h-5 inline mr-3"></i>Cash Inflow Report
       </button>
@@ -341,6 +344,22 @@
       <div class="glass overflow-x-auto rounded-lg border border-white/10">
         <table class="admin-data-table"><thead><tr><th>Client</th><th>Phone</th><th>Package</th><th>Paid (NGN)</th><th>Payment dates</th><th>Balance after approval</th><th>Progress / actions</th><th>Client files</th><th>Record actions</th></tr></thead>
           <tbody id="clientsTable"><tr><td colspan="9" class="py-8 text-center text-white/60">Loading client records...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- Flight Bookings Tab -->
+    <div id="flights-tab" class="tab-content hidden">
+      <div class="mb-6">
+        <h1 class="text-3xl font-black text-gold">Flight Booking Requests</h1>
+        <p class="mt-1 text-sm text-white/60">Verify customer payment, then place the real order against BisFly’s Duffel balance. Only provider-returned PNRs and ticket numbers are shown.</p>
+      </div>
+      <div id="flightProviderStatus" class="mb-5 rounded-lg border border-amber-300/25 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100"></div>
+      <div id="flightAdminStatus" class="mb-4 hidden rounded-lg p-3 text-sm" role="status" aria-live="polite"></div>
+      <div class="glass overflow-x-auto rounded-lg border border-white/10">
+        <table class="admin-data-table">
+          <thead><tr><th>Request</th><th>Passengers</th><th>Itinerary</th><th>Supplier fare</th><th>Payment</th><th>Provider booking</th><th>Actions</th></tr></thead>
+          <tbody id="flightsTable"><tr><td colspan="7" class="py-8 text-center text-white/60">Open Flight Bookings to load requests.</td></tr></tbody>
+        </table>
       </div>
     </div>
 
@@ -1275,6 +1294,113 @@
       document.getElementById('installmentTotalPreview').textContent = `NGN ${total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
+    async function loadFlights() {
+      const [records, config] = await Promise.all([
+        apiCall('/api/admin/flights'),
+        fetch('/api/flights/config').then(response => response.json()).catch(() => ({ enabled: false }))
+      ]);
+      if (!records || !Array.isArray(records)) return;
+      const providerStatus = document.getElementById('flightProviderStatus');
+      providerStatus.textContent = config.enabled
+        ? 'Duffel is configured. Flight orders use the organization’s funded Duffel balance after an admin confirms customer payment.'
+        : 'Duffel is not configured yet. Add DUFFEL_ACCESS_TOKEN to the server environment before enabling live searches or placing orders. No live PNR can be created until then.';
+      const tbody = document.getElementById('flightsTable');
+      if (!records.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-white/60">No customer flight requests yet.</td></tr>';
+        return;
+      }
+      const statusClasses = {
+        awaiting_payment: 'text-amber-200',
+        payment_confirmed: 'text-sky-200',
+        booking_in_progress: 'text-sky-200',
+        booking_attention: 'text-red-200',
+        offer_expired: 'text-red-200',
+        booked: 'text-emerald-200'
+      };
+      tbody.innerHTML = records.map(booking => {
+        const passengers = (booking.passengers || []).map(passenger =>
+          `<span class="block text-xs">${escapeHtml(`${passenger.title} ${passenger.givenName} ${passenger.familyName}`)}</span><span class="block text-xs text-white/45">${escapeHtml(passenger.type === 'child' ? `Child · age ${passenger.age} · DOB ${passenger.bornOn}` : `Adult · DOB ${passenger.bornOn}`)}</span><span class="block text-xs text-white/45">${escapeHtml(passenger.email)} · ${escapeHtml(passenger.phoneNumber)}</span>`
+        ).join('');
+        const itinerary = (booking.offer?.slices || []).map(slice =>
+          `<span class="block text-xs">${escapeHtml(slice.origin?.code)} → ${escapeHtml(slice.destination?.code)}</span><span class="block text-xs text-white/45">${escapeHtml(slice.departingAt)}</span>`
+        ).join('');
+        let actions = '';
+        if (booking.status === 'awaiting_payment') {
+          actions = `<label class="mb-2 block text-xs text-white/55">Payment reference (optional)<input class="flight-payment-reference mt-1 block w-44 rounded border border-white/15 bg-white px-2 py-1 text-slate-900" maxlength="120" /></label><button type="button" class="confirm-flight-payment rounded bg-gold px-2 py-1 text-xs font-bold text-navy" data-id="${escapeHtml(booking.id)}">Confirm payment</button>`;
+        } else if (booking.status === 'payment_confirmed') {
+          actions = config.enabled
+            ? `<button type="button" class="book-flight-order rounded bg-royal px-2 py-1 text-xs font-bold" data-id="${escapeHtml(booking.id)}">Place Duffel order</button>`
+            : '<span class="text-xs text-white/45">Configure Duffel first</span>';
+        } else if (booking.duffelOrderId && booking.status !== 'booked') {
+          actions = `<button type="button" class="refresh-flight-order rounded bg-white/10 px-2 py-1 text-xs font-bold" data-id="${escapeHtml(booking.id)}">Refresh provider status</button>`;
+        }
+        if (booking.bookingReference) {
+          actions += `<button type="button" class="download-flight-pdf mt-2 block rounded bg-white/10 px-2 py-1 text-xs font-bold" data-id="${escapeHtml(booking.id)}">Download itinerary PDF</button>`;
+        }
+        return `<tr>
+          <td><strong>${escapeHtml(booking.reference)}</strong><br><span class="text-xs text-white/45">${escapeHtml(booking.createdAt ? new Date(booking.createdAt).toLocaleString() : '')}</span><br><span class="text-xs font-bold ${statusClasses[booking.status] || 'text-white/70'}">${escapeHtml(String(booking.status || '').replaceAll('_', ' '))}</span></td>
+          <td>${passengers}</td>
+          <td>${itinerary}</td>
+          <td class="font-bold text-gold">${escapeHtml(booking.offer?.totalCurrency)} ${escapeHtml(booking.offer?.totalAmount)}</td>
+          <td>${booking.paymentConfirmed ? `<span class="text-emerald-200">Verified by ${escapeHtml(booking.paymentConfirmedBy || '')}</span><br><span class="text-xs text-white/45">${escapeHtml(booking.paymentReference || 'No payment reference')}</span>` : '<span class="text-xs text-amber-200">Awaiting verification</span>'}</td>
+          <td>${booking.bookingReference ? `<strong class="text-emerald-200">PNR ${escapeHtml(booking.bookingReference)}</strong><br><span class="text-xs text-white/50">${escapeHtml(booking.bookingStatus || 'Provider confirmed')}</span>${booking.ticketNumbers?.length ? `<br><span class="text-xs text-white/50">E-ticket: ${booking.ticketNumbers.map(escapeHtml).join(', ')}</span>` : ''}` : `<span class="text-xs text-white/50">${escapeHtml(booking.bookingError || 'Not booked')}</span>`}</td>
+          <td><div class="min-w-36 space-y-2">${actions || '<span class="text-xs text-white/40">No action available</span>'}</div></td>
+        </tr>`;
+      }).join('');
+
+      tbody.querySelectorAll('.confirm-flight-payment').forEach(button => button.addEventListener('click', async () => {
+        if (!confirm('Confirm that the customer’s flight payment has been received and verified?')) return;
+        const row = button.closest('tr');
+        const result = await apiCall(`/api/admin/flights/${encodeURIComponent(button.dataset.id)}/payment-confirmation`, {
+          method: 'POST',
+          body: JSON.stringify({ confirmed: true, paymentReference: row.querySelector('.flight-payment-reference').value.trim() })
+        });
+        if (!result?.ok) {
+          setFlightAdminMessage(result?.message || 'Unable to confirm flight payment.', true);
+          return;
+        }
+        setFlightAdminMessage(`Payment verified for ${result.booking.reference}. The booking can now be placed against the Duffel balance.`);
+        await loadFlights();
+      }));
+      tbody.querySelectorAll('.book-flight-order').forEach(button => button.addEventListener('click', async () => {
+        const row = button.closest('tr');
+        const fare = row.querySelector('td:nth-child(4)').textContent.trim();
+        if (!confirm(`This sends a real booking order to Duffel and may charge BisFly’s funded balance (${fare}). Confirm customer payment and booking details before continuing.`)) return;
+        button.disabled = true;
+        button.textContent = 'Booking…';
+        const result = await apiCall(`/api/admin/flights/${encodeURIComponent(button.dataset.id)}/book`, { method: 'POST', body: '{}' });
+        if (!result?.ok) {
+          setFlightAdminMessage(result?.message || 'The provider could not confirm the flight order. Check the provider dashboard before retrying.', true);
+        } else {
+          setFlightAdminMessage(result.booking.bookingReference
+            ? `Provider confirmed the booking. Airline PNR: ${result.booking.bookingReference}. The itinerary PDF is ready.`
+            : result.booking.bookingError || 'Order submitted. Refresh provider status to check for the airline PNR.');
+        }
+        await loadFlights();
+      }));
+      tbody.querySelectorAll('.refresh-flight-order').forEach(button => button.addEventListener('click', async () => {
+        const result = await apiCall(`/api/admin/flights/${encodeURIComponent(button.dataset.id)}/refresh`, { method: 'POST', body: '{}' });
+        if (!result?.ok) setFlightAdminMessage(result?.message || 'Unable to refresh provider status.', true);
+        else setFlightAdminMessage(result.booking.bookingReference
+          ? `Provider confirmation received. Airline PNR: ${result.booking.bookingReference}.`
+          : result.booking.bookingError || 'The provider has not returned a PNR yet.');
+        await loadFlights();
+      }));
+      tbody.querySelectorAll('.download-flight-pdf').forEach(button => button.addEventListener('click', async () => {
+        try {
+          await downloadAuthenticatedFile(`/api/admin/flights/${encodeURIComponent(button.dataset.id)}/pdf`, 'bisfly-flight-itinerary.pdf');
+        } catch (error) {
+          setFlightAdminMessage(error.message || 'Unable to download flight PDF.', true);
+        }
+      }));
+    }
+
+    function setFlightAdminMessage(message, isError = false) {
+      const status = document.getElementById('flightAdminStatus');
+      status.className = `mb-4 rounded-lg p-3 text-sm ${isError ? 'bg-red-500/15 text-red-300' : 'bg-emerald-500/15 text-emerald-200'}`;
+      status.textContent = message;
+    }
+
     async function loadDisclaimers() {
       const records = await apiCall('/api/admin/disclaimers');
       if (!records) return;
@@ -1509,6 +1635,7 @@
       documents: 'Documents',
       clients: 'Client Information',
       disclaimers: 'Disclaimers',
+      flights: 'Flight Bookings',
       'cash-inflows': 'Cash Inflow Report',
       expenses: 'Expenses',
       receipts: 'Payment Receipts',
@@ -1527,7 +1654,7 @@
       if (isSuperAdminRole(user)) return Object.keys(dashboardFeatureLabels);
       const role = normalizedRole(user);
       if (role === 'admin' || role === 'manager') {
-        return ['leads', 'documents', 'clients', 'disclaimers', 'cash-inflows', 'expenses', 'receipts', 'insurance', 'agreements', 'passports', 'partnerships', 'packages'];
+        return ['leads', 'documents', 'clients', 'disclaimers', 'flights', 'cash-inflows', 'expenses', 'receipts', 'insurance', 'agreements', 'passports', 'partnerships', 'packages'];
       }
       return ['leads', 'documents', 'insurance', 'agreements', 'passports', 'partnerships', 'packages'];
     }
@@ -1970,6 +2097,7 @@
           if (tabName === 'documents') await loadDocuments();
           if (tabName === 'clients') await loadClients();
           if (tabName === 'disclaimers') await loadDisclaimers();
+          if (tabName === 'flights') await loadFlights();
           if (tabName === 'cash-inflows') await loadCashInflows();
           if (tabName === 'expenses') await loadExpenses();
           if (tabName === 'receipts') await loadReceipts();
