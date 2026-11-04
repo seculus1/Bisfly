@@ -155,6 +155,9 @@
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="activity">
         <i data-lucide="activity" class="w-5 h-5 inline mr-3"></i>Activity Log
       </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="how-to">
+        <i data-lucide="circle-help" class="w-5 h-5 inline mr-3"></i>How To
+      </button>
       <hr class="my-4 border-white/10" />
       <button class="w-full text-left px-4 py-3 rounded-lg hover:bg-red/20 text-red transition" id="logoutBtn">
         <i data-lucide="log-out" class="w-5 h-5 inline mr-3"></i>Logout
@@ -259,6 +262,147 @@
             Refresh Analytics
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- How To Tab -->
+    <div id="how-to-tab" class="tab-content hidden">
+      <div class="mb-6">
+        <p class="mb-2 text-xs font-black uppercase tracking-[.18em] text-gold">Admin guide</p>
+        <h1 class="text-3xl font-black text-gold sm:text-4xl">How To Use the Dashboard</h1>
+        <p class="mt-2 max-w-4xl text-sm leading-6 text-white/65">Choose a section below for practical steps, required checks, and what each action does. Your assigned role and dashboard access determine which sections and actions you can use.</p>
+      </div>
+
+      <div class="mb-6 rounded-lg border border-gold/20 bg-gold/5 p-4 text-sm leading-6 text-white/75">
+        <strong class="text-gold">Before changing a record:</strong> confirm you have selected the correct client or request, review the details, and use only files and payment information supplied through approved company channels. Use the row's record actions to edit or delete only when your role permits it; Super Admin record edits protect system IDs, audit fields, and uploaded files. Save or download reports to an approved location.
+      </div>
+
+      <div class="space-y-3">
+        <details class="glass rounded-lg border border-white/10 p-4" open>
+          <summary class="cursor-pointer text-lg font-bold text-gold">Dashboard and account</summary>
+          <div class="mt-3 space-y-2 text-sm leading-6 text-white/75">
+            <p><strong class="text-white">Dashboard:</strong> review the summary cards for lead, insurance, agreement, passport, and partnership totals. Use <em>Refresh Analytics</em> to reload counts. Super Admins can use the quick-action buttons to export the listed reports or add a travel package.</p>
+            <p><strong class="text-white">Change password:</strong> open <em>Change Password</em>, enter your current password, choose a new password of at least eight characters, confirm it, and save.</p>
+            <p><strong class="text-white">Sign out:</strong> select <em>Logout</em> when you finish using the dashboard, especially on a shared device.</p>
+          </div>
+        </details>
+
+        <details class="glass rounded-lg border border-white/10 p-4">
+          <summary class="cursor-pointer text-lg font-bold text-gold">Leads</summary>
+          <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-white/75">
+            <li>Open <em>Leads</em> to review contact details, destination, requested service, and submission date.</li>
+            <li>Use the search box to find matching records. Select a sortable column heading to change the order.</li>
+            <li>Use <em>Export PDF</em> to download a leads report. Use the record actions beside a lead to perform the changes available to your account.</li>
+          </ol>
+        </details>
+
+        <details class="glass rounded-lg border border-white/10 p-4">
+          <summary class="cursor-pointer text-lg font-bold text-gold">Documents</summary>
+          <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-white/75">
+            <li>Select <em>Upload document</em> and choose the file. Enter a category and description to make it easier for the team to find.</li>
+            <li>Choose the admin user who should be able to access the file. The uploader and Super Admin can also access it. Check the selected user before uploading; access is restricted to those permitted users.</li>
+            <li>Select <em>Upload</em>, then use search or <em>Refresh</em> to find the file. Use the row action to download it. Follow the file types and 15 MB maximum shown by the uploader.</li>
+          </ol>
+        </details>
+
+        <details class="glass rounded-lg border border-white/10 p-4">
+          <summary class="cursor-pointer text-lg font-bold text-gold">Client Information and receipts</summary>
+          <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-white/75">
+            <li>Complete the client's name, contact details, date of birth, address, package, balance after visa approval, and progress status.</li>
+            <li>For one initial payment, choose <em>Full initial payment</em> and enter the amount and payment date. For installments, choose <em>Installments</em>, enter each amount and date, and tick the confirmation only after the full initial deposit has actually been received.</li>
+            <li>If setting progress to <em>Submitted</em>, attach the filled visa application and both supporting documents. Signed disclaimer and agreement files can also be attached to the record.</li>
+            <li>Select <em>Create client record</em>. The payment receipt is initialized from the saved payment. An incomplete installment deposit remains pending; a completed deposit is sent for Super Admin approval. Only a Super Admin can approve a receipt before it is released for download/email.</li>
+            <li>Use the client row to review or update details and progress. Changing the amount paid is limited to Managers and Super Admins; installment totals come from the payment schedule. Download a formatted PDF with <em>Download client report</em>.</li>
+          </ol>
+        </details>
+
+        <details class="glass rounded-lg border border-white/10 p-4">
+          <summary class="cursor-pointer text-lg font-bold text-gold">Disclaimers and Agreements</summary>
+          <div class="mt-3 space-y-3 text-sm leading-6 text-white/75">
+            <div>
+              <p class="font-bold text-white">Disclaimers</p>
+              <ol class="mt-1 list-decimal space-y-1 pl-5">
+                <li>Enter the client's name, gender, phone, email, and address. If another person is included, select the relationship and enter their name.</li>
+                <li>Download the signature-ready disclaimer, have the client sign it, then return to the form and upload the signed PDF or image.</li>
+                <li>Select <em>Save signed disclaimer</em>. Use the table to review or download the saved file and the record actions available to your account.</li>
+              </ol>
+            </div>
+            <div>
+              <p class="font-bold text-white">Agreements</p>
+              <ol class="mt-1 list-decimal space-y-1 pl-5">
+                <li>Super Admins can select <em>Generate Agreement</em> and complete the client's contact and date-of-birth details, package, total, deposit, balance, and relevant dates.</li>
+                <li>Generate and download the PDF, have the client review and sign it, then upload the signed agreement in the Client Information form so it stays with the client record.</li>
+                <li>Use the status filter and sortable columns to find agreements. Super Admins can approve pending agreements; use the row actions to download or manage records where permitted.</li>
+              </ol>
+            </div>
+          </div>
+        </details>
+
+        <details class="glass rounded-lg border border-white/10 p-4">
+          <summary class="cursor-pointer text-lg font-bold text-gold">Flight Bookings</summary>
+          <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-white/75">
+            <li>Review the customer's route, dates, passenger names, supplier fare, and booking status.</li>
+            <li>Independently verify the customer's payment, then select <em>Confirm payment</em>. Do not confirm from a customer claim alone.</li>
+            <li>After confirmation, select <em>Place Duffel order</em> only when the fare and company-funded provider balance are approved. This action may charge the Duffel balance. The provider must return the actual booking reference before it is shown as a confirmed PNR.</li>
+            <li>If the provider response is uncertain, use <em>Refresh provider status</em> or reconcile in the provider account before retrying. Download the itinerary only after a provider booking reference exists.</li>
+            <li>Live search and booking require a valid server-side <code>DUFFEL_ACCESS_TOKEN</code> and a funded/authorized Duffel account. Never enter the token in this dashboard or send it to a customer.</li>
+          </ol>
+        </details>
+
+        <details class="glass rounded-lg border border-white/10 p-4">
+          <summary class="cursor-pointer text-lg font-bold text-gold">Cash Inflow Report and Expenses</summary>
+          <div class="mt-3 space-y-3 text-sm leading-6 text-white/75">
+            <div>
+              <p class="font-bold text-white">Cash Inflow Report</p>
+              <p>Choose the start and end dates, then select <em>Generate report</em>. Review the included client payments and total received; select <em>Download PDF report</em> to save the formatted report for that date range.</p>
+            </div>
+            <div>
+              <p class="font-bold text-white">Expenses</p>
+              <p>Your admin name is filled automatically. Enter the expense date, amount, and purpose, then select <em>Record expense</em>. Set the optional start/end dates and select <em>Download expense report</em> to export the report. Review entries before recording because expense values are financial records.</p>
+            </div>
+          </div>
+        </details>
+
+        <details class="glass rounded-lg border border-white/10 p-4">
+          <summary class="cursor-pointer text-lg font-bold text-gold">Insurance, Passports, and Partnerships</summary>
+          <div class="mt-3 space-y-3 text-sm leading-6 text-white/75">
+            <div>
+              <p class="font-bold text-white">Insurance</p>
+              <p>Use the status filter to view all applications, pending applications, or approved applications. Review the applicant details and attached document, then use the row action available to update or download the record. Select <em>Export PDF</em> for a report.</p>
+            </div>
+            <div>
+              <p class="font-bold text-white">Passports</p>
+              <p>Filter requests by pending or approved, review the applicant and request type, and use the row actions to process or download documents. Select <em>Export PDF</em> to download the report.</p>
+            </div>
+            <div>
+              <p class="font-bold text-white">Partnerships</p>
+              <p>Search by the available company and contact details, review the partnership type and status, and use the row actions to manage the inquiry. Select <em>Export PDF</em> to download the report.</p>
+            </div>
+          </div>
+        </details>
+
+        <details class="glass rounded-lg border border-white/10 p-4">
+          <summary class="cursor-pointer text-lg font-bold text-gold">Packages</summary>
+          <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-white/75">
+            <li>Super Admins can select <em>Add Package</em>, provide a title and description, and optionally add a price, duration, comma-separated highlights, and JPG/PNG image.</li>
+            <li>Select <em>Create</em> to publish the package. Super Admins can use each package card's <em>Edit</em> or <em>Delete</em> action; review the target card before confirming a deletion.</li>
+            <li>Select <em>Export PDF</em> to download the package report. Package creation and management controls may be restricted by role.</li>
+          </ol>
+        </details>
+
+        <details class="glass rounded-lg border border-white/10 p-4">
+          <summary class="cursor-pointer text-lg font-bold text-gold">Users, access, and Activity Log</summary>
+          <div class="mt-3 space-y-3 text-sm leading-6 text-white/75">
+            <div>
+              <p class="font-bold text-white">Users (Super Admin only)</p>
+              <p>Select <em>Add User</em> to create an admin login and assign a role. For standard admin accounts, select the dashboard features they may use and choose <em>Save access</em>. Use <em>Save role</em> to change a role, <em>Reset password</em> when needed, and <em>Delete</em> to remove a user. Super Admin accounts and your own account are protected; verify the target username before saving or deleting.</p>
+            </div>
+            <div>
+              <p class="font-bold text-white">Activity Log</p>
+              <p>Open the log to review recorded actions, the account that performed them, and timestamps. Select <em>Refresh</em> to load the latest entries. Access to this section depends on the features assigned to your account.</p>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
 
@@ -1667,7 +1811,7 @@
         : (Array.isArray(currentUser.dashboardFeatures) ? currentUser.dashboardFeatures : defaultFeatures)
           .filter(feature => grantableDashboardFeatures.includes(feature));
       document.querySelectorAll('.sidebar-item[data-tab]').forEach(button => {
-        button.classList.toggle('hidden', !allowedTabs.includes(button.dataset.tab));
+        button.classList.toggle('hidden', button.dataset.tab !== 'how-to' && !allowedTabs.includes(button.dataset.tab));
       });
       if (!isSuperAdmin) {
         document.getElementById('changePasswordBtn').classList.add('hidden');
