@@ -2171,7 +2171,7 @@ const server = http.createServer(async (request, response) => {
               slices,
               passengers: [
                 ...Array.from({ length: search.passengerCount }, () => ({ type: "adult" })),
-                ...search.childAges.map(age => ({ type: "child", age }))
+                ...search.childAges.map(age => ({ age }))
               ],
               cabin_class: search.cabinClass
             }
