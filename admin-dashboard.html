@@ -128,6 +128,9 @@
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="cash-inflows">
         <i data-lucide="trending-up" class="w-5 h-5 inline mr-3"></i>Cash Inflow Report
       </button>
+      <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="account-balance">
+        <i data-lucide="scale" class="w-5 h-5 inline mr-3"></i>Account Balance Report
+      </button>
       <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition" data-tab="expenses">
         <i data-lucide="receipt" class="w-5 h-5 inline mr-3"></i>Expenses
       </button>
@@ -360,6 +363,10 @@
               <p class="font-bold text-white">Expenses</p>
               <p>Your admin name is filled automatically. Enter the expense date, amount, and purpose, then select <em>Record expense</em>. Set the optional start/end dates and select <em>Download expense report</em> to export the report. Review entries before recording because expense values are financial records.</p>
             </div>
+            <div>
+              <p class="font-bold text-white">Account Balance Report (Super Admin only)</p>
+              <p>Select both dates and preview the total recorded client payments, expenses, and net cash movement. Download the PDF for a detailed report. The net is for the selected period only; it is not a bank statement or closing balance and excludes any opening balance or transactions not entered in the dashboard.</p>
+            </div>
           </div>
         </details>
 
@@ -537,6 +544,29 @@
       </div>
       <div id="cashInflowStatus" class="mb-4 hidden rounded-lg p-3 text-sm" role="status" aria-live="polite"></div>
       <div class="glass overflow-x-auto rounded-lg border border-white/10"><table class="admin-data-table"><thead><tr><th>Payment date</th><th>Client name</th><th>Amount paid</th><th>Package</th><th>Phone number</th></tr></thead><tbody id="cashInflowsTable"><tr><td colspan="5" class="py-8 text-center text-white/60">Choose a date range or generate the report to view payments.</td></tr></tbody></table></div>
+    </div>
+
+    <!-- Account Balance Report Tab (Super Admin only) -->
+    <div id="account-balance-tab" class="tab-content hidden">
+      <div class="mb-6">
+        <h1 class="text-3xl font-black text-gold">Account Balance Report</h1>
+        <p class="mt-1 text-sm text-white/60">Review the net cash movement for a selected period: recorded client payments minus recorded expenses.</p>
+      </div>
+      <div class="mb-6 rounded-lg border border-amber-300/25 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100">
+        This report summarizes entries recorded in BisFly's client-payment and expense dashboards. It is not a bank statement and does not include an opening balance, bank fees, or transactions not recorded in the app.
+      </div>
+      <form id="accountBalanceForm" class="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+        <label class="grid gap-1 text-sm text-white/70">From date<input id="accountBalanceFrom" name="from" type="date" required class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <label class="grid gap-1 text-sm text-white/70">To date<input id="accountBalanceTo" name="to" type="date" required class="rounded border border-white/15 bg-white px-3 py-2 text-slate-900" /></label>
+        <button id="previewAccountBalanceBtn" type="submit" class="rounded bg-royal px-4 py-2 font-bold text-white">Preview totals</button>
+        <button id="downloadAccountBalanceReportBtn" type="button" class="rounded bg-gold px-4 py-2 font-bold text-navy hover:bg-white">Download PDF report</button>
+      </form>
+      <div id="accountBalanceStatus" class="mb-4 hidden rounded-lg p-3 text-sm" role="status" aria-live="polite"></div>
+      <div id="accountBalanceSummary" class="hidden grid gap-4 sm:grid-cols-3">
+        <div class="glass rounded-lg border border-white/10 p-5"><p class="text-sm text-white/60">Cash inflows</p><p id="accountBalanceInflows" class="mt-2 text-2xl font-black text-emerald-300">NGN 0.00</p><p id="accountBalanceInflowCount" class="mt-1 text-xs text-white/50">0 payments</p></div>
+        <div class="glass rounded-lg border border-white/10 p-5"><p class="text-sm text-white/60">Expenses</p><p id="accountBalanceExpenses" class="mt-2 text-2xl font-black text-red-300">NGN 0.00</p><p id="accountBalanceExpenseCount" class="mt-1 text-xs text-white/50">0 expenses</p></div>
+        <div class="glass rounded-lg border border-gold/30 bg-gold/5 p-5"><p class="text-sm text-white/60">Net cash movement</p><p id="accountBalanceNet" class="mt-2 text-2xl font-black text-gold">NGN 0.00</p><p class="mt-1 text-xs text-white/50">Inflows minus expenses for selected dates</p></div>
+      </div>
     </div>
 
     <!-- Expenses Tab -->
@@ -1590,8 +1620,33 @@
       document.getElementById('cashInflowTotal').textContent = `NGN ${Number(result.amountTotal || 0).toLocaleString('en-NG')}`;
       const tbody = document.getElementById('cashInflowsTable');
       tbody.innerHTML = result.records.length ? result.records.map(record => `
-        <tr><td>${escapeHtml(record.paymentDate)}</td><td>${escapeHtml(record.fullName)}</td><td>NGN ${Number(record.amountPaid || 0).toLocaleString('en-NG')}</td><td>${escapeHtml(record.packageType)}</td><td>${escapeHtml(record.phone)}</td></tr>
+        <tr><td>${escapeHtml(record.paymentDate)}</td><td>${escapeHtml(record.fullName)}</td><td>NGN ${Number(record.amount || 0).toLocaleString('en-NG')}</td><td>${escapeHtml(record.packageType)}</td><td>${escapeHtml(record.phone)}</td></tr>
       `).join('') : '<tr><td colspan="5" class="py-8 text-center text-white/60">No payments found for this date range.</td></tr>';
+    }
+
+    async function previewAccountBalance() {
+      const from = document.getElementById('accountBalanceFrom').value;
+      const to = document.getElementById('accountBalanceTo').value;
+      if (!from || !to || from > to) {
+        setFormMessage('accountBalanceStatus', 'Choose valid start and end dates, with the start date on or before the end date.', true);
+        return;
+      }
+
+      const query = new URLSearchParams({ from, to });
+      const result = await apiCall(`/api/admin/account-balance?${query}`);
+      if (!result) return;
+      if (result.ok === false || !Number.isFinite(Number(result.netBalance))) {
+        setFormMessage('accountBalanceStatus', result.message || 'Unable to load account balance totals.', true);
+        return;
+      }
+
+      document.getElementById('accountBalanceInflows').textContent = formatCurrency(result.totalInflows);
+      document.getElementById('accountBalanceExpenses').textContent = formatCurrency(result.totalExpenses);
+      document.getElementById('accountBalanceNet').textContent = formatCurrency(result.netBalance);
+      document.getElementById('accountBalanceInflowCount').textContent = `${result.inflowCount} payment${result.inflowCount === 1 ? '' : 's'}`;
+      document.getElementById('accountBalanceExpenseCount').textContent = `${result.expenseCount} expense${result.expenseCount === 1 ? '' : 's'}`;
+      document.getElementById('accountBalanceSummary').classList.remove('hidden');
+      setFormMessage('accountBalanceStatus', 'Totals updated for the selected period.', false);
     }
 
     async function loadExpenses() {
@@ -1781,6 +1836,7 @@
       disclaimers: 'Disclaimers',
       flights: 'Flight Bookings',
       'cash-inflows': 'Cash Inflow Report',
+      'account-balance': 'Account Balance Report',
       expenses: 'Expenses',
       receipts: 'Payment Receipts',
       insurance: 'Insurance',
@@ -1792,7 +1848,7 @@
       activity: 'Activity Log'
     };
     const grantableDashboardFeatures = Object.keys(dashboardFeatureLabels)
-      .filter(feature => feature !== 'users');
+      .filter(feature => !['users', 'account-balance'].includes(feature));
 
     function roleDashboardFeatures(user) {
       if (isSuperAdminRole(user)) return Object.keys(dashboardFeatureLabels);
@@ -2642,6 +2698,24 @@
         }
       });
       document.getElementById('filterCashInflowsBtn').addEventListener('click', loadCashInflows);
+      document.getElementById('accountBalanceForm').addEventListener('submit', event => {
+        event.preventDefault();
+        previewAccountBalance();
+      });
+      document.getElementById('downloadAccountBalanceReportBtn').addEventListener('click', async () => {
+        const from = document.getElementById('accountBalanceFrom').value;
+        const to = document.getElementById('accountBalanceTo').value;
+        if (!from || !to || from > to) {
+          setFormMessage('accountBalanceStatus', 'Choose valid start and end dates, with the start date on or before the end date.', true);
+          return;
+        }
+        const query = new URLSearchParams({ from, to });
+        try {
+          await downloadAuthenticatedFile(`/api/admin/account-balance/report?${query}`, 'bisfly-account-balance-report.pdf');
+        } catch (error) {
+          setFormMessage('accountBalanceStatus', error.message, true);
+        }
+      });
       document.getElementById('downloadCashInflowReportBtn').addEventListener('click', async () => {
         const query = new URLSearchParams();
         const from = document.getElementById('cashInflowFrom').value;

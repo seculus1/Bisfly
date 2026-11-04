@@ -776,6 +776,38 @@ function writeJsonArray(filePath, records) {
   fs.renameSync(temporaryFile, filePath);
 }
 
+function getClientCashInflows(from = "", to = "") {
+  return readJsonArray(clientsFile).flatMap(client => {
+    const schedule = Array.isArray(client.paymentSchedule) && client.paymentSchedule.length
+      ? client.paymentSchedule
+      : [{ amount: client.amountPaid, paymentDate: client.paymentDate }];
+    return schedule.flatMap((payment, index) => {
+      const paymentDate = String(payment.paymentDate || "");
+      const amount = Number(payment.amount);
+      if (!validateDateOnly(paymentDate) || !Number.isFinite(amount) || amount <= 0) {
+        throw new Error(`Invalid payment schedule entry for ${client.fullName || "a client"}.`);
+      }
+      if (from && paymentDate < from || to && paymentDate > to) return [];
+      return [{
+        paymentDate: payment.paymentDate,
+        fullName: client.fullName || "Client",
+        amount,
+        packageType: client.packageType || "",
+        phone: client.phone || "",
+        installmentNumber: schedule.length > 1 ? index + 1 : null
+      }];
+    });
+  }).sort((first, second) => first.paymentDate.localeCompare(second.paymentDate) || first.fullName.localeCompare(second.fullName));
+}
+
+function sumMoneyCents(records, field) {
+  return records.reduce((sum, record) => {
+    const amount = Number(record[field] || 0);
+    if (!Number.isFinite(amount)) throw new Error(`Invalid financial amount in ${field}.`);
+    return sum + Math.round(amount * 100);
+  }, 0);
+}
+
 const submittedRecordCollections = {
   leads: { read: readLeads, write: writeLeads },
   insurance: { read: readInsurance, write: writeInsurance, files: ["documentFile"] },
@@ -1779,7 +1811,7 @@ function normalizeAdminRole(role) {
 
 const DASHBOARD_FEATURES = [
   "dashboard", "leads", "documents", "clients", "disclaimers", "flights", "cash-inflows",
-  "expenses", "receipts", "insurance", "agreements", "passports", "partnerships", "packages",
+  "account-balance", "expenses", "receipts", "insurance", "agreements", "passports", "partnerships", "packages",
   "users", "activity"
 ];
 const ADMIN_DASHBOARD_FEATURES = [
@@ -1789,7 +1821,7 @@ const ADMIN_DASHBOARD_FEATURES = [
 const SUPPORT_DASHBOARD_FEATURES = [
   "leads", "documents", "insurance", "agreements", "passports", "partnerships", "packages"
 ];
-const SUPER_ADMIN_ONLY_DASHBOARD_FEATURES = new Set(["users"]);
+const SUPER_ADMIN_ONLY_DASHBOARD_FEATURES = new Set(["users", "account-balance"]);
 const GRANTABLE_DASHBOARD_FEATURES = DASHBOARD_FEATURES.filter(
   feature => !SUPER_ADMIN_ONLY_DASHBOARD_FEATURES.has(feature)
 );
@@ -1834,6 +1866,7 @@ function dashboardFeatureForRequest(pathname) {
     [/^\/api\/admin\/disclaimers(?:\/|$)/, "disclaimers"],
     [/^\/api\/admin\/flights(?:\/|$)/, "flights"],
     [/^\/api\/admin\/cash-inflows(?:\/|$)/, "cash-inflows"],
+    [/^\/api\/admin\/account-balance(?:\/|$)/, "account-balance"],
     [/^\/api\/(?:bank-inflows|admin\/bank-inflows)(?:\/|$)/, "cash-inflows"],
     [/^\/api\/admin\/expenses(?:\/|$)/, "expenses"],
     [/^\/api\/admin\/receipts(?:\/|$)/, "receipts"],
@@ -3580,8 +3613,8 @@ const server = http.createServer(async (request, response) => {
       if (from && !validateDateOnly(from) || to && !validateDateOnly(to) || from && to && from > to) {
         return send(response, 400, { ok: false, message: "Enter a valid date range." });
       }
-      const records = readJsonArray(clientsFile).filter(record => (!from || record.paymentDate >= from) && (!to || record.paymentDate <= to));
-      const amountTotal = records.reduce((sum, record) => sum + Number(record.amountPaid || 0), 0);
+      const records = getClientCashInflows(from, to);
+      const amountTotal = sumMoneyCents(records, "amount") / 100;
       return send(response, 200, { records, amountTotal });
     }
 
@@ -3593,18 +3626,96 @@ const server = http.createServer(async (request, response) => {
       if (from && !validateDateOnly(from) || to && !validateDateOnly(to) || from && to && from > to) {
         return send(response, 400, { ok: false, message: "Enter a valid date range." });
       }
-      const records = readJsonArray(clientsFile).filter(record => (!from || record.paymentDate >= from) && (!to || record.paymentDate <= to));
+      const records = getClientCashInflows(from, to);
       const rows = records.map(record => ({
         "Payment date": record.paymentDate,
         "Client name": record.fullName,
-        "Amount paid": `NGN ${Number(record.amountPaid || 0).toLocaleString("en-NG")}`,
+        "Installment": record.installmentNumber ? `${record.installmentNumber}` : "Full payment",
+        "Amount paid": `NGN ${record.amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         "Package": record.packageType,
         "Phone": record.phone
       }));
-      const total = records.reduce((sum, record) => sum + Number(record.amountPaid || 0), 0);
+      const total = sumMoneyCents(records, "amount") / 100;
       const period = `${from || "All dates"} to ${to || "Present"}`;
-      const pdf = await generateReportPdf("BisFly Limited - Cash Inflow Report", `Payment date range: ${period} | ${records.length} payment(s)`, Object.keys(rows[0] || { "Payment date": "", "Client name": "", "Amount paid": "", "Package": "", "Phone": "" }), rows, "TOTAL AMOUNT RECEIVED", `NGN ${total.toLocaleString("en-NG")}`);
+      const pdf = await generateReportPdf("BisFly Limited - Cash Inflow Report", `Payment date range: ${period} | ${records.length} payment(s)`, Object.keys(rows[0] || { "Payment date": "", "Client name": "", "Installment": "", "Amount paid": "", "Package": "", "Phone": "" }), rows, "TOTAL AMOUNT RECEIVED", `NGN ${total.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
       response.setHeader("Content-Disposition", `attachment; filename="bisfly-cash-inflow-${from || "all"}-${to || "present"}.pdf"`);
+      return send(response, 200, pdf, "application/pdf");
+    }
+
+    const accountBalanceRoute = parsedUrl.pathname.match(/^\/api\/admin\/account-balance(?:\/(report))?$/);
+    if (accountBalanceRoute && request.method === "GET") {
+      const session = validateSession(request.headers.authorization?.replace("Bearer ", ""));
+      if (!requireSuperAdmin(response, session)) return;
+      const from = parsedUrl.searchParams.get("from") || "";
+      const to = parsedUrl.searchParams.get("to") || "";
+      if (!validateDateOnly(from) || !validateDateOnly(to) || from > to) {
+        return send(response, 400, { ok: false, message: "Choose a valid start and end date, with the start date on or before the end date." });
+      }
+
+      const inflows = getClientCashInflows(from, to);
+      const expenses = readJsonArray(expensesFile)
+        .filter(record => record.expenseDate >= from && record.expenseDate <= to)
+        .map(record => ({
+          expenseDate: record.expenseDate,
+          adminName: record.adminName || "",
+          purpose: record.purpose || "",
+          amount: Number(record.amount)
+        }));
+      if (expenses.some(record => !validateDateOnly(record.expenseDate) || !Number.isFinite(record.amount) || record.amount <= 0)) {
+        throw new Error("An expense record in the selected date range contains invalid financial data.");
+      }
+
+      const inflowCents = sumMoneyCents(inflows, "amount");
+      const expenseCents = sumMoneyCents(expenses, "amount");
+      const netBalanceCents = inflowCents - expenseCents;
+      if (!accountBalanceRoute[1]) {
+        return send(response, 200, {
+          from,
+          to,
+          totalInflows: inflowCents / 100,
+          totalExpenses: expenseCents / 100,
+          netBalance: netBalanceCents / 100,
+          inflowCount: inflows.length,
+          expenseCount: expenses.length
+        });
+      }
+
+      const transactions = [
+        ...inflows.map(record => ({
+          date: record.paymentDate,
+          type: "Cash inflow",
+          description: `${record.fullName}${record.packageType ? ` · ${record.packageType}` : ""}${record.installmentNumber ? ` · Installment ${record.installmentNumber}` : " · Full payment"}`,
+          amount: record.amount
+        })),
+        ...expenses.map(record => ({
+          date: record.expenseDate,
+          type: "Expense",
+          description: `${record.purpose} · ${record.adminName}`,
+          amount: record.amount
+        }))
+      ].sort((first, second) => first.date.localeCompare(second.date) || first.type.localeCompare(second.type));
+      const rows = transactions.map(transaction => {
+        const inflow = transaction.type === "Cash inflow" ? transaction.amount : 0;
+        const expense = transaction.type === "Expense" ? transaction.amount : 0;
+        return {
+          "Date": transaction.date,
+          "Type": transaction.type,
+          "Description": transaction.description,
+          "Cash in (NGN)": inflow ? `NGN ${inflow.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
+          "Expenses (NGN)": expense ? `NGN ${expense.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
+          "Net movement (NGN)": `${expense ? "−" : "+"}NGN ${Math.abs(inflow - expense).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        };
+      });
+      const summary = `Period: ${from} to ${to} | Cash inflows: NGN ${(inflowCents / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Expenses: NGN ${(expenseCents / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Net cash movement: NGN ${(netBalanceCents / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | ${inflows.length} payment(s), ${expenses.length} expense(s). This report is not a bank statement or closing account balance.`;
+      const pdf = await generateReportPdf(
+        "BisFly Limited - Account Balance Report",
+        summary,
+        Object.keys(rows[0] || { "Date": "", "Type": "", "Description": "", "Cash in (NGN)": "", "Expenses (NGN)": "", "Net movement (NGN)": "" }),
+        rows,
+        "NET CASH MOVEMENT FOR SELECTED PERIOD",
+        `NGN ${(netBalanceCents / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      );
+      response.setHeader("Content-Disposition", `attachment; filename="bisfly-account-balance-${from}-${to}.pdf"`);
       return send(response, 200, pdf, "application/pdf");
     }
 

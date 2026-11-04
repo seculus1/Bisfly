@@ -715,8 +715,13 @@ Flight search and customer request endpoints are public. Duffel requests are mad
 - `GET /api/admin/disclaimers/:id/template` — Download a saved disclaimer PDF.
 
 ### Cash inflow report
-- `GET /api/admin/cash-inflows?from=YYYY-MM-DD&to=YYYY-MM-DD` — Return client payment rows and the total amount received for the optional payment-date range.
-- `GET /api/admin/cash-inflows/report?from=YYYY-MM-DD&to=YYYY-MM-DD` — Download the matching PDF report, including client name, paid amount, package, phone number, and total.
+- `GET /api/admin/cash-inflows?from=YYYY-MM-DD&to=YYYY-MM-DD` — Return client payment rows and the total amount received for the optional payment-date range. Installment payments are listed individually using each installment's payment date; legacy clients without a payment schedule use their recorded amount and payment date.
+- `GET /api/admin/cash-inflows/report?from=YYYY-MM-DD&to=YYYY-MM-DD` — Download the matching PDF report, including client name, installment, paid amount, package, phone number, and total.
+
+### Account balance report (Super Admin only)
+- `GET /api/admin/account-balance?from=YYYY-MM-DD&to=YYYY-MM-DD` — Return the selected-period totals: `totalInflows`, `totalExpenses`, `netBalance` (inflows minus expenses), and the number of payments and expenses. Both dates are required, and `from` must be on or before `to`.
+- `GET /api/admin/account-balance/report?from=YYYY-MM-DD&to=YYYY-MM-DD` — Download the itemized PDF with client payments and expenses for the selected period, totals, and net cash movement.
+- This is a period movement report, not a bank statement or actual closing balance; it has no opening balance and cannot include transactions not recorded in BisFly's client-payment or expense records. Access is restricted to Super Admin both in the dashboard and on the server.
 
 ### Expenses
 - `GET /api/admin/expenses` — List recorded expenses.
